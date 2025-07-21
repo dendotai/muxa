@@ -530,9 +530,33 @@ MUXA_DEBUG=1 muxa -s backend dev
 # Shows: workspace resolution, command transformation, mprocs args
 ```
 
+### Workspace Discovery
+
+The `muxa workspaces` command lists all detected workspaces in your monorepo:
+
+```bash
+muxa workspaces
+
+# Example output:
+Found 5 workspaces (using npm workspaces):
+  .                    /Users/dev/myproject
+  @myapp/frontend      packages/frontend
+  @myapp/backend       packages/backend  
+  shared               packages/shared
+  mobile               apps/mobile
+```
+
+**Command behavior**:
+- Detects package manager and workspace configuration
+- Shows package name and relative path for each workspace
+- Exits with error if not in a monorepo
+- Useful for debugging workspace resolution issues
+
+**Aliases**: `muxa ws` (shorter form)
+
 ### Common Issues
 
-- **"Package not found"**: Check you're in monorepo root
+- **"Package not found"**: Run `muxa workspaces` to see available packages
 - **"Script not found"**: Use -c instead of -s for arbitrary commands
 - **No colors**: mprocs or terminal might not support colors
 
