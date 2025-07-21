@@ -37,7 +37,7 @@ Muxa makes running multiple processes in monorepos delightfully simple. It's bui
 ## Command Syntax
 
 > [!NOTE]  
-> **Argument Parsing**: The multi-argument flag pattern (e.g., `-s backend dev api`) is uncommon in CLIs, but provides the cleanest syntax for our use case. Alternative approaches like colon-delimited strings would be ugly with complex commands (e.g., `-w "mobile:npx expo start --tunnel:expo"`). This "2D array" pattern requires custom parsing, which is why we implement our own parser instead of using commander or similar frameworks. Additionally, this design avoids nested quotes, making commands cleaner and easier to type in the terminal.
+> **Argument Parsing**: The multi-argument flag pattern (e.g., `-s backend dev api`) is uncommon in CLIs, but provides the cleanest syntax for our use case. Alternative approaches like colon-delimited strings would be ugly with complex commands (e.g., `-w "mobile:npx expo start --tunnel:expo"`). This "2D array" pattern requires custom parsing, which is why we implement our own parser instead of using commander or similar frameworks. Additionally, this design reduces the need for nested quotes, making commands cleaner and easier to type in the terminal.
 
 #### 2D Array Structure
 
