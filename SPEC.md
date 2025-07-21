@@ -50,7 +50,7 @@ When no custom name is provided:
 > [!IMPORTANT]  
 > The `-c`, `-s`, and `-w` flags use an uncommon multi-argument pattern. Each flag consumes multiple space-separated arguments, not just the immediately following one. For example, in `muxa -w mobile 'npx expo start'`, both `mobile` AND `'npx expo start'` are arguments to the `-w` flag, not separate commands.
 
-### -c (arbitrary Commands)
+### -c: arbitrary Commands
 
 Runs arbitrary commands without workspace context:
 
@@ -69,7 +69,7 @@ Use -c when you need to:
 - Execute one-off commands or scripts
 - Run commands that don't belong to a specific workspace
 
-### -s (Scripts)
+### -s: Scripts
 
 Runs package.json scripts from workspace packages:
 
@@ -83,7 +83,7 @@ muxa -s ./packages/backend dev      # Use relative path
 muxa -s backend dev api             # With custom display name
 ```
 
-### -w (commands in Workspace)
+### -w: commands in Workspace
 
 Runs arbitrary commands in workspace context:
 
