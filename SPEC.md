@@ -2,11 +2,11 @@
 
 ## Overview
 
-Muxa is an npm package that wraps `mprocs` terminal multiplexer with a `concurrently`-like interface, solving monorepo development issues with running multiple processes.
+Muxa is an npm package that wraps `mprocs` terminal multiplexer with a `concurrently`-inspired interface, solving monorepo development issues with running multiple processes.
 
-**Problem**: `concurrently` loses interactive features (Expo QR codes, Vite shortcuts) and has output formatting issues. `mprocs` requires complex CLI syntax or config files.
+**Problem**: `concurrently` loses interactive features (Expo QR codes, Vite shortcuts) and has output formatting issues. `mprocs` requires verbose CLI syntax or config files.
 
-**Solution**: Simple CLI that combines concurrently's ease-of-use with mprocs' superior output handling.
+**Solution**: Simple CLI with concurrently's ease-of-use (but even more concise) and mprocs' superior output handling.
 
 ## Command Syntax
 
@@ -69,7 +69,7 @@ Use -c when you need to:
 - Execute one-off commands or scripts
 - Run commands that don't belong to a specific workspace
 
-### -s: Scripts
+### -s: Scripts in workspace
 
 Runs package.json scripts from workspace packages:
 
@@ -198,7 +198,7 @@ Error: Cannot mix unnamed and named arguments
 **Dependencies**: `mprocs` only (no CLI framework needed)
 
 > [!NOTE]  
-> **Argument Parsing**: The multi-argument flag pattern (e.g., `-s backend dev api`) is uncommon in CLIs, but provides the cleanest syntax for our use case. Alternative approaches like colon-delimited strings would be ugly with complex commands (e.g., `-w "mobile:npx expo start --tunnel:expo"`). This "2D array" pattern requires custom parsing, which is why we implement our own parser instead of using commander or similar frameworks.
+> **Argument Parsing**: The multi-argument flag pattern (e.g., `-s backend dev api`) is uncommon in CLIs, but provides the cleanest syntax for our use case. Alternative approaches like colon-delimited strings would be ugly with complex commands (e.g., `-w "mobile:npx expo start --tunnel:expo"`). This "2D array" pattern requires custom parsing, which is why we implement our own parser instead of using commander or similar frameworks. Additionally, this design avoids nested quotes, making commands cleaner and easier to type in the terminal.
 
 ## Success Criteria
 
