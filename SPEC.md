@@ -47,7 +47,7 @@ Muxa makes running multiple processes in monorepos delightfully simple. It's bui
 muxa -c 'npm run dev' api -c 'npm test' test
 ```
 
-| Flag | Command | Name (optional) |
+| Flag | Command | Tab name (optional) |
 |------|---------|-----------------|
 | -c | 'npm run dev' | api |
 | -c | 'npm test' | test |
@@ -58,7 +58,7 @@ muxa -c 'npm run dev' api -c 'npm test' test
 muxa -s backend dev api -s frontend start web -s . build
 ```
 
-| Flag | Package | Script | Name (optional) |
+| Flag | Package | Script | Tab name (optional) |
 |------|---------|--------|-----------------|
 | -s | backend | dev | api |
 | -s | frontend | start | web |
@@ -70,7 +70,7 @@ muxa -s backend dev api -s frontend start web -s . build
 muxa -w mobile 'npx expo start' expo -w backend 'cargo run'
 ```
 
-| Flag | Package | Command | Name (optional) |
+| Flag | Package | Command | Tab name (optional) |
 |------|---------|---------|-----------------|
 | -w | mobile | 'npx expo start' | expo |
 | -w | backend | 'cargo run' | |
@@ -81,7 +81,7 @@ muxa -w mobile 'npx expo start' expo -w backend 'cargo run'
 muxa -s backend dev api -w mobile 'npx expo start' expo -c 'docker-compose up' db
 ```
 
-| Flag | Package | Script/Command | Name (optional) (optional) |
+| Flag | Package | Script/Command | Tab name (optional) |
 |------|-------|-------|------------------|
 | -s | backend | dev | api |
 | -w | mobile | 'npx expo start' | expo |
