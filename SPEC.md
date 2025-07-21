@@ -42,21 +42,25 @@ When no custom name is provided:
 - **-s flag**: `<package>:<script>` format (e.g., `backend:dev`)
 - **-w flag**: `<package>` name (e.g., `mobile`)
 
-**Note**: These defaults are chosen to reduce confusion and optimize tab length. If you're unhappy with the automatic names, simply provide your own custom names for better clarity.
+> [!NOTE]  
+> These defaults are chosen to reduce confusion and optimize tab length. If you're unhappy with the automatic names, simply provide your own custom ones. There was *some* thought put into the default names.
 
 ## Command Flags
+
+> [!IMPORTANT]  
+> The `-c`, `-s`, and `-w` flags use an uncommon multi-argument pattern. Each flag consumes multiple space-separated arguments, not just the immediately following one. For example, in `muxa -w mobile 'npx expo start'`, both `mobile` AND `'npx expo start'` are arguments to the `-w` flag, not separate commands.
 
 ### -c Flag (Arbitrary Commands)
 
 Runs arbitrary commands without workspace context:
 
 ```bash
-muxa -c <command> [name]            # Required format
+muxa -c <command> [name]                          # Both arguments belong to -c
 
-muxa -c 'npm run dev'               # Run command as-is
-muxa -c 'npm run dev' api           # With custom display name
+muxa -c 'npm run dev'                             # Run command as-is
+muxa -c 'npm run dev' api                         # With custom display name
 muxa -c 'echo "Starting..." && npm start' server  # Complex commands
-muxa -c 'FORCE_COLOR=1 npm test' test  # With env vars
+muxa -c 'FORCE_COLOR=1 npm test' test             # With env vars
 ```
 
 Use -c when you need to:
@@ -70,13 +74,13 @@ Use -c when you need to:
 Runs package.json scripts from workspace packages:
 
 ```bash
-muxa -s <package> <script> [name]   # Required format
+muxa -s <package> <script> [name]   # All three arguments belong to -s
 
-muxa -s backend dev            # Run 'dev' from backend workspace
-muxa -s . dev                  # Run 'dev' from root package.json
-muxa -s @myapp/backend dev     # Use exact package name
-muxa -s ./packages/backend dev # Use relative path
-muxa -s backend dev api        # With custom display name
+muxa -s backend dev                 # Run 'dev' from backend workspace
+muxa -s . dev                       # Run 'dev' from root package.json
+muxa -s @myapp/backend dev          # Use exact package name
+muxa -s ./packages/backend dev      # Use relative path
+muxa -s backend dev api             # With custom display name
 ```
 
 ### -w Flag (Workspace Commands)
@@ -84,12 +88,12 @@ muxa -s backend dev api        # With custom display name
 Runs arbitrary commands in workspace context:
 
 ```bash
-muxa -w <package> <command> [name]  # Required format
+muxa -w <package> <command> [name]            # All three arguments belong to -w
 
 muxa -w mobile 'npx expo start'
 muxa -w backend 'npx prisma studio'
 muxa -w rust-pkg 'cargo test -- --nocapture'
-muxa -w backend 'npm test' test-api  # With custom display name
+muxa -w backend 'npm test' test-api           # With custom display name
 ```
 
 ### Mixed Usage Examples
@@ -165,7 +169,8 @@ Commands wrapped with `sh -c` when:
 - `--hide-help` → Passed to mprocs
 - Named commands automatically generate `--names` for mprocs
 
-**Note**: Some mprocs features like tab width are only configurable via config file, not CLI flags. Muxa focuses on CLI-only usage, so these features are not exposed.
+> [!NOTE]  
+> Some mprocs features like tab width are only configurable via config file, not CLI flags. Muxa focuses on CLI-only usage, so these features are not exposed.
 
 **Temporary Config Strategy** (if needed for future features):
 
@@ -194,7 +199,8 @@ Error: Cannot mix unnamed and named arguments
 
 **Dependencies**: `mprocs` only (no CLI framework needed)
 
-**Note on Argument Parsing**: The multi-argument flag pattern (e.g., `-s backend dev api`) is uncommon in CLIs, but provides the cleanest syntax for our use case. Alternative approaches like colon-delimited strings would be ugly with complex commands (e.g., `-w "mobile:npx expo start --tunnel:expo"`). This "2D array" pattern requires custom parsing, which is why we implement our own parser instead of using commander or similar frameworks.
+> [!NOTE]  
+> **Argument Parsing**: The multi-argument flag pattern (e.g., `-s backend dev api`) is uncommon in CLIs, but provides the cleanest syntax for our use case. Alternative approaches like colon-delimited strings would be ugly with complex commands (e.g., `-w "mobile:npx expo start --tunnel:expo"`). This "2D array" pattern requires custom parsing, which is why we implement our own parser instead of using commander or similar frameworks.
 
 ## Success Criteria
 
@@ -220,8 +226,9 @@ Error: Cannot mix unnamed and named arguments
 ## Testing Requirements
 
 Tests should include fixture directories/dummy monorepos for:
+
 - **Package managers**: bun, pnpm, npm, yarn
-- **Edge cases**: 
+- **Edge cases**:
   - Ambiguous names
   - Scoped packages  
   - Single dir
