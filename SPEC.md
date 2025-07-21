@@ -165,8 +165,6 @@ Commands wrapped with `sh -c` when:
 
 ### Flag Mapping
 
-- `-k` → Kill all on first exit (custom implementation)
-- `--hide-help` → Passed to mprocs
 - Named commands automatically generate `--names` for mprocs
 
 > [!NOTE]  
