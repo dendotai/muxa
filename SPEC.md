@@ -1,12 +1,12 @@
-# Muxa Specification
+# muxa Specification
 
 ## Overview
 
-Muxa makes running multiple processes in monorepos delightfully simple. It's built for developers who love `concurrently`'s simplicity but need more - workspace awareness, preserved interactivity, and cleaner syntax.
+`muxa` makes running multiple processes in monorepos delightfully simple. It's built for developers who love `concurrently`'s simplicity but need more - workspace awareness, preserved interactivity, and cleaner syntax.
 
 **Problem**: `concurrently` loses interactive features (Expo QR codes, Vite shortcuts) and has output formatting issues. `mprocs` preserves interactivity but requires verbose CLI syntax or config files. Neither tool understands monorepo workspaces.
 
-**Solution**: Muxa combines the best ideas:
+**Solution**: `muxa` combines the best ideas:
 
 - **Cleaner than concurrently**: `muxa -s frontend dev` vs `concurrently "cd packages/frontend && npm run dev"`
 - **Monorepo-native**: Understands your workspace structure, auto-detects npm/yarn/pnpm/bun
@@ -224,7 +224,7 @@ packages:
 
 ## Package Manager Detection
 
-Muxa automatically detects your package manager to ensure correct script execution.
+`muxa` automatically detects your package manager to ensure correct script execution.
 
 ### Detection Priority
 
@@ -240,9 +240,9 @@ Muxa automatically detects your package manager to ensure correct script executi
 
 - Detection happens once at startup from monorepo root
 - Cache result for entire execution
-- Package manager binary must be available in PATH
-- If detected package manager not in PATH, fall back to npm with warning
-- Show detected manager in debug output (when MUXA_DEBUG=1)
+- Package manager binary must be available in `PATH`
+- If detected package manager not in `PATH`, fall back to npm with warning
+- Show detected manager in debug output (when `MUXA_DEBUG=1`)
 
 ### Script Execution Format
 
@@ -279,8 +279,8 @@ muxa -c 'bun run build'   # Always uses bun
 ### Environment Variables
 
 - All commands inherit parent process environment
-- FORCE_COLOR=1 set by default (preserves colored output)
-- NODE_ENV preserved from parent
+- `FORCE_COLOR=1` set by default (preserves colored output)
+- `NODE_ENV` preserved from parent
 - Custom env vars can be set inline: `NODE_ENV=test muxa -s api test`
 
 ### TTY and Interactivity
@@ -298,19 +298,19 @@ muxa -c 'bun run build'   # Always uses bun
   - No dependency management or startup order control
   - If you need sequential startup, use shell operators: `muxa -c 'sleep 2 && npm start'`
   - All processes start regardless of whether others succeed or fail
-- **Signals**: SIGINT/SIGTERM forwarded to all child processes
+- **Signals**: `SIGINT`/`SIGTERM` forwarded to all child processes
 - **Exit behavior**: When a process exits, it shows as dead in the UI while others continue running
   - This allows users to see error output and diagnose why the process stopped
   - Other processes remain unaffected, preserving your development workflow
-- **No kill-all feature**: muxa does not terminate other processes when one exits
+- **No kill-all feature**: `muxa` does not terminate other processes when one exits
 - **Exit codes**:
-  - 0 if all processes exit cleanly when muxa is terminated
+  - 0 if all processes exit cleanly when `muxa` is terminated
   - First non-zero exit code otherwise
 
 ### Signal Handling
 
-- **Ctrl+C in mprocs**: Sends signal to the focused process only (keyboard input goes to focused tab)
-- **Exiting muxa**: Use mprocs keybindings (default: q) to quit and terminate all processes
+- **<kbd>Ctrl</kbd>+<kbd>C</kbd> in mprocs**: Sends signal to the focused process only (keyboard input goes to focused tab)
+- **Exiting muxa**: Use mprocs keybindings (default: <kbd>q</kbd>) to quit and terminate all processes
 - **Shutdown**: When exiting, mprocs attempts graceful shutdown of all child processes
 
 ### Log Output
@@ -336,7 +336,7 @@ No special log handling needed - muxa passes commands through to the shell.
 - Supports nested script calls (scripts calling other scripts)
 - Error shows available scripts: "Script 'dev' not found. Available: build, test, lint"
 - Script arguments not supported with -s flag (use -c or -w for commands with arguments)
-- Detects and prevents nested muxa execution (exits with error if MUXA_RUNNING env var is set)
+- Detects and prevents nested `muxa` execution (exits with error if `MUXA_RUNNING` env var is set)
 
 ## Installation and Requirements
 
@@ -369,7 +369,7 @@ bunx @den-ai/muxa -s frontend dev -s backend dev
 ### Platform Support
 
 - **macOS/Linux**: Full support
-- **Windows**: Requires WSL or Git Bash (due to sh -c usage)
+- **Windows**: Requires WSL or Git Bash (due to `sh -c` usage)
 - **Shell**: Always uses `sh` for consistency, not user's shell (see ROADMAP.md for future user shell support)
 - **Path handling**: Converts Windows paths when needed
 
@@ -490,8 +490,8 @@ muxa -c 'node server.js'
 1. Create config in system temp directory (e.g., `/tmp/.muxa.mprocs.tmp.yaml`)
 2. If temp creation fails, fallback to `.muxa.mprocs.tmp.yaml` in current directory
 3. Delete immediately after mprocs starts (it reads config once at startup)
-4. For fallback file, ensure cleanup on exit (SIGINT/SIGTERM)
-5. Don't worry about SIGKILL scenarios - leftover `.muxa.mprocs.tmp.yaml` is clearly temporary
+4. For fallback file, ensure cleanup on exit (`SIGINT`/`SIGTERM`)
+5. Don't worry about `SIGKILL` scenarios - leftover `.muxa.mprocs.tmp.yaml` is clearly temporary
 
 ## Error Handling
 
@@ -512,11 +512,24 @@ Error: Cannot mix unnamed and named arguments
 
 **Dependencies**: `mprocs` only (no CLI framework needed)
 
+**Internal utilities needed**:
+
+- **JSON line number parser**: To find the line number of "scripts" key in package.json files
+  - Used for clickable error messages like `packages/backend/package.json:8`
+  - Makes debugging easier in VS Code and other editors with terminal path recognition
+
+- **Confirmation prompt**: Reusable utility for all (y/N) style prompts
+  - Configurable default (N by default, shown as uppercase)
+  - Single keypress mode: responds immediately to y/Y/n/N (no need to press <kbd>Enter</kbd>)
+  - Cyrillic keyboard support: н/Н = y/Y (yes), т/Т = n/N (no)
+  - <kbd>Enter</kbd> key selects the default option
+  - Used for: duplicate tab names, migration confirmations, warnings before launch
+
 ## Configuration Files
 
 **User configuration**: Not currently supported. All options must be provided via CLI arguments.
 
-**Internal usage**: Muxa may create temporary mprocs config files when needed for features not available via mprocs CLI flags (see "Temporary Config Strategy" above).
+**Internal usage**: `muxa` may create temporary mprocs config files when needed for features not available via mprocs CLI flags (see "Temporary Config Strategy" above).
 
 **Future**: See ROADMAP.md for potential user-facing config file support.
 
@@ -529,6 +542,28 @@ MUXA_DEBUG=1 muxa -s backend dev
 
 # Shows: workspace resolution, command transformation, mprocs args
 ```
+
+**Important**: All output appears before launching, since mprocs will take over the terminal:
+
+**Errors** (exits immediately):
+
+```bash
+$ muxa -s fronted dev -s backend test
+
+Error: Script 'test' not found in @myapp/backend (packages/backend/package.json:8)
+Available scripts: dev, build, lint
+```
+
+**Warnings** (asks for confirmation):
+
+```bash
+$ muxa -s frontend dev dev -s backend dev dev
+
+Warning: Duplicate tab name 'dev' detected.
+Continue? (y/N): 
+```
+
+This ensures you can see issues before the terminal is taken over.
 
 ### Workspace Discovery
 
@@ -547,6 +582,7 @@ Found 5 workspaces (using npm workspaces):
 ```
 
 **Command behavior**:
+
 - Detects package manager and workspace configuration
 - Shows package name and relative path for each workspace
 - Exits with error if not in a monorepo
@@ -557,7 +593,7 @@ Found 5 workspaces (using npm workspaces):
 ### Common Issues
 
 - **"Package not found"**: Run `muxa workspaces` to see available packages
-- **"Script not found"**: Use -c instead of -s for arbitrary commands
+- **"Script not found"**: Use `-c` instead of `-s` for arbitrary commands
 - **No colors**: mprocs or terminal might not support colors
 
 ## Migration from Concurrently
@@ -566,7 +602,7 @@ Found 5 workspaces (using npm workspaces):
 
 Most concurrently commands can be converted to muxa with simple patterns:
 
-| Concurrently | Muxa | Notes |
+| сoncurrently | muxa | Notes |
 |--------------|------|-------|
 | `concurrently 'npm run dev' 'npm test'` | `muxa 'npm run dev' 'npm test'` | Direct replacement - same syntax! |
 | `concurrently -n "web,api" "npm run web" "npm run api"` | `muxa -c 'npm run web' web -c 'npm run api' api` | Named commands |
@@ -656,7 +692,7 @@ Apply changes to package.json? (y/N): y
 - **Basic syntax**: Often identical! Just replace `concurrently` with `muxa`
 - **Named commands**: Use `-c` with name after command instead of `-n` flag
 - **Workspaces**: Use `-s` or `-w` for cleaner monorepo commands
-- **No --kill-others**: Muxa keeps processes independent by design
+- **No --kill-others**: `muxa` keeps processes independent by design
 
 ## Why muxa?
 
@@ -828,8 +864,8 @@ Warning: Duplicate tab name 'api' detected.
 Continue with duplicate names? (y/N): 
 ```
 
-- Pressing 'y' continues (mprocs will show multiple tabs with same name)
-- Pressing 'n' or Enter exits so user can fix the command
+- Pressing <kbd>y</kbd> continues (mprocs will show multiple tabs with same name)
+- Pressing <kbd>n</kbd> or <kbd>Enter</kbd> exits so user can fix the command
 
 ## Testing Requirements
 
