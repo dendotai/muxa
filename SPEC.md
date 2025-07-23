@@ -13,6 +13,8 @@
 - **Fully interactive**: Built on mprocs to preserve all terminal features
 - **Zero friction**: No config files, no setup, sensible defaults
 
+While `muxa` shines in monorepo environments, it's equally useful as a general-purpose parallel process runner. Run database servers, API mocks, build watchers, or any combination of processes you need. We're exploring expanding `muxa` to understand more process types like Docker Compose services, making it a universal orchestration tool for local development.
+
 ## Success Criteria
 
 1. **Simple commands work like concurrently**:
@@ -39,7 +41,7 @@
 > [!NOTE]  
 > **Argument Parsing**: The multi-argument flag pattern (e.g., `-s backend dev api`) is uncommon in CLIs, but provides the cleanest syntax for our use case. Alternative approaches like colon-delimited strings would be ugly with complex commands (e.g., `-w "mobile:npx expo start --tunnel:expo"`). This "2D array" pattern requires custom parsing, which is why we implement our own parser instead of using commander or similar frameworks. Additionally, this design reduces the need for nested quotes, making commands cleaner and easier to type in the terminal.
 
-#### 2D Array Structure
+### 2D Array Structure
 
 **-c flag (commands)**:
 
@@ -298,14 +300,14 @@ muxa -c 'bun run build'   # Always uses bun
   - No dependency management or startup order control
   - If you need sequential startup, use shell operators: `muxa -c 'sleep 2 && npm start'`
   - All processes start regardless of whether others succeed or fail
-- **Signals**: `SIGINT`/`SIGTERM` forwarded to all child processes
+- **Signals**: When muxa/mprocs receives `SIGINT`/`SIGTERM` from the system (e.g., `kill <pid>`), these are forwarded to all child processes
 - **Exit behavior**: When a process exits, it shows as dead in the UI while others continue running
   - This allows users to see error output and diagnose why the process stopped
   - Other processes remain unaffected, preserving your development workflow
 - **No kill-all feature**: `muxa` does not terminate other processes when one exits
-- **Exit codes**:
-  - 0 if all processes exit cleanly when `muxa` is terminated
-  - First non-zero exit code otherwise
+- **Exit codes**: muxa exits with the same code that mprocs returns
+  - When exiting via mprocs keybindings (e.g., `q`), the exit code depends on mprocs' internal logic
+  - When terminated by signals, exit code reflects the signal termination
 
 ### Signal Handling
 
@@ -332,7 +334,10 @@ No special log handling needed - muxa passes commands through to the shell.
 ### Script Resolution (-s flag)
 
 - Reads scripts from target's package.json
-- Does NOT run pre/post scripts automatically
+- Pre/post scripts run automatically because internally `muxa` executes `npm run <script>` (or yarn/pnpm/bun equivalent)
+  - Example: `muxa -s frontend build` → executes `npm run build` → npm automatically runs `prebuild`, `build`, `postbuild`
+  - This is standard package manager behavior, not muxa-specific
+  - To skip pre/post scripts, use `-w` with explicit flags: `muxa -w frontend 'npm run build --ignore-scripts'`
 - Supports nested script calls (scripts calling other scripts)
 - Error shows available scripts: "Script 'dev' not found. Available: build, test, lint"
 - Script arguments not supported with -s flag (use -c or -w for commands with arguments)
@@ -711,7 +716,7 @@ Apply changes to package.json? (y/N): y
 
 ### Command Comparison
 
-**Task: Run frontend, backend, and mobile dev servers in a monorepo**
+#### Task: Run frontend, backend, and mobile dev servers in a monorepo
 
 ```text
 project/

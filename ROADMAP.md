@@ -56,3 +56,23 @@ Add support for configuration files to define reusable command presets.
 - Format TBD (YAML, JSON, or other)
 - Allow presets for common command combinations
 - Usage: `muxa --preset dev` or similar
+
+### Docker Compose Integration
+
+Add native understanding of Docker Compose services as first-class citizens alongside workspace scripts.
+
+**Why this would be useful:**
+
+- Modern development often requires both application processes and containerized services
+- Eliminates the need for separate terminal tabs for `docker-compose up` commands
+- Provides unified interface for all local development processes
+- Better visibility into service health and logs alongside application output
+
+**Implementation considerations:**
+
+- Add `-d` flag for Docker Compose services: `muxa -d postgres -d redis -s backend dev`
+- Auto-detect docker-compose.yml in current directory or specify with `--compose-file`
+- Map service names to compose services, with automatic `docker-compose up` execution
+- Handle service dependencies and startup order if specified in compose file
+- Consider integration with Docker Compose profiles for environment-specific services
+- Graceful shutdown should properly stop containers (not just detach)
