@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+mprocs.log
+
+# Local configuration
+settings.local.json
+
+# OS files
+.DS_Store
+
+# TypeScript compiler API output
+*.tsbuildinfo
+tsconfig.tsbuildinfo

@@ -1,0 +1,19 @@
+{
+  "extends": "@total-typescript/tsconfig/tsc/no-dom/library",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "incremental": true,
+    "sourceMap": true
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/muxa"
+    },
+    {
+      "path": "./apps/docs"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "muxa-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "bun run --filter='*' build",
+    "dev": "muxa -w . 'bun run dev'",
+    "test": "muxa -w . 'bun run test'",
+    "typecheck": "tsc --build --noEmit",
+    "lint": "bun run --filter='*' lint",
+    "lint:fix": "bun run --filter='*' lint:fix",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "check": "bun run typecheck && bun run lint && bun run format",
+    "check:fix": "bun run lint:fix && bun run format:fix",
+    "muxa:local": "bun run packages/muxa/src/index.ts"
+  },
+  "devDependencies": {
+    "@den-ai/muxa": "^0.1.0",
+    "@total-typescript/tsconfig": "^1.0.4",
+    "prettier": "^3.6.2",
+    "strip-ansi": "^7.1.0",
+    "typescript": "^5.8.3"
+  }
+}
