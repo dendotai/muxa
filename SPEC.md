@@ -49,10 +49,10 @@ While `muxa` shines in monorepo environments, it's equally useful as a general-p
 muxa -c 'npm run dev' api -c 'npm test' test
 ```
 
-| Flag | Command | Tab name (optional) |
-|------|---------|-----------------|
-| -c | 'npm run dev' | api |
-| -c | 'npm test' | test |
+| Flag | Command       | Tab name (optional) |
+| ---- | ------------- | ------------------- |
+| -c   | 'npm run dev' | api                 |
+| -c   | 'npm test'    | test                |
 
 **-s flag (scripts)**:
 
@@ -60,11 +60,11 @@ muxa -c 'npm run dev' api -c 'npm test' test
 muxa -s backend dev api -s frontend start web -s . build
 ```
 
-| Flag | Package | Script | Tab name (optional) |
-|------|---------|--------|-----------------|
-| -s | backend | dev | api |
-| -s | frontend | start | web |
-| -s | . | build | |
+| Flag | Package  | Script | Tab name (optional) |
+| ---- | -------- | ------ | ------------------- |
+| -s   | backend  | dev    | api                 |
+| -s   | frontend | start  | web                 |
+| -s   | .        | build  |                     |
 
 **-w flag (workspace commands)**:
 
@@ -72,10 +72,10 @@ muxa -s backend dev api -s frontend start web -s . build
 muxa -w mobile 'npx expo start' expo -w backend 'cargo run'
 ```
 
-| Flag | Package | Command | Tab name (optional) |
-|------|---------|---------|-----------------|
-| -w | mobile | 'npx expo start' | expo |
-| -w | backend | 'cargo run' | |
+| Flag | Package | Command          | Tab name (optional) |
+| ---- | ------- | ---------------- | ------------------- |
+| -w   | mobile  | 'npx expo start' | expo                |
+| -w   | backend | 'cargo run'      |                     |
 
 **Mixed usage**:
 
@@ -83,11 +83,11 @@ muxa -w mobile 'npx expo start' expo -w backend 'cargo run'
 muxa -s backend dev api -w mobile 'npx expo start' expo -c 'docker-compose up' db
 ```
 
-| Flag | Package | Script/Command | Tab name (optional) |
-|------|-------|-------|------------------|
-| -s | backend | dev | api |
-| -w | mobile | 'npx expo start' | expo |
-| -c | | 'docker-compose up' | db |
+| Flag | Package | Script/Command      | Tab name (optional) |
+| ---- | ------- | ------------------- | ------------------- |
+| -s   | backend | dev                 | api                 |
+| -w   | mobile  | 'npx expo start'    | expo                |
+| -c   |         | 'docker-compose up' | db                  |
 
 ### Basic Usage
 
@@ -116,16 +116,16 @@ muxa -w mobile 'npx expo start' -w backend 'cargo run'
 
 When no custom name is provided:
 
-| Mode/Flag | Command Example | Default Tab Name |
-|-----------|----------------|------------------|
-| Unnamed | `muxa 'npm run dev' 'npm test'` | `npm run dev`, `npm test` |
-| -c | `muxa -c 'npm run dev'` | `npm run dev` |
-| -s | `muxa -s backend dev` | `backend:dev` |
-| -s (root) | `muxa -s . build` | `.:build` |
-| -w | `muxa -w mobile 'npx expo start'` | `mobile` |
+| Mode/Flag | Command Example                   | Default Tab Name          |
+| --------- | --------------------------------- | ------------------------- |
+| Unnamed   | `muxa 'npm run dev' 'npm test'`   | `npm run dev`, `npm test` |
+| -c        | `muxa -c 'npm run dev'`           | `npm run dev`             |
+| -s        | `muxa -s backend dev`             | `backend:dev`             |
+| -s (root) | `muxa -s . build`                 | `.:build`                 |
+| -w        | `muxa -w mobile 'npx expo start'` | `mobile`                  |
 
 > [!NOTE]  
-> These defaults are chosen to reduce confusion and optimize tab length. If you're unhappy with the automatic names, simply provide your own custom ones. There was *some* thought put into the default names.
+> These defaults are chosen to reduce confusion and optimize tab length. If you're unhappy with the automatic names, simply provide your own custom ones. There was _some_ thought put into the default names.
 
 ## Command Flags
 
@@ -219,9 +219,9 @@ Also supports pnpm workspace configuration (`pnpm-workspace.yaml`):
 
 ```yaml
 packages:
-  - 'packages/*'
-  - 'apps/*'
-  - '!**/test/**'
+  - "packages/*"
+  - "apps/*"
+  - "!**/test/**"
 ```
 
 ## Package Manager Detection
@@ -232,7 +232,7 @@ packages:
 
 1. **Lockfile presence** in workspace root:
    - `bun.lockb` → bun
-   - `yarn.lock` → yarn  
+   - `yarn.lock` → yarn
    - `pnpm-lock.yaml` → pnpm
    - `package-lock.json` → npm
 2. **packageManager field** in root package.json (e.g., "pnpm@8.0.0")
@@ -261,7 +261,7 @@ The detected manager is used for executing scripts with the `-s` flag:
 # With yarn.lock present
 muxa -s frontend dev  # → executes: yarn run dev
 
-# With pnpm-lock.yaml present  
+# With pnpm-lock.yaml present
 muxa -s frontend dev  # → executes: pnpm run dev
 
 # With bun.lockb present
@@ -353,14 +353,14 @@ No special log handling needed - muxa passes commands through to the shell.
 
 ### Install
 
-| Package Manager | Global Install | Local Dev Install* |
-|---|---|---|
-| npm | `npm install -g @den-ai/muxa` | `npm install -D @den-ai/muxa` |
-| yarn | `yarn global add @den-ai/muxa` | `yarn add -D @den-ai/muxa` |
-| pnpm | `pnpm add -g @den-ai/muxa` | `pnpm add -D @den-ai/muxa` |
-| bun | `bun add -g @den-ai/muxa` | `bun add -d @den-ai/muxa` |
+| Package Manager | Global Install                 | Local Dev Install\*           |
+| --------------- | ------------------------------ | ----------------------------- |
+| npm             | `npm install -g @den-ai/muxa`  | `npm install -D @den-ai/muxa` |
+| yarn            | `yarn global add @den-ai/muxa` | `yarn add -D @den-ai/muxa`    |
+| pnpm            | `pnpm add -g @den-ai/muxa`     | `pnpm add -D @den-ai/muxa`    |
+| bun             | `bun add -g @den-ai/muxa`      | `bun add -d @den-ai/muxa`     |
 
-*Recommended: Install as devDependency to ensure consistent versions across team members
+\*Recommended: Install as devDependency to ensure consistent versions across team members
 
 **Direct usage** (no install needed):
 
@@ -432,13 +432,13 @@ When muxa passes commands to mprocs, it decides whether to wrap them with `sh -c
    ```bash
    muxa -s backend dev
    # Becomes: mprocs 'sh -c "cd /path/to/backend && npm run dev"'
-   
+
    # Why sh -c? Try this yourself to see why:
    # $ mprocs 'cd /tmp && echo hello'
    # Error: No such file or directory (os error 2)
-   # 
+   #
    # mprocs tries to execute 'cd' as a program, but cd is a shell builtin!
-   
+
    muxa -w mobile 'npx expo start'
    # Becomes: mprocs 'sh -c "cd /path/to/mobile && npx expo start"'
    ```
@@ -448,7 +448,7 @@ When muxa passes commands to mprocs, it decides whether to wrap them with `sh -c
    ```bash
    muxa -c 'npm test && npm build'
    # Becomes: mprocs 'sh -c "npm test && npm build"'
-   
+
    muxa -c 'npm run dev | grep error'
    # Becomes: mprocs 'sh -c "npm run dev | grep error"'
    ```
@@ -458,7 +458,7 @@ When muxa passes commands to mprocs, it decides whether to wrap them with `sh -c
    ```bash
    muxa -c 'rm dist/*.js'
    # Becomes: mprocs 'sh -c "rm dist/*.js"'
-   
+
    muxa -c 'cat logs/2024-*.log'
    # Becomes: mprocs 'sh -c "cat logs/2024-*.log"'
    ```
@@ -468,7 +468,7 @@ When muxa passes commands to mprocs, it decides whether to wrap them with `sh -c
    ```bash
    muxa -c 'echo $HOME'
    # Becomes: mprocs 'sh -c "echo $HOME"'
-   
+
    muxa -c 'NODE_ENV=$ENV npm start'
    # Becomes: mprocs 'sh -c "NODE_ENV=$ENV npm start"'
    ```
@@ -548,6 +548,42 @@ MUXA_DEBUG=1 muxa -s backend dev
 # Shows: workspace resolution, command transformation, mprocs args
 ```
 
+### Environment Variables for debugging
+
+**`MUXA_DEBUG=1`**
+
+- Enables debug logging with `[muxa debug]` prefix
+- Shows workspace discovery details
+- Shows package manager detection
+- Shows final mprocs command before execution
+- Useful for troubleshooting configuration issues
+
+**`MUXA_TEST_MODE=1`**
+
+- Prevents actual execution of mprocs
+- Prints `Would execute: mprocs <args>` instead of spawning
+- Exits immediately after showing the command
+- Used in test suite and for dry-run command verification
+
+**`MUXA_RUNNING=1`**
+
+- Set automatically by muxa when spawning processes
+- Prevents nested muxa execution
+- If detected, muxa exits with error to avoid recursion
+
+Example usage:
+
+```bash
+# Debug what command would be generated
+MUXA_DEBUG=1 MUXA_TEST_MODE=1 muxa -s backend dev -s frontend start
+
+# Output:
+# [muxa debug] Found 5 workspace packages
+# [muxa debug] Detected package manager: npm
+# [muxa debug] Executing: mprocs '--names' 'backend:dev,frontend:start' ...
+# Would execute: mprocs '--names' 'backend:dev,frontend:start' ...
+```
+
 **Important**: All output appears before launching, since mprocs will take over the terminal:
 
 **Errors** (exits immediately):
@@ -565,7 +601,7 @@ Available scripts: dev, build, lint
 $ muxa -s frontend dev dev -s backend dev dev
 
 Warning: Duplicate tab name 'dev' detected.
-Continue? (y/N): 
+Continue? (y/N):
 ```
 
 This ensures you can see issues before the terminal is taken over.
@@ -581,7 +617,7 @@ muxa workspaces
 Found 5 workspaces (using npm workspaces):
   .                    /Users/dev/myproject
   @myapp/frontend      packages/frontend
-  @myapp/backend       packages/backend  
+  @myapp/backend       packages/backend
   shared               packages/shared
   mobile               apps/mobile
 ```
@@ -607,13 +643,13 @@ Found 5 workspaces (using npm workspaces):
 
 Most concurrently commands can be converted to muxa with simple patterns:
 
-| сoncurrently | muxa | Notes |
-|--------------|------|-------|
-| `concurrently 'npm run dev' 'npm test'` | `muxa 'npm run dev' 'npm test'` | Direct replacement - same syntax! |
-| `concurrently -n "web,api" "npm run web" "npm run api"` | `muxa -c 'npm run web' web -c 'npm run api' api` | Named commands |
-| `concurrently "cd apps/web && npm start" "cd apps/api && npm start"` | `muxa -w apps/web 'npm start' -w apps/api 'npm start'` | Workspace commands |
-| `concurrently "npm:dev:*"` | `muxa -c 'npm run dev:web' -c 'npm run dev:api'` | Expand wildcards manually |
-| `concurrently --kill-others "npm start" "npm test"` | Not needed - muxa doesn't kill other processes | Different philosophy |
+| сoncurrently                                                         | muxa                                                   | Notes                             |
+| -------------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------- |
+| `concurrently 'npm run dev' 'npm test'`                              | `muxa 'npm run dev' 'npm test'`                        | Direct replacement - same syntax! |
+| `concurrently -n "web,api" "npm run web" "npm run api"`              | `muxa -c 'npm run web' web -c 'npm run api' api`       | Named commands                    |
+| `concurrently "cd apps/web && npm start" "cd apps/api && npm start"` | `muxa -w apps/web 'npm start' -w apps/api 'npm start'` | Workspace commands                |
+| `concurrently "npm:dev:*"`                                           | `muxa -c 'npm run dev:web' -c 'npm run dev:api'`       | Expand wildcards manually         |
+| `concurrently --kill-others "npm start" "npm test"`                  | Not needed - muxa doesn't kill other processes         | Different philosophy              |
 
 ### Automated Migration
 
@@ -648,11 +684,11 @@ Found 3 scripts that could be simplified:
 
 "dev": "concurrently 'cd packages/frontend && npm run dev' 'cd packages/backend && npm run dev'"
      → "muxa -s frontend dev -s backend dev"
-     
+
 "test": "npm-run-all --parallel test:*"
       → "muxa -c 'npm run test:unit' -c 'npm run test:e2e'"
 
-"start": "concurrently -n 'WEB,API' 'npm run web' 'npm run api'"  
+"start": "concurrently -n 'WEB,API' 'npm run web' 'npm run api'"
        → "muxa -c 'npm run web' WEB -c 'npm run api' API"
 
 Apply changes to package.json? (y/N): y
@@ -679,7 +715,7 @@ Apply changes to package.json? (y/N): y
 # Could convert to: "npm run clean && npm run compile && npm run package"
 # But that's not muxa's job
 
-# Test orchestration - keep as-is  
+# Test orchestration - keep as-is
 "test:all": "npm-run-all test:* --bail"
 # Reason: Tests often need sequential execution or bail-on-failure
 
@@ -703,16 +739,16 @@ Apply changes to package.json? (y/N): y
 
 ### Feature Comparison
 
-| Feature | muxa | concurrently | mprocs (raw) |
-|---------|------|--------------|--------------|
-| Simple CLI | ✅ | ✅ | ❌ |
-| Preserves interactivity | ✅ | ❌ | ✅ |
-| Workspace-aware | ✅ | ❌ | ❌ |
-| No config needed | ✅ | ✅ | ❌ |
-| Multiplexed output | ✅ | ❌ | ✅ |
-| Package manager agnostic* | ✅ | ⚠️ | N/A |
+| Feature                    | muxa | concurrently | mprocs (raw) |
+| -------------------------- | ---- | ------------ | ------------ |
+| Simple CLI                 | ✅   | ✅           | ❌           |
+| Preserves interactivity    | ✅   | ❌           | ✅           |
+| Workspace-aware            | ✅   | ❌           | ❌           |
+| No config needed           | ✅   | ✅           | ❌           |
+| Multiplexed output         | ✅   | ❌           | ✅           |
+| Package manager agnostic\* | ✅   | ⚠️           | N/A          |
 
-*muxa auto-detects npm/yarn/pnpm/bun; concurrently requires hardcoding the command
+\*muxa auto-detects npm/yarn/pnpm/bun; concurrently requires hardcoding the command
 
 ### Command Comparison
 
@@ -740,7 +776,7 @@ project/
 Problems:
 
 - Verbose and may be repetitive
-- Loses interactivity (no Expo QR codes, no Vite shortcuts)  
+- Loses interactivity (no Expo QR codes, no Vite shortcuts)
 - Mixed output is hard to read
 
 ❌ **Using npm-run-all or similar:**
@@ -750,7 +786,7 @@ Problems:
   "scripts": {
     "dev": "npm-run-all --parallel dev:*",
     "dev:web": "cd apps/web && npm run dev",
-    "dev:mobile": "cd apps/mobile && npx expo start", 
+    "dev:mobile": "cd apps/mobile && npx expo start",
     "dev:api": "cd apps/api && npm run dev"
   }
 }
@@ -850,7 +886,7 @@ System shells have argument length limits (typically 256KB on macOS, 2MB on Linu
 # Longer with concurrently
 concurrently "cd packages/frontend && npm run dev" "cd packages/backend && npm run dev"
 
-# Shorter with muxa  
+# Shorter with muxa
 muxa -s frontend dev -s backend dev
 ```
 
@@ -866,7 +902,7 @@ Duplicate names trigger a warning with confirmation:
 
 ```sh
 Warning: Duplicate tab name 'api' detected.
-Continue with duplicate names? (y/N): 
+Continue with duplicate names? (y/N):
 ```
 
 - Pressing <kbd>y</kbd> continues (mprocs will show multiple tabs with same name)
@@ -884,5 +920,5 @@ Tests should include fixture directories/dummy monorepos for:
   - Correct script execution commands (npm run, yarn run, etc.)
 - **Edge cases**:
   - Ambiguous names
-  - Scoped packages  
+  - Scoped packages
   - Single dir
