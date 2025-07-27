@@ -2,7 +2,8 @@
 
 ## Future Features
 
-*Note: These features are ideas for future development. No implementation is currently scheduled.*
+> [!NOTE]
+> These features are ideas for future development. No implementation is currently scheduled.
 
 ### Fail-Fast Mode
 
