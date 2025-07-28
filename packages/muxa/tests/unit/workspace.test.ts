@@ -412,6 +412,42 @@ describe("Workspace", () => {
         ),
       ).toBe(true);
     });
+
+    it("should handle malformed package.json in direct path patterns for pnpm", () => {
+      tempDir = createTempWorkspace("pnpm-direct-path-test");
+
+      // Create pnpm-workspace.yaml with direct path pattern (not wildcard)
+      fs.writeFileSync(
+        path.join(tempDir, "pnpm-workspace.yaml"),
+        "packages:\n  - 'specific-package'\n  - 'another-package'\n",
+      );
+
+      // Create specific-package with invalid JSON
+      fs.mkdirSync(path.join(tempDir, "specific-package"));
+      fs.writeFileSync(
+        path.join(tempDir, "specific-package", "package.json"),
+        "{ invalid json content",
+      );
+
+      // Create another-package with valid JSON
+      fs.mkdirSync(path.join(tempDir, "another-package"));
+      fs.writeFileSync(
+        path.join(tempDir, "another-package", "package.json"),
+        JSON.stringify({ name: "valid-package" }),
+      );
+
+      process.env.MUXA_DEBUG = "1";
+      process.chdir(tempDir);
+
+      const config = discoverWorkspaces();
+
+      expect(config.type).toBe("pnpm");
+      expect(config.packages.has("valid-package")).toBe(true);
+      // Check that the specific error message for pnpm workspace is logged
+      expect(
+        errorMessages.some((msg) => msg.includes("Failed to read package.json in pnpm workspace")),
+      ).toBe(true);
+    });
   });
 
   describe("Advanced pnpm workspace support", () => {

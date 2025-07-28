@@ -219,24 +219,24 @@ muxa -c 'npm run lint && npm run build' -c 'npm test || exit 1'
 
 ### vs concurrently
 
-✅ Preserves interactive features (Expo QR codes, Vite shortcuts)  
-✅ Better output formatting  
-✅ Built-in workspace support  
-✅ Cleaner syntax for complex commands
+- Preserves interactive features (Expo QR codes, Vite shortcuts)
+- Better output formatting
+- Built-in workspace support
+- Cleaner syntax for complex commands
 
 ### vs mprocs (direct usage)
 
-✅ Simple CLI interface  
-✅ No configuration files needed  
-✅ Automatic shell wrapping  
-✅ Workspace-aware commands
+- Simple CLI interface
+- No configuration files needed
+- Automatic shell wrapping
+- Workspace-aware commands
 
 ### vs npm-run-all / yarn workspaces run
 
-✅ Works with any package manager  
-✅ More flexible command composition  
-✅ Better terminal UI with mprocs  
-✅ Mix workspace and non-workspace commands
+- Works with any package manager
+- More flexible command composition
+- Better terminal UI with mprocs
+- Mix workspace and non-workspace commands
 
 ## Requirements
 

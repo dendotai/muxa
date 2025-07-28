@@ -47,15 +47,11 @@ export function discoverWorkspaces(): WorkspaceConfig {
   } else {
     // If no pnpm workspace config, check based on package manager
     switch (packageManager) {
-      case "pnpm": {
-        // Already checked above
-        break;
-      }
-
       case "npm":
       case "yarn":
-      case "bun": {
-        // npm, yarn, and bun use package.json workspaces field
+      case "bun":
+      case "pnpm": {
+        // npm, yarn, bun, and pnpm (when no pnpm-workspace.yaml) can use package.json workspaces field
         const rootPackageJsonPath = path.join(root, "package.json");
         if (fs.existsSync(rootPackageJsonPath)) {
           try {

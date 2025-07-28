@@ -206,5 +206,26 @@ describe("Parser", () => {
       expect(result2.mprocsArgs).toContain("--hide-help");
       expect(result2.mprocsArgs).toContain("--ctl");
     });
+
+    it("should throw on unexpected argument in advanced mode", () => {
+      // This tests the uncovered line 256: throw new ParseError(`Unexpected argument: ${arg}`);
+      // Single dash flags that are not recognized
+      expect(() => parseArguments(["-c", "cmd1", "-x"])).toThrow("Unexpected argument: -x");
+
+      // Unknown single letter flag
+      expect(() => parseArguments(["-c", "cmd1", "-z", "value"])).toThrow(
+        "Unexpected argument: -z",
+      );
+
+      // Bare argument after pass-through option in advanced mode
+      expect(() => parseArguments(["--hide-help", "-c", "cmd1", "name", "unexpected"])).toThrow(
+        "Unexpected argument: unexpected",
+      );
+
+      // Non-flag after parsing all expected arguments
+      expect(() => parseArguments(["-w", "pkg", "cmd", "name", "extra"])).toThrow(
+        "Unexpected argument: extra",
+      );
+    });
   });
 });
