@@ -68,23 +68,11 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
         if (code === 0) {
           // Extract the command from "Would execute: mprocs ..."
           const match = stdout.match(/Would execute: mprocs (.+)/);
-          if (!match && process.env.CI) {
-            console.error("CI Debug - stdout:", JSON.stringify(stdout));
-            console.error("CI Debug - stderr:", JSON.stringify(stderr));
-            console.error("CI Debug - code:", code);
-            console.error("CI Debug - args:", args);
-            console.error("CI Debug - cwd:", cwd);
-            console.error("CI Debug - muxaPath:", muxaPath);
-          }
           resolve({
             command: match && match[1] ? match[1] : null,
             error: null,
           });
         } else {
-          if (process.env.CI) {
-            console.error("CI Debug - Process failed with code:", code);
-            console.error("CI Debug - stderr:", stderr);
-          }
           resolve({
             command: null,
             error: stderr || `Process exited with code ${code}`,
