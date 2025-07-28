@@ -92,10 +92,10 @@ muxa -s backend dev api -w mobile 'npx expo start' expo -c 'docker-compose up' d
 ### Basic Usage
 
 ```bash
-# Unnamed mode - commands become tab names
+# Basic mode - commands become tab names
 muxa 'npm run dev' 'npm test'
 
-# Named mode with -c (arbitrary commands)
+# Advanced mode with -c (arbitrary commands)
 muxa -c 'npm run dev' api -c 'npm test' test
 
 # Script mode with -s (workspace scripts)
@@ -108,7 +108,7 @@ muxa -w mobile 'npx expo start' -w backend 'cargo run'
 
 ### Parsing Rules
 
-1. Cannot mix unnamed mode with flags (-c, -s, -w) because it's ambiguous
+1. Cannot mix basic mode with flags (-c, -s, -w) because it's ambiguous
 2. Optional names follow commands/scripts
 3. Commands can contain spaces and shell operators
 
@@ -116,9 +116,9 @@ muxa -w mobile 'npx expo start' -w backend 'cargo run'
 
 When no custom name is provided:
 
-| Mode/Flag | Command Example                   | Default Tab Name          |
+| Mode      | Command Example                   | Default Tab Name          |
 | --------- | --------------------------------- | ------------------------- |
-| Unnamed   | `muxa 'npm run dev' 'npm test'`   | `npm run dev`, `npm test` |
+| Basic     | `muxa 'npm run dev' 'npm test'`   | `npm run dev`, `npm test` |
 | -c        | `muxa -c 'npm run dev'`           | `npm run dev`             |
 | -s        | `muxa -s backend dev`             | `backend:dev`             |
 | -s (root) | `muxa -s . build`                 | `.:build`                 |
@@ -485,7 +485,7 @@ muxa -c 'node server.js'
 
 ### Flag Mapping
 
-- Named commands automatically generate `--names` for mprocs
+- Advanced commands automatically generate `--names` for mprocs
 
 > [!NOTE]  
 > Some mprocs features like tab width are only configurable via config file, not CLI flags. Muxa focuses on CLI-only usage, so these features are not exposed.
@@ -510,7 +510,7 @@ Error: Ambiguous identifier 'backend'
 Matches: @myapp/backend (packages/backend), @tools/backend (tools/backend)
 
 # Invalid syntax
-Error: Cannot mix unnamed and named arguments
+Error: Cannot mix basic and advanced arguments
 ```
 
 ## Implementation Notes
@@ -646,7 +646,7 @@ Most concurrently commands can be converted to muxa with simple patterns:
 | сoncurrently                                                         | muxa                                                   | Notes                             |
 | -------------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------- |
 | `concurrently 'npm run dev' 'npm test'`                              | `muxa 'npm run dev' 'npm test'`                        | Direct replacement - same syntax! |
-| `concurrently -n "web,api" "npm run web" "npm run api"`              | `muxa -c 'npm run web' web -c 'npm run api' api`       | Named commands                    |
+| `concurrently -n "web,api" "npm run web" "npm run api"`              | `muxa -c 'npm run web' web -c 'npm run api' api`       | Advanced commands                 |
 | `concurrently "cd apps/web && npm start" "cd apps/api && npm start"` | `muxa -w apps/web 'npm start' -w apps/api 'npm start'` | Workspace commands                |
 | `concurrently "npm:dev:*"`                                           | `muxa -c 'npm run dev:web' -c 'npm run dev:api'`       | Expand wildcards manually         |
 | `concurrently --kill-others "npm start" "npm test"`                  | Not needed - muxa doesn't kill other processes         | Different philosophy              |
@@ -731,7 +731,7 @@ Apply changes to package.json? (y/N): y
 ### Key Differences
 
 - **Basic syntax**: Often identical! Just replace `concurrently` with `muxa`
-- **Named commands**: Use `-c` with name after command instead of `-n` flag
+- **Advanced commands**: Use `-c` with name after command instead of `-n` flag
 - **Workspaces**: Use `-s` or `-w` for cleaner monorepo commands
 - **No --kill-others**: `muxa` keeps processes independent by design
 
