@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, beforeEach } from "bun:test";
 import { buildCommands, buildMprocsArgs } from "@/command-builder";
 import type { ParseResult, ParsedCommand } from "@/parser";
 import { discoverWorkspaces } from "@/workspace";
-import { detectPackageManager } from "@/package-manager";
+import { detectPackageManager, type PackageManager } from "@/package-manager";
 import { createMonorepoFixture, cleanupFixture } from "@tests/helpers/fixture-helpers";
 import { fixturesPath } from "@tests/helpers/constants";
 import * as path from "node:path";
@@ -308,12 +308,7 @@ describe("buildCommands", () => {
     });
 
     it("should work with different package managers", () => {
-      const packageManagers: Array<"npm" | "yarn" | "pnpm" | "bun"> = [
-        "npm",
-        "yarn",
-        "pnpm",
-        "bun",
-      ];
+      const packageManagers: Array<PackageManager> = ["npm", "yarn", "pnpm", "bun"];
 
       for (const pm of packageManagers) {
         const testDir = createMonorepoFixture({

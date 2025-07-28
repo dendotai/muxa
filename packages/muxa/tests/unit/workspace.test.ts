@@ -3,9 +3,12 @@ import {
   formatWorkspaceList,
   getWorkspacePatternsFromPackageJson,
   resolvePackage,
+  type WorkspaceConfig,
 } from "@/workspace";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import * as path from "path";
+import * as fs from "fs";
+import { createTempWorkspace, cleanupFixture } from "@tests/helpers/fixture-helpers";
 
 describe("Workspace", () => {
   describe("getWorkspacePatternsFromPackageJson", () => {
@@ -243,6 +246,171 @@ describe("Workspace", () => {
       expect(output).toContain("packages/frontend");
 
       process.chdir(originalCwd);
+    });
+
+    it("should handle empty workspace list", () => {
+      const config: WorkspaceConfig = {
+        packages: new Map(),
+        root: "/fake/path",
+        type: null,
+      };
+
+      const output = formatWorkspaceList(config);
+      expect(output).toBe("No workspaces found in current directory");
+    });
+  });
+
+  describe("Error handling with MUXA_DEBUG", () => {
+    let tempDir: string;
+    let originalCwd: string;
+    let originalDebug: string | undefined;
+    let errorMessages: string[] = [];
+    let originalError: typeof console.error;
+
+    beforeEach(() => {
+      originalCwd = process.cwd();
+      originalDebug = process.env.MUXA_DEBUG;
+      originalError = console.error;
+      errorMessages = [];
+      console.error = (...args: any[]) => {
+        errorMessages.push(args.join(" "));
+      };
+    });
+
+    afterEach(() => {
+      process.chdir(originalCwd);
+      if (originalDebug !== undefined) {
+        process.env.MUXA_DEBUG = originalDebug;
+      } else {
+        delete process.env.MUXA_DEBUG;
+      }
+      console.error = originalError;
+      if (tempDir) {
+        cleanupFixture(tempDir);
+      }
+    });
+
+    it("should handle malformed root package.json with debug logging", () => {
+      tempDir = createTempWorkspace("invalid-json-test");
+      fs.writeFileSync(path.join(tempDir, "package.json"), "{ invalid json");
+      process.env.MUXA_DEBUG = "1";
+      process.chdir(tempDir);
+
+      const config = discoverWorkspaces();
+
+      expect(config.packages.size).toBe(0); // No packages found
+      expect(errorMessages.some((msg) => msg.includes("Failed to read root package.json"))).toBe(
+        true,
+      );
+    });
+
+    it("should handle malformed workspace package.json files", () => {
+      tempDir = createTempWorkspace("invalid-workspace-test");
+
+      // Create valid root package.json with workspaces
+      fs.writeFileSync(
+        path.join(tempDir, "package.json"),
+        JSON.stringify({
+          name: "test-root",
+          workspaces: ["packages/*"],
+        }),
+      );
+
+      // Create packages directory
+      fs.mkdirSync(path.join(tempDir, "packages"));
+      fs.mkdirSync(path.join(tempDir, "packages", "valid"));
+      fs.mkdirSync(path.join(tempDir, "packages", "invalid"));
+
+      // Create valid package
+      fs.writeFileSync(
+        path.join(tempDir, "packages", "valid", "package.json"),
+        JSON.stringify({ name: "valid-package" }),
+      );
+
+      // Create invalid package.json
+      fs.writeFileSync(
+        path.join(tempDir, "packages", "invalid", "package.json"),
+        "{ invalid json syntax",
+      );
+
+      process.env.MUXA_DEBUG = "1";
+      process.chdir(tempDir);
+
+      const config = discoverWorkspaces();
+
+      // Should have root and valid package, but not invalid
+      expect(config.packages.has("test-root")).toBe(true);
+      expect(config.packages.has("valid-package")).toBe(true);
+      expect(config.packages.has("invalid-package")).toBe(false);
+      expect(
+        errorMessages.some((msg) => msg.includes("Failed to read package.json in yarn workspace")),
+      ).toBe(true);
+    });
+
+    it("should handle root wildcard pattern with invalid package.json", () => {
+      tempDir = createTempWorkspace("wildcard-test");
+
+      // Create root package.json with wildcard workspace
+      fs.writeFileSync(
+        path.join(tempDir, "package.json"),
+        JSON.stringify({
+          name: "wildcard-root",
+          workspaces: ["*"],
+        }),
+      );
+
+      // Create directories with package.json files
+      fs.mkdirSync(path.join(tempDir, "valid"));
+      fs.writeFileSync(
+        path.join(tempDir, "valid", "package.json"),
+        JSON.stringify({ name: "valid-pkg" }),
+      );
+
+      fs.mkdirSync(path.join(tempDir, "broken"));
+      fs.writeFileSync(path.join(tempDir, "broken", "package.json"), "not valid json");
+
+      process.env.MUXA_DEBUG = "1";
+      process.chdir(tempDir);
+
+      const config = discoverWorkspaces();
+
+      expect(config.packages.has("wildcard-root")).toBe(true);
+      expect(config.packages.has("valid-pkg")).toBe(true);
+      expect(errorMessages.some((msg) => msg.includes("Failed to read package.json at"))).toBe(
+        true,
+      );
+    });
+
+    it("should detect pnpm workspaces and handle errors", () => {
+      tempDir = createTempWorkspace("pnpm-error-test");
+
+      // Create pnpm-workspace.yaml
+      fs.writeFileSync(path.join(tempDir, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'\n");
+
+      // Create packages
+      fs.mkdirSync(path.join(tempDir, "packages"));
+      fs.mkdirSync(path.join(tempDir, "packages", "good"));
+      fs.mkdirSync(path.join(tempDir, "packages", "bad"));
+
+      fs.writeFileSync(
+        path.join(tempDir, "packages", "good", "package.json"),
+        JSON.stringify({ name: "good-pkg" }),
+      );
+
+      fs.writeFileSync(path.join(tempDir, "packages", "bad", "package.json"), "{ broken json");
+
+      process.env.MUXA_DEBUG = "1";
+      process.chdir(tempDir);
+
+      const config = discoverWorkspaces();
+
+      expect(config.type).toBe("pnpm");
+      expect(config.packages.has("good-pkg")).toBe(true);
+      expect(
+        errorMessages.some(
+          (msg) => msg.includes("Failed to read package.json") && msg.includes("workspace"),
+        ),
+      ).toBe(true);
     });
   });
 

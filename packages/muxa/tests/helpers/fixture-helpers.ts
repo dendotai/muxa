@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import type { PackageManager } from "@/package-manager";
 
 interface PackageExtras {
   scripts?: Record<string, string>;
@@ -72,7 +73,7 @@ export function cleanupFixture(dir: string): void {
 
 // Create a basic monorepo structure
 export interface MonorepoConfig {
-  type: "npm" | "yarn" | "pnpm" | "bun";
+  type: PackageManager;
   packages: Array<{
     path: string;
     name: string;

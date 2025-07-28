@@ -34,7 +34,7 @@ When developing in a monorepo with multiple services, you need to run multiple p
 - Simple CLI interface like concurrently
 - Superior output handling from mprocs
 - Built-in workspace support for monorepos
-- Preserves interactive features (Expo QR codes, Vite shortcuts, etc.)
+- Preserves rich interactive features (Expo QR codes, Vite shortcuts, etc.)
 - No configuration files required
 
 ## Installation

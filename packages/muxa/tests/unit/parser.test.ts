@@ -126,5 +126,85 @@ describe("Parser", () => {
         "Option -s requires a script name after package identifier",
       );
     });
+
+    it("should handle null or empty arguments", () => {
+      // Test null/empty in argv array
+      const result = parseArguments(["", "cmd1", "", "cmd2"]);
+      expect(result.mode).toBe("basic");
+      expect(result.commands).toEqual([
+        { command: "cmd1", type: "command" },
+        { command: "cmd2", type: "command" },
+      ]);
+    });
+
+    it("should throw on null command with -c flag", () => {
+      // Create an array with null by type assertion
+      const argvWithNull = ["-c", null as any];
+      expect(() => parseArguments(argvWithNull)).toThrow("Option -c requires a command");
+    });
+
+    it("should throw on null package with -s flag", () => {
+      // Create an array with null by type assertion
+      const argvWithNull = ["-s", null as any];
+      expect(() => parseArguments(argvWithNull)).toThrow("Option -s requires a package identifier");
+
+      const argvWithNullScript = ["-s", "backend", null as any];
+      expect(() => parseArguments(argvWithNullScript)).toThrow(
+        "Option -s requires a script name after package identifier",
+      );
+    });
+
+    it("should throw on null package with -w flag", () => {
+      // Create an array with null by type assertion
+      const argvWithNull = ["-w", null as any];
+      expect(() => parseArguments(argvWithNull)).toThrow("Option -w requires a package identifier");
+
+      const argvWithNullCommand = ["-w", "backend", null as any];
+      expect(() => parseArguments(argvWithNullCommand)).toThrow(
+        "Option -w requires a command after package identifier",
+      );
+    });
+
+    it("should allow non-flag arguments in basic mode", () => {
+      // In basic mode, any non-flag argument is treated as a command
+      const result = parseArguments(["cmd1", "cmd2", "cmd3"]);
+      expect(result.mode).toBe("basic");
+      expect(result.commands).toHaveLength(3);
+    });
+
+    it("should handle all flag variations", () => {
+      // Test long forms
+      const result1 = parseArguments(["--command", "cmd1"]);
+      expect(result1.commands[0]?.type).toBe("command");
+
+      const result2 = parseArguments(["--script", "backend", "dev"]);
+      expect(result2.commands[0]?.type).toBe("script");
+
+      const result3 = parseArguments(["--workspace", "backend", "npm test"]);
+      expect(result3.commands[0]?.type).toBe("workspace");
+    });
+
+    it("should throw on mixing modes with all flag types", () => {
+      // Test mixing with -s flag
+      expect(() => parseArguments(["cmd1", "-s", "backend", "dev"])).toThrow(
+        "Cannot mix basic and advanced arguments",
+      );
+
+      // Test mixing with -w flag
+      expect(() => parseArguments(["cmd1", "-w", "backend", "npm test"])).toThrow(
+        "Cannot mix basic and advanced arguments",
+      );
+    });
+
+    it("should pass through unknown flags to mprocs", () => {
+      // Test that unknown flags are passed through to mprocs
+      const result = parseArguments(["-c", "cmd1", "--unknown-flag"]);
+      expect(result.mprocsArgs).toContain("--unknown-flag");
+
+      // Test with multiple unknown flags (--ctl takes a value)
+      const result2 = parseArguments(["--hide-help", "--ctl", "-c", "cmd1"]);
+      expect(result2.mprocsArgs).toContain("--hide-help");
+      expect(result2.mprocsArgs).toContain("--ctl");
+    });
   });
 });
