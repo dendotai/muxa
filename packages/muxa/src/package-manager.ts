@@ -188,7 +188,10 @@ export function validateScript(scriptName: string, packagePath: string, packageN
 
 function isPackageManagerAvailable(packageManager: PackageManager): boolean {
   try {
-    execSync(`which ${packageManager}`, { stdio: "ignore" });
+    execSync(`which ${packageManager}`, {
+      stdio: "ignore",
+      env: process.env, // Pass current environment including modified PATH
+    });
     return true;
   } catch {
     return false;

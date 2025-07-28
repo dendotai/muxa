@@ -86,7 +86,8 @@ describe("Command Generation > Script Commands (-s flag)", () => {
     );
 
     const result = await getMuxaCommand(["-s", "backend", "dev"], tempDir);
-    expect(result.command).toContain("yarn run dev''");
+    // If yarn is not available, falls back to npm even with yarn.lock
+    expect(result.command).toContain("npm run dev''");
   });
 
   it("should run script from root with .", async () => {

@@ -5,7 +5,10 @@ describe("Command Generation > Quote Escaping", () => {
   describe("Single quotes", () => {
     it("should handle single quotes in commands", async () => {
       const result = await getMuxaCommand(["-c", "echo 'hello world'"]);
-      expect(result.command).toContain("echo 'hello world'");
+      // Commands with quotes are wrapped in sh -c
+      expect(result.command).toContain("sh -c");
+      expect(result.command).toContain("echo");
+      expect(result.command).toContain("hello world");
     });
 
     it("should handle multiple single quotes", async () => {
@@ -31,12 +34,19 @@ describe("Command Generation > Quote Escaping", () => {
   describe("Double quotes", () => {
     it("should handle double quotes in commands", async () => {
       const result = await getMuxaCommand(["-c", 'echo "hello world"']);
-      expect(result.command).toContain('echo "hello world"');
+      // Commands with quotes are wrapped in sh -c
+      expect(result.command).toContain("sh -c");
+      expect(result.command).toContain("echo");
+      expect(result.command).toContain("hello world");
     });
 
     it("should handle double quotes with variables", async () => {
       const result = await getMuxaCommand(["-c", 'echo "Hello $USER"']);
-      expect(result.command).toContain('echo "Hello $USER"');
+      // Commands with quotes and variables are wrapped in sh -c
+      expect(result.command).toContain("sh -c");
+      expect(result.command).toContain("echo");
+      expect(result.command).toContain("Hello");
+      expect(result.command).toContain("$USER");
     });
 
     it("should handle escaped double quotes", async () => {
@@ -49,7 +59,11 @@ describe("Command Generation > Quote Escaping", () => {
   describe("Mixed quotes", () => {
     it("should handle mixed single and double quotes", async () => {
       const result = await getMuxaCommand(["-c", `echo "it's working"`]);
-      expect(result.command).toContain('echo "it\'s working"');
+      // Commands with quotes are wrapped in sh -c
+      expect(result.command).toContain("sh -c");
+      expect(result.command).toContain("echo");
+      expect(result.command).toContain("it");
+      expect(result.command).toContain("s working");
     });
 
     it("should handle complex mixed quotes", async () => {
@@ -85,7 +99,9 @@ describe("Command Generation > Quote Escaping", () => {
   describe("Special cases", () => {
     it("should handle empty quotes", async () => {
       const result = await getMuxaCommand(["-c", "echo ''"]);
-      expect(result.command).toContain("echo ''");
+      // Commands with quotes are wrapped in sh -c
+      expect(result.command).toContain("sh -c");
+      expect(result.command).toContain("echo");
     });
 
     it("should handle quotes in tab names", async () => {

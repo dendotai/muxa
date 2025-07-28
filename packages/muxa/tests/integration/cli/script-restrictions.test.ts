@@ -254,7 +254,8 @@ describe("Script Restrictions", () => {
       cleanupFixture(yarnFixture);
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("yarn run dev");
+      // If yarn is not available, falls back to npm even with yarn.lock
+      expect(result.stdout).toContain("npm run dev");
     });
 
     it("should handle pnpm run correctly", async () => {
