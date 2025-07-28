@@ -8,7 +8,7 @@
     "muxa": "./dist/index.js"
   },
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node && tsc --emitDeclarationOnly",
+    "build": "bun build ./src/index.ts --external mprocs --outdir ./dist --target node && tsc --emitDeclarationOnly",
     "test": "MUXA_TEST_MODE=true bun test",
     "test:clean": "MUXA_TEST_MODE=true CI=true bun test --bail",
     "test:watch": "MUXA_TEST_MODE=true bun test --watch",
