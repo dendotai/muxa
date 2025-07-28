@@ -1,0 +1,260 @@
+---
+title: Comparison
+description: How muxa compares to alternative tools
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Comparison with Alternatives
+
+How muxa compares to other tools for running multiple processes.
+
+## Quick Comparison
+
+| Feature | muxa | concurrently | mprocs | npm-run-all | turbo |
+|---------|------|--------------|--------|-------------|-------|
+| Simple CLI | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Interactive features | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Monorepo support | ✅ | ❌ | ❌ | ⚠️ | ✅ |
+| Clean output | ✅ | ⚠️ | ✅ | ⚠️ | ✅ |
+| Zero config | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Process naming | ✅ | ✅ | ✅ | ❌ | ✅ |
+
+## vs concurrently
+
+[concurrently](https://github.com/open-cli-tools/concurrently) is the most popular tool for running multiple commands.
+
+### Advantages of muxa
+
+- **Preserves interactivity** - Vite shortcuts, Expo QR codes work
+- **Better output** - Clean terminal UI with mprocs
+- **Monorepo native** - Built-in workspace support
+- **Simpler syntax** - Cleaner command structure
+
+### When to use concurrently
+
+- Simple CI pipelines
+- Basic parallel execution
+- Existing scripts using it
+- No interactive features needed
+
+### Migration Example
+
+```bash
+# concurrently
+concurrently -n "api,web" \
+  "cd packages/api && npm run dev" \
+  "cd packages/web && npm run dev"
+
+# muxa
+muxa -s api dev api -s web dev web
+```
+
+## vs mprocs (direct usage)
+
+[mprocs](https://github.com/pvolok/mprocs) is what powers muxa's terminal UI.
+
+### Advantages of muxa
+
+- **No config files** - Pure CLI interface
+- **Simpler syntax** - More intuitive commands
+- **Workspace aware** - Understands monorepos
+- **Auto shell wrapping** - Handles complex commands
+
+### When to use mprocs directly
+
+- Need advanced mprocs features
+- Want config file control
+- Complex process dependencies
+- Custom keybindings
+
+### Example Comparison
+
+```yaml
+# mprocs.yaml
+procs:
+  api:
+    cmd: cd packages/api && npm run dev
+  web:
+    cmd: cd packages/web && npm run dev
+```
+
+```bash
+# muxa (no config needed)
+muxa -s api dev -s web dev
+```
+
+## vs npm-run-all
+
+[npm-run-all](https://github.com/mysticatea/npm-run-all) runs npm scripts in parallel or series.
+
+### Advantages of muxa
+
+- **Any package manager** - Not just npm
+- **Mixed commands** - Not limited to npm scripts
+- **Better output** - Terminal UI vs interleaved logs
+- **Workspace support** - Cross-package scripts
+
+### When to use npm-run-all
+
+- Only running npm scripts
+- Need series execution
+- Pattern matching scripts
+- Existing npm-run-all setup
+
+### Example Comparison
+
+```bash
+# npm-run-all
+npm-run-all --parallel lint:* test:*
+
+# muxa (explicit but flexible)
+muxa -c 'npm run lint:js' \
+     -c 'npm run lint:css' \
+     -c 'npm run test:unit' \
+     -c 'npm run test:e2e'
+```
+
+## vs Turbo
+
+[Turbo](https://turbo.build/) is a build system for monorepos.
+
+### Different Use Cases
+
+muxa and Turbo solve different problems:
+
+- **muxa** - Process runner for development
+- **Turbo** - Build system with caching
+
+### When to use each
+
+**Use muxa for:**
+- Development servers
+- Watch modes
+- Mixed commands
+- Simple parallel execution
+
+**Use Turbo for:**
+- Build pipelines
+- Task caching
+- Complex dependencies
+- CI optimization
+
+### They work together
+
+```bash
+# Use Turbo for builds
+turbo build
+
+# Use muxa for development
+muxa -s web dev -s api dev
+```
+
+## vs Nx
+
+[Nx](https://nx.dev/) is a build system and monorepo tool.
+
+### Different Philosophy
+
+- **muxa** - Lightweight process runner
+- **Nx** - Full monorepo solution
+
+### Complementary Tools
+
+```bash
+# Nx for builds and tests
+nx build myapp
+nx test myapp
+
+# muxa for development
+muxa -s myapp serve -s api serve
+```
+
+## vs PM2
+
+[PM2](https://pm2.keymetrics.io/) is a production process manager.
+
+### Different Purposes
+
+- **muxa** - Development tool
+- **PM2** - Production deployment
+
+### Key Differences
+
+- muxa focuses on developer experience
+- PM2 handles production concerns
+- muxa has interactive features
+- PM2 has monitoring/clustering
+
+## vs Docker Compose
+
+Docker Compose orchestrates containers.
+
+### Can Work Together
+
+```bash
+# Start services with Docker Compose
+# Run apps with muxa
+muxa -c 'docker-compose up' services \
+     -s frontend dev \
+     -s backend dev
+```
+
+### Different Scopes
+
+- Docker Compose for containerized services
+- muxa for local development processes
+
+## Feature Comparison Matrix
+
+### Basic Features
+
+| Feature | muxa | concurrently | mprocs | npm-run-all |
+|---------|------|--------------|--------|-------------|
+| Run commands | ✅ | ✅ | ✅ | ✅ |
+| Named processes | ✅ | ✅ | ✅ | ❌ |
+| Color output | ✅ | ✅ | ✅ | ✅ |
+| Exit on failure | ✅ | ✅ | ✅ | ✅ |
+
+### Advanced Features
+
+| Feature | muxa | concurrently | mprocs | npm-run-all |
+|---------|------|--------------|--------|-------------|
+| Split terminal UI | ✅ | ❌ | ✅ | ❌ |
+| Interactive stdin | ✅ | ❌ | ✅ | ❌ |
+| Workspace scripts | ✅ | ❌ | ❌ | ❌ |
+| Config files | ❌ | ❌ | ✅ | ❌ |
+
+### Developer Experience
+
+| Feature | muxa | concurrently | mprocs | npm-run-all |
+|---------|------|--------------|--------|-------------|
+| Zero config | ✅ | ✅ | ❌ | ✅ |
+| Simple syntax | ✅ | ✅ | ❌ | ✅ |
+| Good errors | ✅ | ⚠️ | ⚠️ | ⚠️ |
+| Monorepo aware | ✅ | ❌ | ❌ | ⚠️ |
+
+## Choosing the Right Tool
+
+<Callout type="info">
+**Quick Guide**: If you need interactive features or work in a monorepo, choose muxa. For simple CI pipelines, concurrently might be enough. For production, consider PM2 or systemd.
+</Callout>
+
+### Decision Tree
+
+1. **Need interactive features?** → muxa
+2. **Working in a monorepo?** → muxa
+3. **Just CI/CD pipelines?** → concurrently
+4. **Need build caching?** → Turbo/Nx
+5. **Production deployment?** → PM2/systemd
+6. **Want config files?** → mprocs directly
+
+## Summary
+
+muxa fills a specific niche:
+- Better than concurrently for development
+- Simpler than mprocs to use
+- Focused on running, not building
+- Designed for modern monorepos
+
+Choose muxa when you want the best developer experience for running multiple processes during development.

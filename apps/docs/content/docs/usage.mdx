@@ -1,0 +1,225 @@
+---
+title: Usage Examples
+description: Detailed examples and patterns for using muxa
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Usage Examples
+
+Explore different ways to use muxa for your development workflow.
+
+## Basic Commands
+
+### Running Multiple Commands
+
+The simplest usage - run multiple commands in parallel:
+
+```bash
+# Basic mode
+muxa 'npm run dev' 'npm run test:watch'
+
+# Advanced mode with flags
+muxa -c 'npm run dev' -c 'npm run test:watch'
+
+# With custom process names
+muxa -c 'npm run dev' app -c 'npm run test:watch' tests
+```
+
+### Mixed Commands
+
+You can mix different types of commands:
+
+```bash
+# Development server + database + file watcher
+muxa -c 'npm run dev' app \
+     -c 'docker-compose up postgres' db \
+     -c 'npm run watch:css' styles
+```
+
+## Workspace Script Support
+
+Run package.json scripts from specific workspace packages without complex shell syntax.
+
+### Basic Workspace Usage
+
+```bash
+# Run 'dev' script in 'backend' package
+muxa -s backend dev
+
+# Run multiple workspace scripts
+muxa -s backend dev -s frontend start
+
+# With custom names
+muxa -s backend dev api -s frontend start web
+```
+
+### Package Resolution
+
+muxa intelligently resolves package identifiers:
+
+<Tabs defaultValue="name">
+  <Tab value="name" label="By Name">
+    ```bash
+    # Using package.json name
+    muxa -s @myapp/backend dev
+    muxa -s @myapp/frontend start
+    ```
+  </Tab>
+  <Tab value="path" label="By Path">
+    ```bash
+    # Using relative path
+    muxa -s packages/backend dev
+    muxa -s ./apps/frontend start
+    ```
+  </Tab>
+  <Tab value="dir" label="By Directory">
+    ```bash
+    # Using directory name (if unique)
+    muxa -s backend dev
+    muxa -s frontend start
+    ```
+  </Tab>
+</Tabs>
+
+<Callout type="info">
+If a directory name matches multiple packages, muxa will show an error with all matches and ask you to be more specific.
+</Callout>
+
+## Run Commands in Workspace Directories
+
+Execute arbitrary commands in workspace directories:
+
+```bash
+# Run command in workspace directory
+muxa -w backend 'npm run dev' backend-dev
+muxa -w mobile 'npx expo start' expo
+
+# Useful for tools not in package.json scripts
+muxa -w frontend 'npx vite' vite \
+     -w backend 'npx nodemon index.js' api
+```
+
+## Complex Commands
+
+### Shell Operators
+
+Commands with shell operators are automatically wrapped:
+
+```bash
+# Sequential execution
+muxa -c 'npm run build && npm test' build-test
+
+# Conditional execution
+muxa -c 'npm test || echo "Tests failed"' tests
+
+# Pipes and redirection
+muxa -c 'npm run dev | tee dev.log' dev
+```
+
+### Environment Variables
+
+```bash
+# Set environment variables
+muxa -c 'NODE_ENV=production npm run build' build \
+     -c 'DEBUG=* npm run dev' dev
+
+# Use shell features
+muxa -c 'PORT=3000 npm run dev' api \
+     -c 'PORT=3001 npm run dev' web
+```
+
+## Real-World Examples
+
+### Full-Stack Development
+
+```bash
+# Frontend, backend, and database
+muxa -s apps/web dev frontend \
+     -s apps/api dev backend \
+     -c 'docker-compose up redis postgres' services
+```
+
+### Microservices
+
+```bash
+# Multiple services with different tools
+muxa -s services/auth start auth \
+     -s services/users start users \
+     -s services/orders start orders \
+     -c 'docker-compose up kafka' kafka
+```
+
+### Build Pipeline
+
+```bash
+# Build multiple packages in order
+muxa -c 'npm run clean' clean \
+     -s shared build shared \
+     -s backend build backend \
+     -s frontend build frontend
+```
+
+### Testing Workflow
+
+```bash
+# Run different test suites
+muxa -s backend test:unit backend-unit \
+     -s frontend test:unit frontend-unit \
+     -c 'npm run test:e2e' e2e
+```
+
+### Development with Live Reload
+
+```bash
+# Development servers with file watchers
+muxa -s frontend dev web \
+     -s backend dev:watch api \
+     -c 'npm run generate:types -- --watch' types
+```
+
+## Advanced Patterns
+
+### Conditional Process Groups
+
+```bash
+# Development mode
+muxa -c 'npm run dev:db && npm run dev:api' backend \
+     -c 'npm run dev:web' frontend
+
+# Production mode
+muxa -c 'npm run start:api' backend \
+     -c 'npm run start:web' frontend
+```
+
+### Dynamic Port Assignment
+
+```bash
+# Use different ports for multiple instances
+muxa -c 'PORT=3000 npm run dev' api-1 \
+     -c 'PORT=3001 npm run dev' api-2 \
+     -c 'PORT=3002 npm run dev' api-3
+```
+
+### Log Collection
+
+```bash
+# Run with logging
+muxa -c 'npm run dev 2>&1 | tee api.log' api \
+     -c 'npm run dev 2>&1 | tee web.log' web
+```
+
+## Tips and Tricks
+
+1. **Process Naming**: Always name your processes for easier identification
+2. **Order Matters**: Processes start in the order specified
+3. **Clean Exit**: Use Ctrl+C to cleanly stop all processes
+4. **Workspace Detection**: Run `muxa workspaces` to see all detected packages
+5. **Shell Escaping**: Use single quotes for complex commands to avoid shell interpretation
+
+## Next Steps
+
+- Check the [CLI Reference](/cli-reference) for all available options
+- Learn about [architecture](/architecture) to understand how muxa works
+- See [comparisons](/comparison) with alternative tools

@@ -1,0 +1,273 @@
+---
+title: CLI Reference
+description: Complete command-line interface reference for muxa
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# CLI Reference
+
+Complete reference for all muxa command-line options and features.
+
+## Synopsis
+
+```bash
+muxa [options] [commands...]
+muxa -c <command> [name] [-c <command> [name] ...]
+muxa -s <package> <script> [name] [-s ...]
+muxa -w <package> <command> [name] [-w ...]
+muxa workspaces
+```
+
+## Options
+
+### `-c, --command <command> [name]`
+
+Run an arbitrary command with an optional process name.
+
+```bash
+# Without name
+muxa -c 'npm run dev'
+
+# With name
+muxa -c 'npm run dev' frontend
+```
+
+### `-s, --script <package> <script> [name]`
+
+Run a package.json script from a specific workspace package.
+
+```bash
+# Run 'dev' script from 'backend' package
+muxa -s backend dev
+
+# With custom name
+muxa -s backend dev api-server
+```
+
+### `-w, --workspace <package> <command> [name]`
+
+Run a command in a specific workspace directory.
+
+```bash
+# Run command in workspace directory
+muxa -w frontend 'npx vite'
+
+# With name
+muxa -w frontend 'npx vite' dev-server
+```
+
+### `-h, --help`
+
+Display help information.
+
+```bash
+muxa --help
+```
+
+### `--version`
+
+Display the version number.
+
+```bash
+muxa --version
+```
+
+### `workspaces`
+
+List all detected workspace packages in the current monorepo.
+
+```bash
+muxa workspaces
+```
+
+Output example:
+```
+Found 5 workspace packages:
+  @myapp/frontend (./packages/frontend)
+  @myapp/backend (./packages/backend)
+  @myapp/shared (./packages/shared)
+  @myapp/cli (./tools/cli)
+  @myapp/scripts (./tools/scripts)
+```
+
+## Argument Modes
+
+<Callout type="warning">
+**Important**: muxa supports two modes that cannot be mixed in a single command.
+</Callout>
+
+### Basic Mode
+
+Commands as direct arguments (no flags):
+
+```bash
+muxa 'npm run dev' 'npm run test' 'npm run lint:watch'
+```
+
+- Simple and concise
+- Good for quick commands
+- No process naming
+
+### Advanced Mode
+
+Using flags for more control:
+
+```bash
+muxa -c 'npm run dev' app -c 'npm run test' tests
+```
+
+- Process naming
+- Mix different command types
+- More flexibility
+
+## Package Resolution
+
+When using `-s` or `-w`, packages are resolved in this order:
+
+1. **Exact match** - Full package.json name
+   ```bash
+   muxa -s @myapp/backend dev
+   ```
+
+2. **Path match** - Relative path from root
+   ```bash
+   muxa -s packages/backend dev
+   muxa -s ./packages/backend dev
+   ```
+
+3. **Directory match** - Directory name (only if unique)
+   ```bash
+   muxa -s backend dev
+   ```
+
+If ambiguous, muxa will show all matches:
+```
+Error: Ambiguous package identifier 'backend'
+Found multiple matches:
+  - @myapp/backend (packages/backend)
+  - @tools/backend (tools/backend)
+Please use the full package name or path.
+```
+
+## Shell Wrapping
+
+Commands are automatically wrapped with `sh -c` when they contain:
+
+- Shell operators: `&&`, `||`, `|`, `;`, `>`, `<`
+- Glob patterns: `*`, `?`, `[...]`
+- Environment variables: `$VAR`, `${VAR}`
+- Subshells: `$(...)`, `` `...` ``
+
+Examples:
+```bash
+# Automatically wrapped
+muxa -c 'npm run build && npm test'
+muxa -c 'echo $USER'
+muxa -c 'ls *.js'
+
+# Not wrapped (simple commands)
+muxa -c 'npm run dev'
+```
+
+## Environment Variables
+
+muxa respects and passes through environment variables:
+
+```bash
+# Set for specific command
+muxa -c 'NODE_ENV=production npm run build' build
+
+# Inherit from shell
+export DEBUG=app:*
+muxa -c 'npm run dev' app
+```
+
+### FORCE_COLOR
+
+muxa automatically sets `FORCE_COLOR=1` to preserve colored output from tools like npm, webpack, etc.
+
+## Process Management
+
+### Starting Processes
+
+- Processes start in the order specified
+- Each process gets its own terminal pane
+- Output is immediately visible
+
+### Switching Between Processes
+
+- Use arrow keys to navigate between panes
+- Click on a pane to focus it
+- Scroll with mouse wheel or keyboard
+
+### Stopping Processes
+
+- **Ctrl+C**: Stop all processes gracefully
+- **q**: Quit muxa (stops all processes)
+- Individual processes can exit on their own
+
+## Exit Codes
+
+muxa returns different exit codes:
+
+- `0`: All processes exited successfully
+- `1`: One or more processes failed
+- `2`: Invalid command-line arguments
+- `130`: Interrupted by user (Ctrl+C)
+
+## Debugging
+
+### List Workspaces
+
+Debug workspace detection:
+
+```bash
+muxa workspaces
+```
+
+### Verbose Output
+
+See the generated mprocs command:
+
+```bash
+# Dry run (coming in future version)
+muxa --dry-run -c 'npm run dev'
+```
+
+## Limitations
+
+- Cannot mix basic and advanced modes
+- Process names must not start with hyphens
+- Commands are run with `sh -c`, not your default shell
+- Some terminal features may vary by platform
+
+## Examples
+
+### Development Setup
+
+```bash
+# Full stack development
+muxa -s frontend dev web \
+     -s backend dev api \
+     -c 'docker-compose up' services
+```
+
+### CI Pipeline
+
+```bash
+# Run checks in parallel
+muxa -c 'npm run lint' lint \
+     -c 'npm run type-check' types \
+     -c 'npm run test' tests
+```
+
+### Monorepo Build
+
+```bash
+# Build all packages
+muxa -s shared build \
+     -s core build \
+     -s cli build \
+     -s app build
+```

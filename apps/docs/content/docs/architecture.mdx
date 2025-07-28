@@ -1,0 +1,265 @@
+---
+title: Architecture
+description: Technical details and design decisions behind muxa
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Architecture
+
+Understanding how muxa works under the hood.
+
+## Overview
+
+muxa is built as a wrapper around [mprocs](https://github.com/pvolok/mprocs), providing:
+
+1. **Simple CLI interface** - Intuitive command-line syntax
+2. **Workspace awareness** - Native monorepo support
+3. **Intelligent wrapping** - Automatic shell handling
+4. **Zero configuration** - Works out of the box
+
+## Core Components
+
+### Command Parser
+
+The parser handles multiple input formats:
+
+```typescript
+// Basic mode
+muxa 'cmd1' 'cmd2'
+
+// Advanced mode with flags
+muxa -c 'cmd1' name1 -c 'cmd2' name2
+
+// Workspace scripts
+muxa -s package script name
+```
+
+Key responsibilities:
+- Detect input mode (basic vs advanced)
+- Parse command flags and arguments
+- Validate argument combinations
+- Generate mprocs configuration
+
+### Workspace Resolver
+
+Intelligently finds packages in monorepos:
+
+```typescript
+// Resolution order
+1. Exact package.json name match
+2. Relative path match
+3. Directory name (if unique)
+```
+
+Supports:
+- npm/yarn/bun workspaces
+- pnpm workspaces
+- Nested workspace structures
+- Scoped packages (@org/package)
+
+### Package Manager Detection
+
+Automatic detection strategy:
+
+```typescript
+1. Check lock files (bun.lockb, pnpm-lock.yaml, etc.)
+2. Read packageManager field
+3. Check workspace config files
+4. Default to npm
+```
+
+### Command Builder
+
+Transforms user input into mprocs commands:
+
+```typescript
+// User input
+muxa -s backend dev
+
+// Generated command
+mprocs --names backend \
+  'sh -c "cd packages/backend && npm run dev"'
+```
+
+## Technical Design
+
+### Why mprocs?
+
+mprocs provides:
+- **Terminal multiplexing** - Split terminal into panes
+- **Interactive support** - Preserves stdin/stdout
+- **Clean output** - No interleaved logs
+- **Process management** - Graceful shutdown
+
+### Shell Wrapping Strategy
+
+Commands are wrapped with `sh -c` when they contain:
+
+```typescript
+const needsShell = /[&|;><$`*?{}[\]()]/;
+```
+
+This ensures:
+- Shell features work correctly
+- Environment variables expand
+- Glob patterns resolve
+- Operators function properly
+
+### Process Execution Flow
+
+1. **Parse** - Analyze command-line arguments
+2. **Resolve** - Find workspace packages if needed
+3. **Build** - Generate mprocs command
+4. **Execute** - Spawn mprocs with built command
+5. **Monitor** - Pass through exit codes
+
+## Key Features Implementation
+
+### Workspace Commands
+
+```typescript
+// -s flag implementation
+1. Resolve package location
+2. Build cd command
+3. Append script execution
+4. Wrap in shell
+```
+
+### Process Naming
+
+```typescript
+// Automatic naming
+muxa -c 'npm run dev' -> [npm run dev]
+
+// Custom naming
+muxa -c 'npm run dev' frontend -> [frontend]
+```
+
+### Exit Code Handling
+
+```typescript
+// Pass through mprocs exit code
+process.exit(mprocsProcess.exitCode);
+```
+
+## Performance Considerations
+
+### Minimal Overhead
+
+- Direct execution via mprocs
+- No polling or watching
+- Efficient process spawning
+- Native terminal performance
+
+### Memory Usage
+
+- Lightweight wrapper (~50KB)
+- mprocs handles process management
+- No persistent state
+- Minimal dependencies
+
+## Error Handling
+
+### Validation Errors
+
+- Mixed argument modes
+- Missing required parameters
+- Invalid package identifiers
+- Ambiguous workspace names
+
+### Runtime Errors
+
+- Command execution failures
+- Missing scripts
+- Package resolution failures
+- mprocs spawn errors
+
+## Security Considerations
+
+### Command Injection
+
+- Commands are passed directly to shell
+- No additional escaping/sanitization
+- Users responsible for command safety
+- Same security model as direct shell usage
+
+### File System Access
+
+- Only reads package.json files
+- No file modifications
+- Respects file permissions
+- Works within project boundaries
+
+## Debugging
+
+### Debug Mode
+
+Future versions may include:
+```bash
+muxa --debug -c 'npm run dev'
+# Shows resolved packages, generated commands, etc.
+```
+
+### Verbose Output
+
+```bash
+muxa --verbose workspaces
+# Detailed workspace detection info
+```
+
+## Comparison with Alternatives
+
+### vs Direct mprocs
+
+muxa adds:
+- Simpler syntax
+- Workspace support
+- Automatic detection
+- No config files
+
+### vs concurrently
+
+muxa provides:
+- Better output formatting
+- Interactive features
+- Monorepo awareness
+- Cleaner syntax
+
+### vs turbo/nx
+
+muxa focuses on:
+- Process running, not building
+- Zero configuration
+- Universal compatibility
+- Simple interface
+
+## Future Architecture
+
+### Planned Improvements
+
+1. **Plugin System** - Extend functionality
+2. **Config Files** - Optional presets
+3. **Better IPC** - Inter-process communication
+4. **Remote Execution** - SSH support
+
+### Maintaining Simplicity
+
+Core principles:
+- Zero config by default
+- Simple things stay simple
+- Advanced features are optional
+- Backward compatibility
+
+## Contributing
+
+Key areas for contribution:
+- Package manager detection
+- Workspace resolution
+- Platform compatibility
+- Error messages
+- Documentation
+
+<Callout type="info">
+See the [GitHub repository](https://github.com/dendotai/muxa) for contribution guidelines.
+</Callout>

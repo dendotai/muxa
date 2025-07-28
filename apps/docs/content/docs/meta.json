@@ -1,0 +1,17 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "---Getting Started---",
+    "installation", 
+    "getting-started",
+    "usage",
+    "---Reference---",
+    "cli-reference",
+    "configuration",
+    "---Learn More---",
+    "architecture",
+    "comparison",
+    "roadmap"
+  ]
+}

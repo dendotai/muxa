@@ -110,7 +110,17 @@ zone_name = "den.ai"
 
 ### 4. Features
 
-- **Search**: Full-text search across documentation
+- **Search**: Full-text search across documentation using Orama
+  - **Important**: For static export (`output: 'export'`), the search API route requires:
+    ```typescript
+    export const dynamic = 'force-static';
+    export const revalidate = false;
+    ```
+  - Search component must use `api` prop (not `url`) to specify endpoint:
+    ```typescript
+    useDocsSearch({ type: 'fetch', api: '/muxa/api/search' })
+    ```
+  - The baseUrl in source configuration must match the basePath: `/muxa`
 - **Dark Mode**: Automatic theme switching
 - **Syntax Highlighting**: For shell commands and code blocks
 - **Copy Button**: On all code blocks
@@ -186,3 +196,17 @@ GitHub Actions workflow to automatically deploy on push to main:
 - No routing configuration for other projects included
 - Deployment is self-contained and independent
 - Future projects can follow similar pattern without coordination
+
+## Implementation Status
+
+✅ **Completed**: The documentation has been implemented in `/apps/docs` with:
+- Fumadocs framework setup
+- All content migrated to MDX format
+- Cloudflare Workers configuration
+- GitHub Actions CI/CD workflow
+- Full navigation and search support
+
+To deploy:
+1. Set up Cloudflare API credentials as GitHub secrets
+2. Push to main branch or manually trigger the workflow
+3. Access at https://docs.den.ai/muxa

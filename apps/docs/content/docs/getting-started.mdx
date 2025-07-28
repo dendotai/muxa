@@ -1,0 +1,130 @@
+---
+title: Getting Started
+description: Quick start guide for using muxa
+---
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Getting Started
+
+Get up and running with muxa in minutes.
+
+## Basic Usage
+
+The simplest way to use muxa is to run multiple commands in parallel:
+
+```bash
+muxa 'npm run dev' 'npm run test:watch'
+```
+
+This will:
+1. Start both commands in separate terminal panes
+2. Show live output from each command
+3. Allow you to switch between panes with keyboard shortcuts
+4. Automatically handle process cleanup on exit
+
+## Understanding Modes
+
+muxa supports two distinct modes:
+
+### Basic Mode
+
+Direct command arguments without flags:
+
+```bash
+muxa 'npm run dev' 'npm run test' 'npm run lint:watch'
+```
+
+### Advanced Mode
+
+Using flags for more control:
+
+```bash
+muxa -c 'npm run dev' api -c 'npm run test' tests
+```
+
+<Callout type="warning">
+**Important**: You cannot mix these modes. Choose one style and use it consistently in a single command.
+</Callout>
+
+## Common Workflows
+
+### Development Server + Tests
+
+```bash
+# Run your dev server and tests in watch mode
+muxa -c 'npm run dev' server -c 'npm run test:watch' tests
+```
+
+### Multiple Services
+
+```bash
+# Start frontend, backend, and database
+muxa -c 'npm run frontend:dev' web \
+     -c 'npm run backend:dev' api \
+     -c 'docker-compose up postgres' db
+```
+
+### Monorepo Development
+
+If you're working in a monorepo, muxa makes it easy to run scripts from different packages:
+
+```bash
+# Run dev scripts in specific workspaces
+muxa -s frontend dev -s backend dev -s shared build:watch
+```
+
+## Interactive Features
+
+Once muxa is running, you can:
+
+- **Switch panes**: Use arrow keys or click
+- **Scroll output**: Mouse wheel or keyboard
+- **Copy text**: Select with mouse
+- **Exit**: Press `Ctrl+C` or `q`
+
+All your tools' interactive features are preserved:
+- Vite's dev server shortcuts work normally
+- Expo QR codes display correctly
+- Interactive prompts function as expected
+
+## Tips
+
+<Steps>
+  <Step>
+    ### Name your processes
+    
+    Give processes meaningful names for easier identification:
+    
+    ```bash
+    muxa -c 'npm run dev' frontend -c 'npm run api' backend
+    ```
+  </Step>
+  
+  <Step>
+    ### List available workspaces
+    
+    In a monorepo, see all detected packages:
+    
+    ```bash
+    muxa workspaces
+    ```
+  </Step>
+  
+  <Step>
+    ### Use shell features
+    
+    Commands with shell operators are automatically handled:
+    
+    ```bash
+    muxa -c 'npm run build && npm test' -c 'echo "Starting..." && npm run dev'
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+- Explore [usage examples](/usage) for more patterns
+- Learn about [workspace commands](/usage#workspace-script-support) for monorepos
+- Check the [CLI reference](/cli-reference) for all options

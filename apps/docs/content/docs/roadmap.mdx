@@ -1,0 +1,215 @@
+---
+title: Roadmap
+description: Future plans and ideas for muxa development
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Roadmap
+
+<Callout type="info">
+These features are ideas for future development. No implementation is currently scheduled.
+</Callout>
+
+## Testing Improvements
+
+### CI Matrix for Package Manager Tests
+
+Currently, some package manager detection tests are skipped because they depend on specific package managers being installed in the test environment. To properly test detection for all supported package managers, we should:
+
+1. Set up a GitHub Actions matrix strategy with different environments:
+   - Node.js only (npm)
+   - Node.js + Yarn
+   - Node.js + pnpm
+   - Node.js + Bun
+
+2. Run package manager detection tests in each environment to ensure:
+   - Correct detection when package manager is available
+   - Proper fallback behavior when package manager is not available
+
+3. Tests to re-enable:
+   - "should detect yarn from yarn.lock"
+   - "should detect pnpm from pnpm-lock.yaml"
+   - "should detect bun from bun.lockb"
+   - "should detect from packageManager field"
+
+### Better Error Handling for Spawn Failures
+
+- Create a robust spawn wrapper that handles process spawn errors gracefully
+- Replace direct spawn calls in tests with the wrapper to prevent hanging tests
+- Consider using this wrapper in the main codebase as well
+
+### Branch Coverage Support
+
+Add branch coverage reporting when Bun implements this feature.
+
+**Why this would be useful:**
+- Line coverage alone doesn't ensure all code paths are tested
+- Branch coverage helps identify untested conditional logic
+- Would help achieve more comprehensive test coverage
+- Industry standard metric for code quality
+
+## Feature Ideas
+
+### Fail-Fast Mode
+
+Add support for fail-fast behavior where all processes terminate when one fails or exits.
+
+**Why this would be useful:**
+- Matches behavior of `concurrently --kill-others` and `npm-run-all --bail`
+- Useful for CI pipelines where you want fast feedback
+- Good for test suites where subsequent tests depend on earlier ones
+- Saves resources by not running unnecessary processes after failure
+
+**Implementation considerations:**
+- Add `-f` or `--fail-fast` flag
+- Monitor process exit codes and send signals to other processes
+- Consider different modes: on-error (non-zero exit) vs on-exit (any exit)
+- Ensure graceful shutdown with proper signal handling
+
+### Respect User's Shell (Non-Monorepo Mode)
+
+When not in a monorepo context (i.e., when only using `-c` flags), consider using the user's configured shell instead of always using `sh`.
+
+**Why this would be useful:**
+- Allows access to personal shell aliases and functions
+- Better integration with user's development workflow
+- Fish/Zsh users can use their shell-specific syntax
+- Makes muxa more versatile as a general process runner
+
+**Implementation considerations:**
+- Detect when no workspace operations are used
+- Use `$SHELL` environment variable to determine user's shell
+- Fall back to `sh` if detection fails
+- Keep using `sh` for all workspace operations to ensure consistency
+
+### Configuration File Support
+
+Add support for configuration files to define reusable command presets.
+
+**Why this would be useful:**
+- Standardize common development workflows across team
+- Avoid typing long command sequences repeatedly
+- Version control your development setups
+- Share configurations between projects
+
+**Implementation considerations:**
+- Format TBD (YAML, JSON, or other)
+- Allow presets for common command combinations
+- Usage: `muxa --preset dev` or similar
+
+Example `.muxarc`:
+```yaml
+presets:
+  dev:
+    - command: docker-compose up
+      name: services
+    - script: [backend, dev]
+      name: api
+    - script: [frontend, dev]
+      name: web
+  
+  test:
+    - script: [backend, test:watch]
+    - script: [frontend, test:watch]
+```
+
+### Docker Compose Integration
+
+Add native understanding of Docker Compose services as first-class citizens alongside workspace scripts.
+
+**Why this would be useful:**
+- Modern development often requires both application processes and containerized services
+- Eliminates the need for separate terminal tabs for `docker-compose up` commands
+- Provides unified interface for all local development processes
+- Better visibility into service health and logs alongside application output
+
+**Implementation considerations:**
+- Add `-d` flag for Docker Compose services: `muxa -d postgres -d redis -s backend dev`
+- Auto-detect docker-compose.yml in current directory or specify with `--compose-file`
+- Map service names to compose services, with automatic `docker-compose up` execution
+- Handle service dependencies and startup order if specified in compose file
+- Consider integration with Docker Compose profiles for environment-specific services
+- Graceful shutdown should properly stop containers (not just detach)
+
+### Process Dependencies
+
+Define startup order and dependencies between processes.
+
+**Example:**
+```bash
+muxa -c 'docker-compose up' db \
+     -s backend dev api --depends-on db \
+     -s frontend dev web --depends-on api
+```
+
+### Environment Profiles
+
+Support for different environment configurations:
+
+```bash
+muxa --env development
+muxa --env production
+muxa --env test
+```
+
+### Better Error Messages
+
+Improve error messages with:
+- Suggestions for common mistakes
+- Links to relevant documentation
+- Clear resolution steps
+- Examples of correct usage
+
+### Plugin System
+
+Allow extending muxa with plugins:
+- Custom process types
+- Additional commands
+- Integration with other tools
+- Team-specific workflows
+
+## Documentation Improvements
+
+- Add examples for each supported package manager
+- Document the fallback behavior clearly
+- Add troubleshooting guide for common issues
+- Video tutorials for common workflows
+- Integration guides for popular frameworks
+
+## Performance Optimizations
+
+- Faster workspace detection
+- Parallel process startup
+- Reduced memory footprint
+- Better handling of large monorepos
+
+## Platform Support
+
+- Better Windows native support
+- Improved CI environment detection
+- Docker container support
+- Remote development scenarios
+
+## Community Features
+
+- Command sharing platform
+- Preset marketplace
+- Integration templates
+- Best practices guide
+
+## How to Contribute
+
+We welcome contributions! Areas where help is needed:
+
+1. **Testing** - Improve test coverage and reliability
+2. **Documentation** - Examples, guides, translations
+3. **Features** - Implement items from this roadmap
+4. **Bug Fixes** - Find and fix edge cases
+5. **Platform Support** - Windows, CI environments
+
+See our [GitHub repository](https://github.com/dendotai/muxa) for contribution guidelines.
+
+<Callout type="warning">
+**Note**: This roadmap represents ideas and possibilities. Features may be implemented differently or not at all based on community needs and technical constraints.
+</Callout>

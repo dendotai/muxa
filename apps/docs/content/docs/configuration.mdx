@@ -1,0 +1,251 @@
+---
+title: Configuration
+description: Configuration options and workspace setup for muxa
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Configuration
+
+muxa is designed to work with zero configuration, but understanding how it detects and works with your project structure can help you get the most out of it.
+
+## Zero Config Philosophy
+
+muxa requires no configuration files. It automatically:
+
+- Detects your package manager (npm, yarn, pnpm, bun)
+- Finds workspace packages in monorepos
+- Handles different monorepo structures
+- Wraps commands appropriately
+
+## Package Manager Detection
+
+muxa automatically detects your package manager using these methods:
+
+### 1. Lock Files
+
+Checks for lock files in order:
+- `bun.lockb` → Bun
+- `pnpm-lock.yaml` → pnpm
+- `yarn.lock` → Yarn
+- `package-lock.json` → npm
+
+### 2. packageManager Field
+
+Reads the `packageManager` field in package.json:
+
+```json
+{
+  "packageManager": "pnpm@8.0.0"
+}
+```
+
+### 3. Workspace Configuration
+
+- `pnpm-workspace.yaml` → pnpm
+- `workspaces` in package.json → npm/yarn/bun
+
+## Monorepo Support
+
+muxa understands common monorepo structures:
+
+### npm/Yarn/Bun Workspaces
+
+```json
+{
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "tools/*"
+  ]
+}
+```
+
+### pnpm Workspaces
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'packages/*'
+  - 'apps/*'
+  - '!**/test/**'
+```
+
+### Directory Structures
+
+muxa recognizes these common patterns:
+- `packages/*` - Shared packages
+- `apps/*` - Applications
+- `services/*` - Microservices
+- `tools/*` - Build tools
+- `libs/*` - Libraries
+
+## Workspace Resolution
+
+When you reference a workspace, muxa tries to find it by:
+
+1. **Package name** (from package.json)
+   ```bash
+   muxa -s @myapp/core build
+   ```
+
+2. **Relative path**
+   ```bash
+   muxa -s packages/core build
+   ```
+
+3. **Directory name** (if unique)
+   ```bash
+   muxa -s core build
+   ```
+
+<Callout type="info">
+Run `muxa workspaces` to see how muxa detects your packages.
+</Callout>
+
+## Script Execution
+
+### Package Manager Scripts
+
+muxa runs scripts using your detected package manager:
+
+- npm: `npm run <script>`
+- yarn: `yarn run <script>`
+- pnpm: `pnpm run <script>`
+- bun: `bun run <script>`
+
+### Working Directory
+
+For workspace commands, muxa:
+1. Changes to the package directory
+2. Runs the command
+3. Preserves the package's environment
+
+## Environment Variables
+
+### Automatic Variables
+
+muxa sets these automatically:
+- `FORCE_COLOR=1` - Preserve colored output
+- Inherits all parent process variables
+
+### Custom Variables
+
+Set variables per command:
+```bash
+muxa -c 'NODE_ENV=production npm run build' build
+```
+
+## Platform Differences
+
+### macOS/Linux
+
+- Full feature support
+- Native terminal capabilities
+- Smooth scrolling and selection
+
+### Windows
+
+- Best with WSL (Windows Subsystem for Linux)
+- Git Bash also works
+- Some terminal features may be limited
+
+### CI Environments
+
+muxa works in CI but consider:
+- No interactive features needed
+- May want to use `concurrently` for simpler output
+- Exit codes are properly propagated
+
+## Best Practices
+
+### 1. Monorepo Structure
+
+Organize packages clearly:
+```
+my-app/
+├── package.json
+├── apps/
+│   ├── web/
+│   └── mobile/
+├── packages/
+│   ├── ui/
+│   └── core/
+└── services/
+    ├── api/
+    └── auth/
+```
+
+### 2. Naming Conventions
+
+Use clear, consistent names:
+```bash
+# Good
+muxa -s apps/web dev frontend \
+     -s services/api dev backend
+
+# Less clear
+muxa -s web dev w \
+     -s api dev a
+```
+
+### 3. Script Organization
+
+Keep related scripts together:
+```json
+{
+  "scripts": {
+    "dev": "vite",
+    "dev:host": "vite --host",
+    "dev:debug": "DEBUG=* vite"
+  }
+}
+```
+
+### 4. Process Dependencies
+
+Start dependent services first:
+```bash
+# Start database, then API, then frontend
+muxa -c 'docker-compose up -d postgres' db \
+     -s backend dev api \
+     -s frontend dev web
+```
+
+## Troubleshooting
+
+### Package Not Found
+
+If muxa can't find a package:
+
+1. Check workspace configuration
+2. Verify package.json exists
+3. Use full path or package name
+4. Run `muxa workspaces` to debug
+
+### Script Not Found
+
+If a script doesn't exist:
+
+1. Verify script name in package.json
+2. Check you're using the right package
+3. Ensure dependencies are installed
+
+### Detection Issues
+
+If package manager detection fails:
+
+1. Ensure lock file exists
+2. Check packageManager field
+3. Run from project root
+
+## Future Configuration
+
+While muxa currently requires no configuration, future versions may support:
+
+- `.muxarc` file for saved command sets
+- Project-specific defaults
+- Team-shared configurations
+- CI-specific optimizations
+
+These would remain optional, maintaining the zero-config philosophy.

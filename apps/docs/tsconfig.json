@@ -1,22 +1,59 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "target": "es2022",
     "outDir": "./dist",
     "rootDir": ".",
     "composite": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "module": "preserve",
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@components/*": ["./src/components/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@/.source": [
+        "./.source/index.ts"
+      ]
     },
-    "lib": ["es2022", "dom", "dom.iterable"],
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
     "allowJs": true,
     "checkJs": false,
-    "noEmit": true
+    "noEmit": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noUncheckedIndexedAccess": true,
+    "moduleDetection": "force",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["src/**/*", "*.config.ts", "*.config.js"],
-  "exclude": ["node_modules", "dist", ".next", ".turbo"]
+  "include": [
+    "*.config.js",
+    "*.config.ts",
+    "*.config.mjs",
+    "app/**/*",
+    "content/**/*",
+    "lib/**/*",
+    "components/**/*",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".next",
+    ".turbo",
+    ".source"
+  ]
 }
