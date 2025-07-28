@@ -1,11 +1,11 @@
 import { describe, it, expect } from "bun:test";
-import { spawn } from "child_process";
+import { spawn, type SpawnOptions } from "child_process";
 import { StdinSimulator } from "@tests/helpers/stdin-simulator";
 import { muxaPath, fixturesPath } from "@tests/helpers/constants";
 import * as path from "path";
 
 // Helper to spawn muxa with proper runtime
-function spawnMuxa(args: string[], options: any) {
+function spawnMuxa(args: string[], options: SpawnOptions) {
   const runtime = process.env.CI ? "node" : "bun";
   return spawn(runtime, [muxaPath, ...args], options);
 }

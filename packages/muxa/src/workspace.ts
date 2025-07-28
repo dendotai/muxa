@@ -37,37 +37,42 @@ export function discoverWorkspaces(): WorkspaceConfig {
   let workspaceType: PackageManager | null = null;
   let workspacePatterns: string[] = [];
 
-  switch (packageManager) {
-    case "pnpm": {
-      // pnpm uses pnpm-workspace.yaml
-      const pnpmWorkspacePath = path.join(root, "pnpm-workspace.yaml");
-      if (fs.existsSync(pnpmWorkspacePath)) {
-        workspaceType = "pnpm";
-        workspacePatterns = parsePnpmWorkspace(pnpmWorkspacePath);
+  // Always check for pnpm-workspace.yaml first, regardless of detected package manager
+  // This allows discovering pnpm workspace structure even when pnpm isn't installed
+  // TODO: I like pnpm but this is disgusting
+  const pnpmWorkspacePath = path.join(root, "pnpm-workspace.yaml");
+  if (fs.existsSync(pnpmWorkspacePath)) {
+    workspaceType = "pnpm";
+    workspacePatterns = parsePnpmWorkspace(pnpmWorkspacePath);
+  } else {
+    // If no pnpm workspace config, check based on package manager
+    switch (packageManager) {
+      case "pnpm": {
+        // Already checked above
+        break;
       }
-      break;
-    }
 
-    case "npm":
-    case "yarn":
-    case "bun": {
-      // npm, yarn, and bun use package.json workspaces field
-      const rootPackageJsonPath = path.join(root, "package.json");
-      if (fs.existsSync(rootPackageJsonPath)) {
-        try {
-          const rootPackageJson = JSON.parse(fs.readFileSync(rootPackageJsonPath, "utf-8"));
-          workspacePatterns = getWorkspacePatternsFromPackageJson(rootPackageJson);
-          if (workspacePatterns.length > 0) {
-            workspaceType = packageManager;
-          }
-        } catch (e) {
-          // Ignore invalid package.json
-          if (process.env.MUXA_DEBUG) {
-            console.error(`[workspace] Failed to read root package.json:`, e);
+      case "npm":
+      case "yarn":
+      case "bun": {
+        // npm, yarn, and bun use package.json workspaces field
+        const rootPackageJsonPath = path.join(root, "package.json");
+        if (fs.existsSync(rootPackageJsonPath)) {
+          try {
+            const rootPackageJson = JSON.parse(fs.readFileSync(rootPackageJsonPath, "utf-8"));
+            workspacePatterns = getWorkspacePatternsFromPackageJson(rootPackageJson);
+            if (workspacePatterns.length > 0) {
+              workspaceType = packageManager;
+            }
+          } catch (e) {
+            // Ignore invalid package.json
+            if (process.env.MUXA_DEBUG) {
+              console.error(`[workspace] Failed to read root package.json:`, e);
+            }
           }
         }
+        break;
       }
-      break;
     }
   }
 
