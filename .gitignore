@@ -16,3 +16,5 @@ settings.local.json
 # TypeScript compiler API output
 *.tsbuildinfo
 tsconfig.tsbuildinfo
+
+.env.local

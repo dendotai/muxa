@@ -24,6 +24,7 @@ bun run muxa:local
 ## Project Structure
 
 This is a monorepo with workspaces:
+
 - `packages/muxa` - The main `muxa` package
 - `apps/docs` - Documentation app
 
@@ -32,16 +33,19 @@ This is a monorepo with workspaces:
 ### Available Scripts
 
 #### Testing
+
 ```bash
 bun test                # Run all tests
 ```
 
 #### Building
+
 ```bash
 bun run build           # Build all packages
 ```
 
 #### Code Quality
+
 ```bash
 bun run check           # Run all checks (typecheck, lint, format)
 bun run check:fix       # Fix all auto-fixable issues
@@ -55,6 +59,7 @@ bun run format:fix      # Auto-fix formatting
 ```
 
 #### Development
+
 ```bash
 bun run muxa:local      # Run muxa directly from TypeScript source (no build needed)
                         # Use this when developing muxa itself to test changes instantly
@@ -83,6 +88,7 @@ bun run muxa:local      # Run muxa directly from TypeScript source (no build nee
 If you're a maintainer preparing a release:
 
 ### 1. Ensure Clean State
+
 ```bash
 # Clean install to ensure lockfile is up to date
 rm -rf node_modules bun.lock
@@ -90,6 +96,7 @@ bun install
 ```
 
 ### 2. Run All Checks
+
 ```bash
 # This runs typecheck, lint, and format
 bun run check
@@ -108,6 +115,7 @@ bun run test
 ```
 
 ### 4. Test CLI Locally
+
 ```bash
 # Test the built version
 cd packages/muxa
@@ -151,6 +159,7 @@ bun run release:major  # for breaking changes
 ## Questions?
 
 If you have questions or need help, feel free to:
+
 - Open an issue for bugs or feature requests
 - Start a discussion for general questions
 - Check existing issues and PRs for similar topics
