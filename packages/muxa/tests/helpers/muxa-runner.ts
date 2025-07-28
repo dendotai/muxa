@@ -18,12 +18,10 @@ export interface MuxaCommandResult {
 // ALWAYS runs in test mode - never executes mprocs
 export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaCommandResult> {
   return new Promise((resolve) => {
-    // Ensure PATH is preserved when creating env
+    // Don't override env, just add what we need
     const env = {
       ...process.env,
-      ...TEST_ENV,
       MUXA_TEST_MODE: "true",
-      PATH: process.env.PATH, // Explicitly preserve PATH
     };
 
     // Use node in CI (preinstalled), bun locally
@@ -107,10 +105,10 @@ export function runMuxa(
   return new Promise((resolve) => {
     const cwd = options?.cwd || process.cwd();
     const timeout = options?.timeout || DEFAULT_TIMEOUT;
-    // Always ensure MUXA_TEST_MODE is set and PATH is preserved
+    // Always ensure MUXA_TEST_MODE is set
     const env = options?.env
-      ? { ...process.env, ...options.env, MUXA_TEST_MODE: "true", PATH: process.env.PATH }
-      : { ...process.env, MUXA_TEST_MODE: "true", PATH: process.env.PATH };
+      ? { ...process.env, ...options.env, MUXA_TEST_MODE: "true" }
+      : { ...process.env, MUXA_TEST_MODE: "true" };
 
     // Use node in CI (preinstalled), bun locally
     const runtime = process.env.CI ? "node" : "bun";
@@ -165,7 +163,7 @@ export function runMuxa(
 // Quick run with test mode enabled
 // ALWAYS runs in test mode - never executes mprocs
 export async function runMuxaQuick(args: string[], cwd?: string): Promise<MuxaResult> {
-  const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true", PATH: process.env.PATH };
+  const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true" };
 
   return new Promise<MuxaResult>((resolve) => {
     // Use node in CI (preinstalled), bun locally
@@ -220,7 +218,7 @@ export async function runMuxaQuick(args: string[], cwd?: string): Promise<MuxaRe
 // Run muxa in a specific fixture directory
 // ALWAYS runs in test mode - never executes mprocs
 export function runMuxaInFixture(fixture: string, args: string[]): Promise<MuxaResult> {
-  const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true", PATH: process.env.PATH };
+  const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true" };
   const cwd = path.join(__dirname, "..", "fixtures", fixture);
 
   return new Promise((resolve) => {
