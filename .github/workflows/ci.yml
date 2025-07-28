@@ -19,6 +19,15 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+      
+      - name: Verify Bun installation
+        run: |
+          echo "Bun version:"
+          bun --version
+          echo "Bun location:"
+          which bun
+          echo "PATH:"
+          echo $PATH
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -33,7 +42,7 @@ jobs:
         run: bun run format
 
       - name: Run tests
-        run: bun test
+        run: bun test:clean
         working-directory: packages/muxa
 
       # Build verification - ensures the project can be built successfully
