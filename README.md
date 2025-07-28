@@ -10,7 +10,15 @@
   ╚═╝     ╚═╝   ╚═════╝   ╚═╝  ╚═╝  ╚═╝  ╚═╝    └───────┴────────────────────────────────────┘
 ```
 
-Clean, concise CLI for running multiple processes. Workspace-aware for monorepos, preserves interactivity, config files not required. TODO coin better wording
+Run your entire dev stack in multiple virtual terminals with one concise command instead of long config files. Built-in monorepo support, preserved interactivity, and clean output.
+
+```bash
+# Before:
+concurrently -n "api,web,db" "npm run dev --workspace=api" "npm run dev --workspace=web" "docker-compose up postgres"
+
+# After:
+muxa -s api dev -s web dev -c "docker-compose up postgres" db
+```
 
 ## Why muxa?
 
