@@ -22,7 +22,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@den-ai/muxa": "^0.2.0",
+    "@den-ai/muxa": "^0.2.1",
     "@total-typescript/tsconfig": "^1.0.4",
     "husky": "^9.1.7",
     "prettier": "^3.6.2",
