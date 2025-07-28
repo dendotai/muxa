@@ -1,5 +1,8 @@
 # Muxa Roadmap
 
+> [!NOTE]
+> These features are ideas for future development. No implementation is currently scheduled.
+
 ## Testing Improvements
 
 ### CI Matrix for Package Manager Tests
@@ -47,12 +50,7 @@ This will ensure muxa works correctly across all package manager ecosystems.
 - Document the fallback behavior clearly
 - Add troubleshooting guide for common issues
 
-## Future Features
-
-> [!NOTE]
-> These features are ideas for future development. No implementation is currently scheduled.
-
-### Fail-Fast Mode
+## Fail-Fast Mode
 
 Add support for fail-fast behavior where all processes terminate when one fails or exits.
 
@@ -70,7 +68,7 @@ Add support for fail-fast behavior where all processes terminate when one fails 
 - Consider different modes: on-error (non-zero exit) vs on-exit (any exit)
 - Ensure graceful shutdown with proper signal handling
 
-### Respect User's Shell (Non-Monorepo Mode)
+## Respect User's Shell (Non-Monorepo Mode)
 
 When not in a monorepo context (i.e., when only using `-c` flags), consider using the user's configured shell instead of always using `sh`.
 
@@ -88,7 +86,7 @@ When not in a monorepo context (i.e., when only using `-c` flags), consider usin
 - Fall back to `sh` if detection fails
 - Keep using `sh` for all workspace operations to ensure consistency
 
-### Configuration File Support
+## Configuration File Support
 
 Add support for configuration files to define reusable command presets.
 
@@ -105,7 +103,7 @@ Add support for configuration files to define reusable command presets.
 - Allow presets for common command combinations
 - Usage: `muxa --preset dev` or similar
 
-### Docker Compose Integration
+## Docker Compose Integration
 
 Add native understanding of Docker Compose services as first-class citizens alongside workspace scripts.
 
