@@ -1,0 +1,9 @@
+{
+  "name": "@company/ui-components",
+  "version": "2.0.0",
+  "scripts": {
+    "storybook": "echo 'Starting Storybook...'",
+    "build": "echo 'Building UI components...'",
+    "test": "echo 'Testing UI components...'"
+  }
+}

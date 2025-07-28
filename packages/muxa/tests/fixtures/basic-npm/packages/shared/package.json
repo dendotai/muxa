@@ -1,0 +1,8 @@
+{
+  "name": "@basic/shared",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Building shared library...'",
+    "watch": "echo 'Watching shared files...'"
+  }
+}

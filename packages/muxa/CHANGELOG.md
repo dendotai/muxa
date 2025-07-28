@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial implementation of muxa CLI
+- Full rewrite of CLI
 - Support for running multiple commands in parallel using mprocs
 - Three main command modes:
   - `-c/--command`: Run arbitrary commands with optional names
@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nested execution prevention (`MUXA_RUNNING` check)
 - Color output support (`FORCE_COLOR=1`)
 - TypeScript implementation with full type safety
-- Comprehensive test suite with 285 tests
+- Comprehensive test suite
 - Modular architecture with separated concerns:
   - Parser for command-line arguments
   - Workspace discovery and resolution
@@ -36,4 +36,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - TBD
 
-- Initial release
+- Initial implementation

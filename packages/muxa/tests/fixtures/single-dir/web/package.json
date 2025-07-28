@@ -1,0 +1,8 @@
+{
+  "name": "web",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "echo 'Web server starting on :3000'",
+    "build": "echo 'Building web app...'"
+  }
+}

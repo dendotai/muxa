@@ -1,0 +1,9 @@
+{
+  "name": "@basic/backend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "echo 'Backend running on port 3000'",
+    "build": "echo 'Building backend...'",
+    "test": "echo 'Testing backend...'"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "@basic/frontend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "echo 'Frontend running on port 5173'",
+    "build": "echo 'Building frontend...'",
+    "preview": "echo 'Preview server on port 4173'"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@company/data-layer",
+  "version": "1.5.0",
+  "scripts": {
+    "generate": "echo 'Generating types...'",
+    "test": "echo 'Testing data layer...'"
+  }
+}

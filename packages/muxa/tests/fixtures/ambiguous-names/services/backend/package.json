@@ -1,0 +1,7 @@
+{
+  "name": "@services/backend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "echo 'Services backend running...'"
+  }
+}

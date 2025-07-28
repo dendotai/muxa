@@ -1,0 +1,9 @@
+{
+  "name": "mobile",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "echo 'Starting Metro bundler...'",
+    "ios": "echo 'Running on iOS...'",
+    "android": "echo 'Running on Android...'"
+  }
+}

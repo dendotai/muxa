@@ -1,0 +1,9 @@
+{
+  "name": "single-dir-monorepo",
+  "private": true,
+  "workspaces": [
+    "api",
+    "web",
+    "mobile"
+  ]
+}

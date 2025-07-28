@@ -1,0 +1,8 @@
+{
+  "name": "@yarn-test/core",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Building core...'",
+    "test": "echo 'Testing core...'"
+  }
+}

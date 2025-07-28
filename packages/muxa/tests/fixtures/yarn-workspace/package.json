@@ -1,0 +1,13 @@
+{
+  "name": "yarn-workspace-monorepo",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "nohoist": [
+      "**/react-native",
+      "**/react-native/**"
+    ]
+  }
+}

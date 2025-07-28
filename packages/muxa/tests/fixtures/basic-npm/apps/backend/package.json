@@ -1,0 +1,8 @@
+{
+  "name": "backend-app",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "echo 'Starting backend application...'",
+    "dev": "echo 'Backend app dev mode'"
+  }
+}

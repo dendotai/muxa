@@ -1,0 +1,9 @@
+{
+  "name": "ambiguous-names-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "tools/*",
+    "services/*"
+  ]
+}
