@@ -10,15 +10,11 @@ beforeAll(() => {
 
   // Set NODE_ENV to test
   process.env.NODE_ENV = "test";
-
-  // Disable actual mprocs execution during tests
-  process.env.MUXA_TEST_MODE = "true";
 });
 
 // Clean up after all tests
 afterAll(() => {
   // Reset environment
-  delete process.env.MUXA_TEST_MODE;
   delete process.env.NODE_ENV;
 });
 

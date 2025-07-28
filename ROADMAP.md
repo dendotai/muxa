@@ -1,5 +1,41 @@
 # Muxa Roadmap
 
+## Testing Improvements
+
+### CI Matrix for Package Manager Tests
+
+Currently, some package manager detection tests are skipped because they depend on specific package managers being installed in the test environment. To properly test detection for all supported package managers, we should:
+
+1. Set up a GitHub Actions matrix strategy with different environments:
+   - Node.js only (npm)
+   - Node.js + Yarn
+   - Node.js + pnpm
+   - Node.js + Bun
+
+2. Run package manager detection tests in each environment to ensure:
+   - Correct detection when package manager is available
+   - Proper fallback behavior when package manager is not available
+
+3. Tests to re-enable:
+   - "should detect yarn from yarn.lock"
+   - "should detect pnpm from pnpm-lock.yaml"
+   - "should detect bun from bun.lockb"
+   - "should detect from packageManager field"
+
+This will ensure muxa works correctly across all package manager ecosystems.
+
+### Better Error Handling for Spawn Failures
+
+- Create a robust spawn wrapper that handles process spawn errors gracefully
+- Replace direct spawn calls in tests with the wrapper to prevent hanging tests
+- Consider using this wrapper in the main codebase as well
+
+## Documentation Improvements
+
+- Add examples for each supported package manager
+- Document the fallback behavior clearly
+- Add troubleshooting guide for common issues
+
 ## Future Features
 
 > [!NOTE]

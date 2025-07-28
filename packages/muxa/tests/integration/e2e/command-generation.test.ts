@@ -177,7 +177,8 @@ describe("E2E: Command Generation and Validation", () => {
   describe("Real script execution (single command)", () => {
     it("should execute a single npm script", async () => {
       // Run a single script without mprocs to test basic execution
-      const proc = spawn("bun", [muxaPath, "-s", "backend", "test"], {
+      const runtime = process.env.CI ? "node" : "bun";
+      const proc = spawn(runtime, [muxaPath, "-s", "backend", "test"], {
         cwd: fixtureDir,
         env: { ...process.env, MUXA_SINGLE_MODE: "true" }, // Hypothetical single mode
       });

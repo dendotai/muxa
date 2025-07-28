@@ -20,7 +20,9 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
   return new Promise((resolve) => {
     const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true" };
 
-    const proc = spawn("bun", [muxaPath, ...args], {
+    // Use node in CI or when bun might not be available in subprocess PATH
+    const runtime = process.env.CI ? "node" : "bun";
+    const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd: cwd || process.cwd(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -104,7 +106,9 @@ export function runMuxa(
       ? { ...process.env, ...options.env, MUXA_TEST_MODE: "true" }
       : { ...process.env, MUXA_TEST_MODE: "true" };
 
-    const proc = spawn("bun", [muxaPath, ...args], {
+    // Use node in CI or when bun might not be available in subprocess PATH
+    const runtime = process.env.CI ? "node" : "bun";
+    const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
@@ -158,7 +162,9 @@ export async function runMuxaQuick(args: string[], cwd?: string): Promise<MuxaRe
   const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true" };
 
   return new Promise<MuxaResult>((resolve) => {
-    const proc = spawn("bun", [muxaPath, ...args], {
+    // Use node in CI or when bun might not be available in subprocess PATH
+    const runtime = process.env.CI ? "node" : "bun";
+    const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd: cwd || process.cwd(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -212,7 +218,9 @@ export function runMuxaInFixture(fixture: string, args: string[]): Promise<MuxaR
   const cwd = path.join(__dirname, "..", "fixtures", fixture);
 
   return new Promise((resolve) => {
-    const proc = spawn("bun", [muxaPath, ...args], {
+    // Use node in CI or when bun might not be available in subprocess PATH
+    const runtime = process.env.CI ? "node" : "bun";
+    const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd,
       stdio: ["ignore", "pipe", "pipe"],

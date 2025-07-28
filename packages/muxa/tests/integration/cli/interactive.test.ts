@@ -4,6 +4,12 @@ import { StdinSimulator } from "@tests/helpers/stdin-simulator";
 import { muxaPath, fixturesPath } from "@tests/helpers/constants";
 import * as path from "path";
 
+// Helper to spawn muxa with proper runtime
+function spawnMuxa(args: string[], options: any) {
+  const runtime = process.env.CI ? "node" : "bun";
+  return spawn(runtime, [muxaPath, ...args], options);
+}
+
 // Skip interactive tests - they require proper TTY emulation which is complex
 // TODO: Implement proper interactive testing with PTY emulation or mock the confirmPrompt function
 const skipInteractive = true;
@@ -14,7 +20,7 @@ describeInteractive("Interactive Confirmations", () => {
 
   describe("Duplicate tab name warnings", () => {
     it("should warn about duplicate tab names", async () => {
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "test", "-c", "echo 2", "test"], {
+      const proc = spawnMuxa(["-c", "echo 1", "test", "-c", "echo 2", "test"], {
         stdio: ["pipe", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -40,7 +46,7 @@ describeInteractive("Interactive Confirmations", () => {
     });
 
     it("should exit when user rejects duplicate names", async () => {
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "dup", "-c", "echo 2", "dup"], {
+      const proc = spawnMuxa(["-c", "echo 1", "dup", "-c", "echo 2", "dup"], {
         stdio: ["pipe", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -100,7 +106,7 @@ describeInteractive("Interactive Confirmations", () => {
 
   describe("y/n/Enter key handling", () => {
     it("should accept 'y' as confirmation", async () => {
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
         stdio: ["pipe", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -115,7 +121,7 @@ describeInteractive("Interactive Confirmations", () => {
     });
 
     it("should accept 'Y' as confirmation", async () => {
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
         stdio: ["pipe", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -130,7 +136,7 @@ describeInteractive("Interactive Confirmations", () => {
     });
 
     it("should treat Enter as 'no'", async () => {
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
         stdio: ["pipe", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -145,7 +151,7 @@ describeInteractive("Interactive Confirmations", () => {
     });
 
     it("should accept 'n' as rejection", async () => {
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
         stdio: ["pipe", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -160,7 +166,7 @@ describeInteractive("Interactive Confirmations", () => {
     });
 
     it("should accept 'N' as rejection", async () => {
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
         stdio: ["pipe", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -177,7 +183,7 @@ describeInteractive("Interactive Confirmations", () => {
 
   describe("Cyrillic keyboard support", () => {
     it("should accept Cyrillic 'у' (looks like y) as yes", async () => {
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
         stdio: ["pipe", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -192,7 +198,7 @@ describeInteractive("Interactive Confirmations", () => {
     });
 
     it("should accept Cyrillic 'н' (looks like n) as no", async () => {
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
         stdio: ["pipe", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -212,7 +218,7 @@ describeInteractive("Interactive Confirmations", () => {
       const testCases = ["y", "Y", "yes", "YES", "Yes", "yEs"];
 
       for (const response of testCases) {
-        const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+        const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
           stdio: ["pipe", "pipe", "pipe"],
           cwd: path.join(fixturesPath, "basic-npm"),
           env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -231,7 +237,7 @@ describeInteractive("Interactive Confirmations", () => {
       const testCases = ["n", "N", "no", "NO", "No", "nO"];
 
       for (const response of testCases) {
-        const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+        const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
           stdio: ["pipe", "pipe", "pipe"],
           cwd: path.join(fixturesPath, "basic-npm"),
           env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -249,7 +255,7 @@ describeInteractive("Interactive Confirmations", () => {
 
   describe("Invalid input handling", () => {
     it("should re-prompt on invalid input", async () => {
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
         stdio: ["pipe", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -273,7 +279,7 @@ describeInteractive("Interactive Confirmations", () => {
     });
 
     it("should handle empty lines as 'no'", async () => {
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
         stdio: ["pipe", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },
@@ -293,7 +299,7 @@ describeInteractive("Interactive Confirmations", () => {
   describe("Non-interactive mode", () => {
     it("should skip confirmation when stdin is not a TTY", async () => {
       // This test might need adjustment based on how muxa detects TTY
-      const proc = spawn("bun", [muxaPath, "-c", "echo 1", "name", "-c", "echo 2", "name"], {
+      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
         stdio: ["ignore", "pipe", "pipe"],
         cwd: path.join(fixturesPath, "basic-npm"),
         env: { ...process.env, MUXA_TEST_MODE: "true" },

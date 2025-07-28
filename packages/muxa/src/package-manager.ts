@@ -88,8 +88,8 @@ export function detectPackageManager(rootDir: string = process.cwd()): PackageMa
   // Check if the detected package manager is available
   const available = isPackageManagerAvailable(detectedType);
 
-  // If not available, fall back to npm (unless in test mode)
-  if (!available && detectedType !== "npm" && !process.env.MUXA_TEST_MODE) {
+  // If not available, fall back to npm
+  if (!available && detectedType !== "npm") {
     if (process.env.MUXA_DEBUG) {
       console.error(
         `Warning: ${detectedType} detected but not available in PATH, falling back to npm`,
