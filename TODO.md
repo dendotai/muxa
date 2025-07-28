@@ -24,6 +24,16 @@
   - Improve test readability and reduce duplication
 - [ ] Add automated check with husky or something. On save we
 
+## CI/CD
+
+- [ ] Add GitHub Actions workflow for PR checks
+  - Run tests on all PRs (required check)
+  - Run typecheck, lint, format checks
+  - Test on multiple Node versions (16, 18, 20)
+  - Test on multiple OS (ubuntu, macos, windows)
+  - Do NOT run release script on PRs
+  - Cache dependencies for faster runs
+
 ## Future: Testing Infrastructure
 
 ### Long-term Goal: Custom Terminal Multiplexer for Testing
