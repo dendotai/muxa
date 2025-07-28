@@ -14,6 +14,7 @@
     "format:fix": "prettier --write .",
     "check": "bun run typecheck && bun run lint && bun run format",
     "check:fix": "bun run lint:fix && bun run format:fix",
+    "test:coverage": "cd packages/muxa && bun test:coverage",
     "muxa:local": "bun run packages/muxa/src/index.ts",
     "build": "bun run --filter='*' build",
     "release:patch": "bun scripts/release.ts patch",
