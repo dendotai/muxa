@@ -12,6 +12,7 @@
     "test": "MUXA_TEST_MODE=true bun test",
     "test:clean": "MUXA_TEST_MODE=true CI=true bun test --bail",
     "test:watch": "MUXA_TEST_MODE=true bun test --watch",
+    "test:coverage": "MUXA_TEST_MODE=true bun test --coverage --coverage-reporter=lcov",
     "typecheck": "tsc --noEmit --skipLibCheck",
     "prepublishOnly": "bun run build && bun run test",
     "lint:ts": "eslint .",

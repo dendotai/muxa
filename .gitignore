@@ -17,4 +17,7 @@ settings.local.json
 *.tsbuildinfo
 tsconfig.tsbuildinfo
 
+# Coverage reports
+coverage/
+
 .env.local

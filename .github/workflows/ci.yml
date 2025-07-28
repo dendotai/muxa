@@ -37,9 +37,17 @@ jobs:
         run: bun run build
         working-directory: packages/muxa
 
-      - name: Run tests
-        run: bun test:clean
+      - name: Run tests with coverage
+        run: bun test:coverage
         working-directory: packages/muxa
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./packages/muxa/coverage
+          fail_ci_if_error: true
+          verbose: true
 
       # Build verification - ensures the project can be built successfully
       # The actual build artifacts for publishing are created in the release workflow
