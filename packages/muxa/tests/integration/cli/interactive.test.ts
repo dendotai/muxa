@@ -66,10 +66,8 @@ describeInteractive("Interactive Confirmations", () => {
     });
 
     it("should handle multiple sets of duplicates", async () => {
-      const proc = spawn(
-        "bun",
+      const proc = spawnMuxa(
         [
-          muxaPath,
           "-c",
           "echo 1",
           "test",
