@@ -32,6 +32,10 @@ jobs:
       - name: Check formatting
         run: bun run format
 
+      - name: Build muxa package
+        run: bun run build
+        working-directory: packages/muxa
+
       - name: Run tests
         run: bun test:clean
         working-directory: packages/muxa
@@ -40,7 +44,3 @@ jobs:
       # The actual build artifacts for publishing are created in the release workflow
       - name: Build project (verification only)
         run: bun run build
-
-      - name: Build muxa package (verification only)
-        run: bun run build
-        working-directory: packages/muxa
