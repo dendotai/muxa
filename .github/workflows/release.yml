@@ -12,6 +12,8 @@ jobs:
   publish:
     needs: ci
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create GitHub releases
 
     steps:
       - name: Checkout code
