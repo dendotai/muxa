@@ -65,31 +65,6 @@ describe("Command Generation > Script Commands (-s flag)", () => {
     expect(result.command).toContain("'--names' 'api'");
   });
 
-  it("should detect yarn and use yarn run", async () => {
-    fs.writeFileSync(path.join(tempDir, "yarn.lock"), "");
-    fs.writeFileSync(
-      path.join(tempDir, "package.json"),
-      JSON.stringify({ name: "test", workspaces: ["packages/*"] }, null, 2),
-    );
-
-    fs.mkdirSync(path.join(tempDir, "packages", "backend"), { recursive: true });
-    fs.writeFileSync(
-      path.join(tempDir, "packages", "backend", "package.json"),
-      JSON.stringify(
-        {
-          name: "@test/backend",
-          scripts: { dev: "nodemon" },
-        },
-        null,
-        2,
-      ),
-    );
-
-    const result = await getMuxaCommand(["-s", "backend", "dev"], tempDir);
-    // If yarn is not available, falls back to npm even with yarn.lock
-    expect(result.command).toContain("npm run dev''");
-  });
-
   it("should run script from root with .", async () => {
     fs.writeFileSync(
       path.join(tempDir, "package.json"),

@@ -234,53 +234,6 @@ describe("Script Restrictions", () => {
       expect(result.stdout).toContain("npm run dev");
     });
 
-    it("should handle yarn run correctly", async () => {
-      const yarnFixture = createMonorepoFixture({
-        type: "yarn",
-        packages: [
-          {
-            path: "packages/backend",
-            name: "@test/backend",
-            scripts: { dev: "echo yarn dev" },
-          },
-        ],
-      });
-
-      const result = await runMuxa(["-s", "backend", "dev"], {
-        cwd: yarnFixture,
-        env: { MUXA_TEST_MODE: "true" },
-      });
-
-      cleanupFixture(yarnFixture);
-
-      expect(result.code).toBe(0);
-      // If yarn is not available, falls back to npm even with yarn.lock
-      expect(result.stdout).toContain("npm run dev");
-    });
-
-    it("should handle pnpm run correctly", async () => {
-      const pnpmFixture = createMonorepoFixture({
-        type: "pnpm",
-        packages: [
-          {
-            path: "packages/backend",
-            name: "@test/backend",
-            scripts: { dev: "echo pnpm dev" },
-          },
-        ],
-      });
-
-      const result = await runMuxa(["-s", "backend", "dev"], {
-        cwd: pnpmFixture,
-        env: { MUXA_TEST_MODE: "true" },
-      });
-
-      cleanupFixture(pnpmFixture);
-
-      expect(result.code).toBe(0);
-      expect(result.stdout).toContain("pnpm run dev");
-    });
-
     it("should handle bun run correctly", async () => {
       const bunFixture = createMonorepoFixture({
         type: "bun",

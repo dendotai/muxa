@@ -22,6 +22,17 @@ Currently, some package manager detection tests are skipped because they depend 
    - "should detect bun from bun.lockb"
    - "should detect from packageManager field"
 
+4. Tests temporarily removed due to environment dependencies:
+   - "should detect yarn and use yarn run" (script-commands.test.ts)
+   - "should handle yarn run correctly" (script-restrictions.test.ts)
+   - "should handle pnpm run correctly" (script-restrictions.test.ts)
+
+   These tests were removed because:
+   - They depend on specific package managers being available in the environment
+   - GitHub Actions runners have yarn pre-installed, but local dev environments may not
+   - Tests pass/fail based on environment rather than code correctness
+   - Need proper mocking strategy to test package manager detection without actual binaries
+
 This will ensure muxa works correctly across all package manager ecosystems.
 
 ### Better Error Handling for Spawn Failures
