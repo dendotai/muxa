@@ -1,0 +1,59 @@
+{
+  "name": "@den-ai/muxa",
+  "version": "0.1.0",
+  "description": "Run your entire dev stack in multiple virtual terminals with one concise command instead of long config files. Built-in monorepo support, preserved interactivity, and clean output.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "muxa": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node && tsc --emitDeclarationOnly",
+    "test": "bun test",
+    "test:clean": "CI=true bun test",
+    "test:unit": "bun test tests/unit",
+    "test:integration": "bun test tests/integration",
+    "test:e2e": "bun test tests/integration/e2e",
+    "test:watch": "bun test --watch",
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "prepublishOnly": "bun run build && bun run test",
+    "lint:ts": "eslint .",
+    "lint:md": "markdownlint '**/*.md' --ignore node_modules",
+    "lint": "bun run lint:ts && bun run lint:md",
+    "lint:fix": "bun run lint:ts --fix && bun run lint:md --fix"
+  },
+  "keywords": [
+    "concurrently",
+    "parallel",
+    "concurrent",
+    "terminal",
+    "multiplexer",
+    "monorepo",
+    "workspace",
+    "mprocs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@total-typescript/tsconfig": "^1.0.4",
+    "@types/bun": "^1.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "eslint": "^9.31.0",
+    "markdownlint-cli": "^0.45.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dendotai/muxa"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "mprocs": "^0.7.3"
+  }
+}
