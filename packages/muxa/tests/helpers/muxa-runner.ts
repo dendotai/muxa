@@ -32,6 +32,18 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
     let stderr = "";
     let finished = false;
 
+    // Handle spawn errors (e.g., bun not found)
+    proc.on("error", (error) => {
+      if (!finished) {
+        finished = true;
+        clearTimeout(timeoutHandle);
+        resolve({
+          command: null,
+          error: `Failed to spawn process: ${error.message}`,
+        });
+      }
+    });
+
     proc.stdout?.on("data", (data) => {
       stdout += data.toString();
     });
@@ -104,6 +116,15 @@ export function runMuxa(
     let stderr = "";
     let finished = false;
 
+    // Handle spawn errors (e.g., bun not found)
+    proc.on("error", (error) => {
+      if (!finished) {
+        finished = true;
+        clearTimeout(timeoutHandle);
+        resolve({ stdout, stderr: `Failed to spawn process: ${error.message}`, code: -1 });
+      }
+    });
+
     proc.stdout?.on("data", (data) => {
       stdout += data.toString();
     });
@@ -149,6 +170,15 @@ export async function runMuxaQuick(args: string[], cwd?: string): Promise<MuxaRe
     let stderr = "";
     let finished = false;
 
+    // Handle spawn errors (e.g., bun not found)
+    proc.on("error", (error) => {
+      if (!finished) {
+        finished = true;
+        clearTimeout(timeoutHandle);
+        resolve({ stdout, stderr: `Failed to spawn process: ${error.message}`, code: -1 });
+      }
+    });
+
     proc.stdout?.on("data", (data) => {
       stdout += data.toString();
     });
@@ -193,6 +223,15 @@ export function runMuxaInFixture(fixture: string, args: string[]): Promise<MuxaR
     let stdout = "";
     let stderr = "";
     let finished = false;
+
+    // Handle spawn errors (e.g., bun not found)
+    proc.on("error", (error) => {
+      if (!finished) {
+        finished = true;
+        clearTimeout(timeoutHandle);
+        resolve({ stdout, stderr: `Failed to spawn process: ${error.message}`, code: -1 });
+      }
+    });
 
     proc.stdout?.on("data", (data) => {
       stdout += data.toString();
