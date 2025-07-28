@@ -25,7 +25,7 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
     const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd: cwd || process.cwd(),
-      stdio: ["pipe", "pipe", "pipe"],
+      stdio: ["ignore", "pipe", "pipe"],
     });
 
     trackProcess(proc);
@@ -33,35 +33,6 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
     let stdout = "";
     let stderr = "";
     let finished = false;
-    let exitCode: number | null = null;
-
-    const tryResolve = () => {
-      if (finished) return;
-
-      // Wait for both exit event and stdout to close
-      if (exitCode !== null && proc.stdout?.readableEnded) {
-        finished = true;
-        clearTimeout(timeoutHandle);
-
-        if (exitCode === 0) {
-          // Extract the command from "Would execute: mprocs ..."
-          const match = stdout.match(/Would execute: mprocs (.+)/);
-          if (!match && process.env.CI) {
-            console.error("CI Debug - stdout:", stdout);
-            console.error("CI Debug - stderr:", stderr);
-          }
-          resolve({
-            command: match && match[1] ? match[1] : null,
-            error: null,
-          });
-        } else {
-          resolve({
-            command: null,
-            error: stderr || `Process exited with code ${exitCode}`,
-          });
-        }
-      }
-    };
 
     // Handle spawn errors (e.g., bun not found)
     proc.on("error", (error) => {
@@ -83,16 +54,37 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
       stderr += data.toString();
     });
 
-    // Close stdin immediately since we don't need it
-    proc.stdin?.end();
+    proc.on("close", (code) => {
+      if (!finished) {
+        finished = true;
+        clearTimeout(timeoutHandle);
 
-    proc.stdout?.on("close", () => {
-      tryResolve();
-    });
-
-    proc.on("exit", (code) => {
-      exitCode = code;
-      tryResolve();
+        if (code === 0) {
+          // Extract the command from "Would execute: mprocs ..."
+          const match = stdout.match(/Would execute: mprocs (.+)/);
+          if (!match && process.env.CI) {
+            console.error("CI Debug - stdout:", JSON.stringify(stdout));
+            console.error("CI Debug - stderr:", JSON.stringify(stderr));
+            console.error("CI Debug - code:", code);
+            console.error("CI Debug - args:", args);
+            console.error("CI Debug - cwd:", cwd);
+            console.error("CI Debug - muxaPath:", muxaPath);
+          }
+          resolve({
+            command: match && match[1] ? match[1] : null,
+            error: null,
+          });
+        } else {
+          if (process.env.CI) {
+            console.error("CI Debug - Process failed with code:", code);
+            console.error("CI Debug - stderr:", stderr);
+          }
+          resolve({
+            command: null,
+            error: stderr || `Process exited with code ${code}`,
+          });
+        }
+      }
     });
 
     const timeoutHandle = setTimeout(() => {
