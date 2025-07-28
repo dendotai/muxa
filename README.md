@@ -1,14 +1,13 @@
 # muxa
 
 ```text
-                                              ┌───────┬────────────────────────────────────┐
-███╗   ███╗  ██╗   ██╗  ██╗  ██╗   █████╗     │  api  │ VITE v5.4.19  ready in 691 ms      │
-████╗ ████║  ██║   ██║  ╚██╗██╔╝  ██╔══██╗    ├───────┤                                    │
-██╔████╔██║  ██║   ██║   ╚███╔╝   ███████║    │ [web] │ ➜  Local:   http://localhost:5173/ │
-██║╚██╔╝██║  ██║   ██║   ██╔██╗   ██╔══██║    ├───────┤ ➜  Network: use --host to expose   │
-██║ ╚═╝ ██║  ╚██████╔╝  ██╔╝ ██╗  ██║  ██║    │  db   │ ➜  press h + enter to show help    │
-╚═╝     ╚═╝   ╚═════╝   ╚═╝  ╚═╝  ╚═╝  ╚═╝    └───────┴────────────────────────────────────┘
-
+                                                ┌───────┬────────────────────────────────────┐
+  ███╗   ███╗  ██╗   ██╗  ██╗  ██╗   █████╗     │  api  │ VITE v5.4.19  ready in 691 ms      │
+  ████╗ ████║  ██║   ██║  ╚██╗██╔╝  ██╔══██╗    ├───────┤                                    │
+  ██╔████╔██║  ██║   ██║   ╚███╔╝   ███████║    │ [web] │ ➜  Local:   http://localhost:5173/ │
+  ██║╚██╔╝██║  ██║   ██║   ██╔██╗   ██╔══██║    ├───────┤ ➜  Network: use --host to expose   │
+  ██║ ╚═╝ ██║  ╚██████╔╝  ██╔╝ ██╗  ██║  ██║    │  db   │ ➜  press h + enter to show help    │
+  ╚═╝     ╚═╝   ╚═════╝   ╚═╝  ╚═╝  ╚═╝  ╚═╝    └───────┴────────────────────────────────────┘
 ```
 
 Clean, concise CLI for running multiple processes. Workspace-aware for monorepos, preserves interactivity, config files not required. TODO coin better wording
