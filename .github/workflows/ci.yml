@@ -45,7 +45,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: denkasyanov/muxa
+          slug: dendotai/muxa
           directory: ./packages/muxa/coverage
           fail_ci_if_error: true
           verbose: true
