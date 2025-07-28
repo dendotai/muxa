@@ -1,5 +1,11 @@
 # muxa
 
+[![Latest Release](https://img.shields.io/github/v/release/dendotai/muxa?label=Release&color=green)](https://github.com/dendotai/muxa/releases)
+[![Weekly Downloads on NPM](https://img.shields.io/npm/dw/@den-ai/muxa?label=Downloads&logo=npm)](https://www.npmjs.com/package/@den-ai/muxa)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/dendotai/muxa/ci.yml?label=CI&logo=github)](https://github.com/dendotai/muxa/blob/main/.github/workflows/ci.yml)
+
+Run your entire dev stack in multiple virtual terminals with one concise command instead of long config files. Built-in monorepo support, preserved interactivity, and clean output.
+
 ```text
                                                 ┌───────┬────────────────────────────────────┐
   ███╗   ███╗  ██╗   ██╗  ██╗  ██╗   █████╗     │  api  │ VITE v5.4.19  ready in 691 ms      │
@@ -10,7 +16,6 @@
   ╚═╝     ╚═╝   ╚═════╝   ╚═╝  ╚═╝  ╚═╝  ╚═╝    └───────┴────────────────────────────────────┘
 ```
 
-Run your entire dev stack in multiple virtual terminals with one concise command instead of long config files. Built-in monorepo support, preserved interactivity, and clean output.
 
 ```bash
 # Before:
