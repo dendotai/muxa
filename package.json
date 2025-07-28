@@ -7,9 +7,6 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "bun run --filter='*' build",
-    "dev": "muxa -w . 'bun run dev'",
-    "test": "muxa -w . 'bun run test'",
     "typecheck": "tsc --build --noEmit",
     "lint": "bun run --filter='*' lint",
     "lint:fix": "bun run --filter='*' lint:fix",
@@ -17,7 +14,11 @@
     "format:fix": "prettier --write .",
     "check": "bun run typecheck && bun run lint && bun run format",
     "check:fix": "bun run lint:fix && bun run format:fix",
-    "muxa:local": "bun run packages/muxa/src/index.ts"
+    "muxa:local": "bun run packages/muxa/src/index.ts",
+    "build": "bun run --filter='*' build",
+    "release:patch": "bun scripts/release.ts patch",
+    "release:minor": "bun scripts/release.ts minor",
+    "release:major": "bun scripts/release.ts major"
   },
   "devDependencies": {
     "@den-ai/muxa": "^0.1.0",
