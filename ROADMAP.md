@@ -44,6 +44,24 @@ This will ensure muxa works correctly across all package manager ecosystems.
 - Replace direct spawn calls in tests with the wrapper to prevent hanging tests
 - Consider using this wrapper in the main codebase as well
 
+### Branch Coverage Support
+
+Add branch coverage reporting when Bun implements this feature.
+
+**Why this would be useful:**
+
+- Line coverage alone doesn't ensure all code paths are tested
+- Branch coverage helps identify untested conditional logic
+- Would help achieve more comprehensive test coverage
+- Industry standard metric for code quality
+
+**Implementation considerations:**
+
+- Wait for Bun to add branch coverage support to their test runner
+- Update coverage scripts to include branch coverage reporting
+- Set branch coverage thresholds alongside line coverage
+- Consider adding branch coverage badges to README
+
 ## Documentation Improvements
 
 - Add examples for each supported package manager

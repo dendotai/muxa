@@ -261,6 +261,26 @@ describe("buildCommands", () => {
       const result = buildCommands(parsed, workspace, packageManager);
       expect(result[0]!.name).toBe("mobile");
     });
+
+    it("should throw error for missing target", () => {
+      tempDir = createMonorepoFixture({
+        type: "npm",
+        packages: [{ path: "packages/test", name: "test-pkg" }],
+      });
+      process.chdir(tempDir);
+      const workspace = discoverWorkspaces();
+      const packageManager = detectPackageManager(tempDir);
+
+      const parsed: ParseResult = {
+        mode: "advanced",
+        commands: [{ type: "workspace", command: "ls", target: "" } as ParsedCommand],
+        mprocsArgs: [],
+      };
+
+      expect(() => buildCommands(parsed, workspace, packageManager)).toThrow(
+        "Workspace command missing target",
+      );
+    });
   });
 
   describe("workspace validation", () => {
