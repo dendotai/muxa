@@ -16,7 +16,6 @@ Run your entire dev stack in multiple virtual terminals with one concise command
   ╚═╝     ╚═╝   ╚═════╝   ╚═╝  ╚═╝  ╚═╝  ╚═╝    └───────┴────────────────────────────────────┘
 ```
 
-
 ```bash
 # Before:
 concurrently -n "api,web,db" "npm run dev --workspace=api" "npm run dev --workspace=web" "docker-compose up postgres"
