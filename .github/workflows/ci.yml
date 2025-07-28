@@ -2,15 +2,15 @@ name: CI
 
 on:
   push:
-    branches: ['**']
-    tags: ['v*']
+    branches: ["**"]
+    tags: ["v*"]
   pull_request:
-    branches: ['**']
+    branches: ["**"]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
