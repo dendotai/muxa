@@ -107,8 +107,10 @@ async function main() {
       console.log(`Would execute: mprocs ${mprocsArgs.map((arg) => `'${arg}'`).join(" ")}`);
 
       // Output environment variables that would be set
-      if (testEnv.FORCE_COLOR) {
-        console.log(`FORCE_COLOR=${testEnv.FORCE_COLOR}`);
+      // Always output FORCE_COLOR in test mode (either from env or what we would set)
+      const forceColorValue = process.env.FORCE_COLOR || testEnv.FORCE_COLOR;
+      if (forceColorValue) {
+        console.log(`FORCE_COLOR=${forceColorValue}`);
       }
       for (const [key, value] of Object.entries(testEnv)) {
         if (
