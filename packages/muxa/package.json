@@ -1,6 +1,6 @@
 {
   "name": "@den-ai/muxa",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Run your entire dev stack in multiple virtual terminals with one concise command instead of long config files. Built-in monorepo support, preserved interactivity, and clean output.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
