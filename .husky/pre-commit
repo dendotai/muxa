@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+# Husky requires sourcing its helper script to properly set up the Git hook environment
+# This ensures the hook works correctly across different shells and platforms
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Auto-fix formatting and linting issues
+bun run check:fix
+
+# Stage any files that were auto-fixed (only updates already tracked files)
+git add -u
+
+# Run final check to ensure everything passes
+bun run check
