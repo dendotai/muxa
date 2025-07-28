@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed test failing on hardcoded version of `muxa`
+
 ## [0.2.0] - 2025-07-28
 
 ### Added
