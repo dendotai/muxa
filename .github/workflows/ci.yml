@@ -23,12 +23,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Debug environment
-        run: |
-          echo "PATH: $PATH"
-          which bun
-          echo "BUN_INSTALL: $BUN_INSTALL"
-
       - name: Run TypeScript checks
         run: bun run typecheck
 

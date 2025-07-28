@@ -26,8 +26,8 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
       PATH: process.env.PATH, // Explicitly preserve PATH
     };
 
-    // Always use bun - it's installed in CI
-    const runtime = "bun";
+    // Use node in CI (preinstalled), bun locally
+    const runtime = process.env.CI ? "node" : "bun";
     const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd: cwd || process.cwd(),
@@ -124,8 +124,8 @@ export function runMuxa(
       ? { ...process.env, ...options.env, MUXA_TEST_MODE: "true", PATH: process.env.PATH }
       : { ...process.env, MUXA_TEST_MODE: "true", PATH: process.env.PATH };
 
-    // Always use bun - it's installed in CI
-    const runtime = "bun";
+    // Use node in CI (preinstalled), bun locally
+    const runtime = process.env.CI ? "node" : "bun";
     const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd,
@@ -180,8 +180,8 @@ export async function runMuxaQuick(args: string[], cwd?: string): Promise<MuxaRe
   const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true", PATH: process.env.PATH };
 
   return new Promise<MuxaResult>((resolve) => {
-    // Always use bun - it's installed in CI
-    const runtime = "bun";
+    // Use node in CI (preinstalled), bun locally
+    const runtime = process.env.CI ? "node" : "bun";
     const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd: cwd || process.cwd(),
@@ -236,8 +236,8 @@ export function runMuxaInFixture(fixture: string, args: string[]): Promise<MuxaR
   const cwd = path.join(__dirname, "..", "fixtures", fixture);
 
   return new Promise((resolve) => {
-    // Always use bun - it's installed in CI
-    const runtime = "bun";
+    // Use node in CI (preinstalled), bun locally
+    const runtime = process.env.CI ? "node" : "bun";
     const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd,
