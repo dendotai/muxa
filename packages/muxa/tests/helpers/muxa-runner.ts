@@ -18,10 +18,16 @@ export interface MuxaCommandResult {
 // ALWAYS runs in test mode - never executes mprocs
 export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaCommandResult> {
   return new Promise((resolve) => {
-    const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true" };
+    // Ensure PATH is preserved when creating env
+    const env = {
+      ...process.env,
+      ...TEST_ENV,
+      MUXA_TEST_MODE: "true",
+      PATH: process.env.PATH, // Explicitly preserve PATH
+    };
 
-    // Use node in CI or when bun might not be available in subprocess PATH
-    const runtime = process.env.CI ? "node" : "bun";
+    // Always use bun - it's installed in CI
+    const runtime = "bun";
     const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd: cwd || process.cwd(),
@@ -113,13 +119,13 @@ export function runMuxa(
   return new Promise((resolve) => {
     const cwd = options?.cwd || process.cwd();
     const timeout = options?.timeout || DEFAULT_TIMEOUT;
-    // Always ensure MUXA_TEST_MODE is set
+    // Always ensure MUXA_TEST_MODE is set and PATH is preserved
     const env = options?.env
-      ? { ...process.env, ...options.env, MUXA_TEST_MODE: "true" }
-      : { ...process.env, MUXA_TEST_MODE: "true" };
+      ? { ...process.env, ...options.env, MUXA_TEST_MODE: "true", PATH: process.env.PATH }
+      : { ...process.env, MUXA_TEST_MODE: "true", PATH: process.env.PATH };
 
-    // Use node in CI or when bun might not be available in subprocess PATH
-    const runtime = process.env.CI ? "node" : "bun";
+    // Always use bun - it's installed in CI
+    const runtime = "bun";
     const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd,
@@ -171,11 +177,11 @@ export function runMuxa(
 // Quick run with test mode enabled
 // ALWAYS runs in test mode - never executes mprocs
 export async function runMuxaQuick(args: string[], cwd?: string): Promise<MuxaResult> {
-  const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true" };
+  const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true", PATH: process.env.PATH };
 
   return new Promise<MuxaResult>((resolve) => {
-    // Use node in CI or when bun might not be available in subprocess PATH
-    const runtime = process.env.CI ? "node" : "bun";
+    // Always use bun - it's installed in CI
+    const runtime = "bun";
     const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd: cwd || process.cwd(),
@@ -226,12 +232,12 @@ export async function runMuxaQuick(args: string[], cwd?: string): Promise<MuxaRe
 // Run muxa in a specific fixture directory
 // ALWAYS runs in test mode - never executes mprocs
 export function runMuxaInFixture(fixture: string, args: string[]): Promise<MuxaResult> {
-  const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true" };
+  const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true", PATH: process.env.PATH };
   const cwd = path.join(__dirname, "..", "fixtures", fixture);
 
   return new Promise((resolve) => {
-    // Use node in CI or when bun might not be available in subprocess PATH
-    const runtime = process.env.CI ? "node" : "bun";
+    // Always use bun - it's installed in CI
+    const runtime = "bun";
     const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd,

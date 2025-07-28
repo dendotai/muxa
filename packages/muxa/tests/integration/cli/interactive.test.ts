@@ -6,7 +6,7 @@ import * as path from "path";
 
 // Helper to spawn muxa with proper runtime
 function spawnMuxa(args: string[], options: any) {
-  const runtime = process.env.CI ? "node" : "bun";
+  const runtime = "bun";
   return spawn(runtime, [muxaPath, ...args], options);
 }
 
