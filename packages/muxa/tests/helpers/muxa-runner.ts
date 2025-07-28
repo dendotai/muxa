@@ -25,7 +25,7 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
     const proc = spawn(runtime, [muxaPath, ...args], {
       env,
       cwd: cwd || process.cwd(),
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: ["pipe", "pipe", "pipe"],
     });
 
     trackProcess(proc);
@@ -33,6 +33,35 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
     let stdout = "";
     let stderr = "";
     let finished = false;
+    let exitCode: number | null = null;
+
+    const tryResolve = () => {
+      if (finished) return;
+
+      // Wait for both exit event and stdout to close
+      if (exitCode !== null && proc.stdout?.readableEnded) {
+        finished = true;
+        clearTimeout(timeoutHandle);
+
+        if (exitCode === 0) {
+          // Extract the command from "Would execute: mprocs ..."
+          const match = stdout.match(/Would execute: mprocs (.+)/);
+          if (!match && process.env.CI) {
+            console.error("CI Debug - stdout:", stdout);
+            console.error("CI Debug - stderr:", stderr);
+          }
+          resolve({
+            command: match && match[1] ? match[1] : null,
+            error: null,
+          });
+        } else {
+          resolve({
+            command: null,
+            error: stderr || `Process exited with code ${exitCode}`,
+          });
+        }
+      }
+    };
 
     // Handle spawn errors (e.g., bun not found)
     proc.on("error", (error) => {
@@ -54,25 +83,16 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
       stderr += data.toString();
     });
 
-    proc.on("exit", (code) => {
-      if (!finished) {
-        finished = true;
-        clearTimeout(timeoutHandle);
+    // Close stdin immediately since we don't need it
+    proc.stdin?.end();
 
-        if (code === 0) {
-          // Extract the command from "Would execute: mprocs ..."
-          const match = stdout.match(/Would execute: mprocs (.+)/);
-          resolve({
-            command: match && match[1] ? match[1] : null,
-            error: null,
-          });
-        } else {
-          resolve({
-            command: null,
-            error: stderr,
-          });
-        }
-      }
+    proc.stdout?.on("close", () => {
+      tryResolve();
+    });
+
+    proc.on("exit", (code) => {
+      exitCode = code;
+      tryResolve();
     });
 
     const timeoutHandle = setTimeout(() => {
