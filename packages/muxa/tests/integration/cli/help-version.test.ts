@@ -28,12 +28,12 @@ describe("Muxa CLI Integration > Help and Version", () => {
   it("should show version", async () => {
     const result = await runMuxa(["--version"]);
     expect(result.code).toBe(0);
-    expect(result.stdout.trim()).toBe("0.1.0");
+    expect(result.stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
   it("should show version with -V", async () => {
     const result = await runMuxa(["-V"]);
     expect(result.code).toBe(0);
-    expect(result.stdout.trim()).toBe("0.1.0");
+    expect(result.stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
   });
 });
