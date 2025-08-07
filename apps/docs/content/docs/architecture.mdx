@@ -3,7 +3,7 @@ title: Architecture
 description: Technical details and design decisions behind muxa
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 # Architecture
 
@@ -36,6 +36,7 @@ muxa -s package script name
 ```
 
 Key responsibilities:
+
 - Detect input mode (basic vs advanced)
 - Parse command flags and arguments
 - Validate argument combinations
@@ -53,6 +54,7 @@ Intelligently finds packages in monorepos:
 ```
 
 Supports:
+
 - npm/yarn/bun workspaces
 - pnpm workspaces
 - Nested workspace structures
@@ -87,6 +89,7 @@ mprocs --names backend \
 ### Why mprocs?
 
 mprocs provides:
+
 - **Terminal multiplexing** - Split terminal into panes
 - **Interactive support** - Preserves stdin/stdout
 - **Clean output** - No interleaved logs
@@ -101,6 +104,7 @@ const needsShell = /[&|;><$`*?{}[\]()]/;
 ```
 
 This ensures:
+
 - Shell features work correctly
 - Environment variables expand
 - Glob patterns resolve
@@ -196,6 +200,7 @@ process.exit(mprocsProcess.exitCode);
 ### Debug Mode
 
 Future versions may include:
+
 ```bash
 muxa --debug -c 'npm run dev'
 # Shows resolved packages, generated commands, etc.
@@ -213,6 +218,7 @@ muxa --verbose workspaces
 ### vs Direct mprocs
 
 muxa adds:
+
 - Simpler syntax
 - Workspace support
 - Automatic detection
@@ -221,6 +227,7 @@ muxa adds:
 ### vs concurrently
 
 muxa provides:
+
 - Better output formatting
 - Interactive features
 - Monorepo awareness
@@ -229,6 +236,7 @@ muxa provides:
 ### vs turbo/nx
 
 muxa focuses on:
+
 - Process running, not building
 - Zero configuration
 - Universal compatibility
@@ -246,6 +254,7 @@ muxa focuses on:
 ### Maintaining Simplicity
 
 Core principles:
+
 - Zero config by default
 - Simple things stay simple
 - Advanced features are optional
@@ -254,6 +263,7 @@ Core principles:
 ## Contributing
 
 Key areas for contribution:
+
 - Package manager detection
 - Workspace resolution
 - Platform compatibility
@@ -261,5 +271,5 @@ Key areas for contribution:
 - Documentation
 
 <Callout type="info">
-See the [GitHub repository](https://github.com/dendotai/muxa) for contribution guidelines.
+  See the [GitHub repository](https://github.com/dendotai/muxa) for contribution guidelines.
 </Callout>

@@ -10,18 +10,10 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@/.source": [
-        "./.source/index.ts"
-      ]
+      "@/*": ["./*"],
+      "@/.source": ["./.source/index.ts"]
     },
-    "lib": [
-      "es2022",
-      "dom",
-      "dom.iterable"
-    ],
+    "lib": ["es2022", "dom", "dom.iterable"],
     "allowJs": true,
     "checkJs": false,
     "noEmit": true,
@@ -47,13 +39,8 @@
     "content/**/*",
     "lib/**/*",
     "components/**/*",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "types/**/*"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    ".next",
-    ".turbo",
-    ".source"
-  ]
+  "exclude": ["node_modules", "dist", ".next", ".turbo", ".source"]
 }

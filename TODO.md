@@ -10,6 +10,12 @@
 
 ## Features
 
+- [ ] Add single mode for running commands without multiplexer
+  - When only one service is specified, skip mprocs and run directly
+  - Example: `muxa -s docs dev` instead of `cd apps/docs && bun run dev`
+  - Preserves all output formatting and behavior of the original command
+  - Useful for CI/CD and simpler workflows
+- [ ] Add Deno monorepo support
 - [ ] Implement `muxa migrate` command with:
   - Automatic detection of concurrently/npm-run-all usage
   - Interactive migration with diff preview
@@ -75,3 +81,77 @@
 
 - [ ] Consider enforcing good commit messages that can be used to generate changelog automatically
 - [ ] Restructure release script so that all actions are in function and we can call them for better readability
+
+## Documentation: Command Parameter Breakdown
+
+### Todo
+
+- [ ] Add detailed command parameter breakdown to README.md with:
+  - Visual ASCII diagram showing each part of the muxa command
+  - Explanation of `-s` flag structure: flag + package identifier + script name
+  - Clarification that package identifier serves dual purpose: workspace lookup + automatic tab name
+  - Explanation of `-c` flag structure: flag + command + optional tab name
+  - Show how muxa syntax maps to the verbose concurrently equivalent
+  - Use actual examples: `-s api dev`, `-s web dev`, `-c "docker-compose up postgres" db`
+  - Emphasize the space-saving design and automatic naming extraction
+
+### Implementation Reference for README.md Update
+
+Add the following section after the "Before/After" example in README.md:
+
+## Command Breakdown
+
+Let's examine each parameter in detail:
+
+```text
+
+muxa -s api dev -s web dev -c "docker-compose up postgres" db
+     └─┬──┘└┬┘└┬┘ └─┬──┘└┬┘└┬┘ └────────┬─────────────────┘ └┬┘
+       │    │  │    │    │  │           │                     │
+       │    │  │    │    │  │           │                     └── Custom tab name
+       │    │  │    │    │  │           └── Command to run
+       │    │  │    │    │  └── Script name from package.json
+       │    │  │    │    └── Package identifier
+       │    │  │    └── Flag for workspace script
+       │    │  └── Script name from package.json
+       │    └── Package identifier (workspace name)
+       └── Flag for workspace script
+
+```
+
+### Understanding the `-s` flag structure
+
+```text
+
+-s api dev
+└─┬──┘ └┬┘
+  │     └── Script name: "dev" script from package.json
+  └── Package identifier: finds workspace "api" and uses as tab name
+
+-s web dev
+└─┬──┘ └┬┘
+  │     └── Script name: "dev" script from package.json
+  └── Package identifier: finds workspace "web" and uses as tab name
+
+```
+
+### Understanding the `-c` flag structure
+
+```text
+
+-c "docker-compose up postgres" db
+└┬┘ └───────────┬──────────────┘ └┬┘
+ │              │                  └── Custom tab name (optional)
+ │              └── Command to execute
+ └── Flag for arbitrary command
+
+```
+
+The beauty of muxa is that it automatically uses sensible tab names from your workspace structure when possible, and allows explicit naming when needed (like shortening "docker-compose up postgres" to just "db").
+
+### Key Points to Emphasize
+
+- The `-s` flag takes TWO parameters as a unit (package + script)
+- Package identifier serves dual purpose: workspace resolution AND automatic tab naming
+- The design minimizes typing while maximizing clarity
+- Custom names are optional but useful for long commands

@@ -3,7 +3,7 @@ title: CLI Reference
 description: Complete command-line interface reference for muxa
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 # CLI Reference
 
@@ -82,6 +82,7 @@ muxa workspaces
 ```
 
 Output example:
+
 ```
 Found 5 workspace packages:
   @myapp/frontend (./packages/frontend)
@@ -94,7 +95,7 @@ Found 5 workspace packages:
 ## Argument Modes
 
 <Callout type="warning">
-**Important**: muxa supports two modes that cannot be mixed in a single command.
+  **Important**: muxa supports two modes that cannot be mixed in a single command.
 </Callout>
 
 ### Basic Mode
@@ -126,11 +127,13 @@ muxa -c 'npm run dev' app -c 'npm run test' tests
 When using `-s` or `-w`, packages are resolved in this order:
 
 1. **Exact match** - Full package.json name
+
    ```bash
    muxa -s @myapp/backend dev
    ```
 
 2. **Path match** - Relative path from root
+
    ```bash
    muxa -s packages/backend dev
    muxa -s ./packages/backend dev
@@ -142,6 +145,7 @@ When using `-s` or `-w`, packages are resolved in this order:
    ```
 
 If ambiguous, muxa will show all matches:
+
 ```
 Error: Ambiguous package identifier 'backend'
 Found multiple matches:
@@ -160,6 +164,7 @@ Commands are automatically wrapped with `sh -c` when they contain:
 - Subshells: `$(...)`, `` `...` ``
 
 Examples:
+
 ```bash
 # Automatically wrapped
 muxa -c 'npm run build && npm test'

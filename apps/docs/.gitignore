@@ -12,6 +12,7 @@
 # Cloudflare
 /.worker-next/
 /.wrangler/
+/.open-next/
 
 # Debug
 npm-debug.log*
@@ -31,3 +32,6 @@ yarn-error.log*
 
 # Misc
 *.log
+
+# Fumadocs generated
+/.source/

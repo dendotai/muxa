@@ -3,7 +3,7 @@ title: Comparison
 description: How muxa compares to alternative tools
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 # Comparison with Alternatives
 
@@ -11,14 +11,14 @@ How muxa compares to other tools for running multiple processes.
 
 ## Quick Comparison
 
-| Feature | muxa | concurrently | mprocs | npm-run-all | turbo |
-|---------|------|--------------|--------|-------------|-------|
-| Simple CLI | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Interactive features | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Monorepo support | ✅ | ❌ | ❌ | ⚠️ | ✅ |
-| Clean output | ✅ | ⚠️ | ✅ | ⚠️ | ✅ |
-| Zero config | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Process naming | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Feature              | muxa | concurrently | mprocs | npm-run-all | turbo |
+| -------------------- | ---- | ------------ | ------ | ----------- | ----- |
+| Simple CLI           | ✅   | ✅           | ❌     | ✅          | ❌    |
+| Interactive features | ✅   | ❌           | ✅     | ❌          | ❌    |
+| Monorepo support     | ✅   | ❌           | ❌     | ⚠️          | ✅    |
+| Clean output         | ✅   | ⚠️           | ✅     | ⚠️          | ✅    |
+| Zero config          | ✅   | ✅           | ❌     | ✅          | ❌    |
+| Process naming       | ✅   | ✅           | ✅     | ❌          | ✅    |
 
 ## vs concurrently
 
@@ -129,12 +129,14 @@ muxa and Turbo solve different problems:
 ### When to use each
 
 **Use muxa for:**
+
 - Development servers
 - Watch modes
 - Mixed commands
 - Simple parallel execution
 
 **Use Turbo for:**
+
 - Build pipelines
 - Task caching
 - Complex dependencies
@@ -209,35 +211,36 @@ muxa -c 'docker-compose up' services \
 
 ### Basic Features
 
-| Feature | muxa | concurrently | mprocs | npm-run-all |
-|---------|------|--------------|--------|-------------|
-| Run commands | ✅ | ✅ | ✅ | ✅ |
-| Named processes | ✅ | ✅ | ✅ | ❌ |
-| Color output | ✅ | ✅ | ✅ | ✅ |
-| Exit on failure | ✅ | ✅ | ✅ | ✅ |
+| Feature         | muxa | concurrently | mprocs | npm-run-all |
+| --------------- | ---- | ------------ | ------ | ----------- |
+| Run commands    | ✅   | ✅           | ✅     | ✅          |
+| Named processes | ✅   | ✅           | ✅     | ❌          |
+| Color output    | ✅   | ✅           | ✅     | ✅          |
+| Exit on failure | ✅   | ✅           | ✅     | ✅          |
 
 ### Advanced Features
 
-| Feature | muxa | concurrently | mprocs | npm-run-all |
-|---------|------|--------------|--------|-------------|
-| Split terminal UI | ✅ | ❌ | ✅ | ❌ |
-| Interactive stdin | ✅ | ❌ | ✅ | ❌ |
-| Workspace scripts | ✅ | ❌ | ❌ | ❌ |
-| Config files | ❌ | ❌ | ✅ | ❌ |
+| Feature           | muxa | concurrently | mprocs | npm-run-all |
+| ----------------- | ---- | ------------ | ------ | ----------- |
+| Split terminal UI | ✅   | ❌           | ✅     | ❌          |
+| Interactive stdin | ✅   | ❌           | ✅     | ❌          |
+| Workspace scripts | ✅   | ❌           | ❌     | ❌          |
+| Config files      | ❌   | ❌           | ✅     | ❌          |
 
 ### Developer Experience
 
-| Feature | muxa | concurrently | mprocs | npm-run-all |
-|---------|------|--------------|--------|-------------|
-| Zero config | ✅ | ✅ | ❌ | ✅ |
-| Simple syntax | ✅ | ✅ | ❌ | ✅ |
-| Good errors | ✅ | ⚠️ | ⚠️ | ⚠️ |
-| Monorepo aware | ✅ | ❌ | ❌ | ⚠️ |
+| Feature        | muxa | concurrently | mprocs | npm-run-all |
+| -------------- | ---- | ------------ | ------ | ----------- |
+| Zero config    | ✅   | ✅           | ❌     | ✅          |
+| Simple syntax  | ✅   | ✅           | ❌     | ✅          |
+| Good errors    | ✅   | ⚠️           | ⚠️     | ⚠️          |
+| Monorepo aware | ✅   | ❌           | ❌     | ⚠️          |
 
 ## Choosing the Right Tool
 
 <Callout type="info">
-**Quick Guide**: If you need interactive features or work in a monorepo, choose muxa. For simple CI pipelines, concurrently might be enough. For production, consider PM2 or systemd.
+  **Quick Guide**: If you need interactive features or work in a monorepo, choose muxa. For simple
+  CI pipelines, concurrently might be enough. For production, consider PM2 or systemd.
 </Callout>
 
 ### Decision Tree
@@ -252,6 +255,7 @@ muxa -c 'docker-compose up' services \
 ## Summary
 
 muxa fills a specific niche:
+
 - Better than concurrently for development
 - Simpler than mprocs to use
 - Focused on running, not building

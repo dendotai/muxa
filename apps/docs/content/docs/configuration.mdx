@@ -3,7 +3,7 @@ title: Configuration
 description: Configuration options and workspace setup for muxa
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 # Configuration
 
@@ -25,6 +25,7 @@ muxa automatically detects your package manager using these methods:
 ### 1. Lock Files
 
 Checks for lock files in order:
+
 - `bun.lockb` → Bun
 - `pnpm-lock.yaml` → pnpm
 - `yarn.lock` → Yarn
@@ -53,11 +54,7 @@ muxa understands common monorepo structures:
 
 ```json
 {
-  "workspaces": [
-    "packages/*",
-    "apps/*",
-    "tools/*"
-  ]
+  "workspaces": ["packages/*", "apps/*", "tools/*"]
 }
 ```
 
@@ -66,14 +63,15 @@ muxa understands common monorepo structures:
 ```yaml
 # pnpm-workspace.yaml
 packages:
-  - 'packages/*'
-  - 'apps/*'
-  - '!**/test/**'
+  - "packages/*"
+  - "apps/*"
+  - "!**/test/**"
 ```
 
 ### Directory Structures
 
 muxa recognizes these common patterns:
+
 - `packages/*` - Shared packages
 - `apps/*` - Applications
 - `services/*` - Microservices
@@ -85,11 +83,13 @@ muxa recognizes these common patterns:
 When you reference a workspace, muxa tries to find it by:
 
 1. **Package name** (from package.json)
+
    ```bash
    muxa -s @myapp/core build
    ```
 
 2. **Relative path**
+
    ```bash
    muxa -s packages/core build
    ```
@@ -99,9 +99,7 @@ When you reference a workspace, muxa tries to find it by:
    muxa -s core build
    ```
 
-<Callout type="info">
-Run `muxa workspaces` to see how muxa detects your packages.
-</Callout>
+<Callout type="info">Run `muxa workspaces` to see how muxa detects your packages.</Callout>
 
 ## Script Execution
 
@@ -117,6 +115,7 @@ muxa runs scripts using your detected package manager:
 ### Working Directory
 
 For workspace commands, muxa:
+
 1. Changes to the package directory
 2. Runs the command
 3. Preserves the package's environment
@@ -126,12 +125,14 @@ For workspace commands, muxa:
 ### Automatic Variables
 
 muxa sets these automatically:
+
 - `FORCE_COLOR=1` - Preserve colored output
 - Inherits all parent process variables
 
 ### Custom Variables
 
 Set variables per command:
+
 ```bash
 muxa -c 'NODE_ENV=production npm run build' build
 ```
@@ -153,6 +154,7 @@ muxa -c 'NODE_ENV=production npm run build' build
 ### CI Environments
 
 muxa works in CI but consider:
+
 - No interactive features needed
 - May want to use `concurrently` for simpler output
 - Exit codes are properly propagated
@@ -162,6 +164,7 @@ muxa works in CI but consider:
 ### 1. Monorepo Structure
 
 Organize packages clearly:
+
 ```
 my-app/
 ├── package.json
@@ -179,6 +182,7 @@ my-app/
 ### 2. Naming Conventions
 
 Use clear, consistent names:
+
 ```bash
 # Good
 muxa -s apps/web dev frontend \
@@ -192,6 +196,7 @@ muxa -s web dev w \
 ### 3. Script Organization
 
 Keep related scripts together:
+
 ```json
 {
   "scripts": {
@@ -205,6 +210,7 @@ Keep related scripts together:
 ### 4. Process Dependencies
 
 Start dependent services first:
+
 ```bash
 # Start database, then API, then frontend
 muxa -c 'docker-compose up -d postgres' db \

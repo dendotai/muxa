@@ -3,7 +3,7 @@ title: Introduction
 description: Run your entire dev stack in multiple virtual terminals with one concise command
 ---
 
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
 
 # muxa
 
@@ -50,22 +50,14 @@ Run multiple commands in parallel:
 
 <Tabs defaultValue="basic">
   <Tab value="basic" label="Basic">
-    ```bash
-    # Run multiple commands
-    muxa 'npm run dev' 'npm run test:watch'
-    ```
+    ```bash # Run multiple commands muxa 'npm run dev' 'npm run test:watch' ```
   </Tab>
   <Tab value="workspace" label="Workspace">
-    ```bash
-    # Run scripts in specific packages
-    muxa -s backend dev -s frontend start
-    ```
+    ```bash # Run scripts in specific packages muxa -s backend dev -s frontend start ```
   </Tab>
   <Tab value="mixed" label="Mixed">
-    ```bash
-    # Mix workspace scripts and regular commands
-    muxa -s backend dev -c 'docker-compose up' db
-    ```
+    ```bash # Mix workspace scripts and regular commands muxa -s backend dev -c 'docker-compose up'
+    db ```
   </Tab>
 </Tabs>
 
@@ -80,7 +72,7 @@ Run multiple commands in parallel:
 
 ## Getting Started
 
-Check out the [installation guide](/installation) to get started, or jump straight to [usage examples](/usage).
+Check out the [installation guide](/muxa/installation) to get started, or jump straight to [usage examples](/muxa/usage).
 
 ## Contributing
 

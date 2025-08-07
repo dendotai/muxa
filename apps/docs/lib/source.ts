@@ -1,16 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { loader } from "fumadocs-core/source";
 import { createMDXSource } from "fumadocs-mdx";
-import { docs, meta } from "@/.source";
 
-export const source = loader({
+// Use require to bypass TypeScript's module resolution for generated files
+const { docs, meta } = require("@/.source");
+
+const _source = loader({
   baseUrl: "/", // Use root since Next.js basePath handles /muxa prefix
-  // @ts-expect-error - Type mismatch with fumadocs internal types
   source: createMDXSource(docs, meta),
 });
 
-export const { getPage, getPages, pageTree } = source as {
-  getPage: typeof source.getPage;
-  getPages: typeof source.getPages;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  pageTree: any;
-};
+// Export with explicit any types due to fumadocs' missing type exports
+export const source: any = _source;
+export const getPage: any = _source.getPage;
+export const getPages: any = _source.getPages;
+export const pageTree: any = _source.pageTree;

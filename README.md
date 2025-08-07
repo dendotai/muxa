@@ -247,10 +247,6 @@ muxa -c 'npm run lint && npm run build' -c 'npm test || exit 1'
 
 Contributions are welcome! Please check out the [GitHub repository](https://github.com/dendotai/muxa).
 
-## The Story
-
-Built during the boot.dev hackathon! I had previously created a prototype version while exploring the idea, but threw it away and rebuilt everything from scratch during the hackathon to comply with the rules. Following a spec-driven development approach, the hackathon version ended up being much more powerful and feature-complete than the original prototype. No code reused from the initial version.
-
 ## License
 
-MIT
+[MIT](./LICENSE)

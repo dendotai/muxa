@@ -1,7 +1,7 @@
-import { notFound } from 'next/navigation';
-import { getPage, getPages } from '@/lib/source';
-import { DocsPage, DocsBody } from 'fumadocs-ui/page';
-import type { Metadata } from 'next';
+import { getPage, getPages } from "@/lib/source";
+import { DocsBody, DocsPage } from "fumadocs-ui/page";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 interface PageProps {
   params: Promise<{ slug?: string[] }>;
@@ -20,14 +20,18 @@ export default async function Page({ params }: PageProps) {
     toc: Array<{ title: string; url: string; depth: number }>;
     full?: boolean;
   };
-  
+
   const MDXContent = pageData.body;
   const toc = pageData.toc || [];
-  
+
   return (
     <DocsPage
       toc={toc}
       full={pageData.full}
+      tableOfContent={{
+        single: true,
+        style: "clerk",
+      }}
     >
       <DocsBody>
         <MDXContent />

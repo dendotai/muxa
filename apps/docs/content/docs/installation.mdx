@@ -3,8 +3,8 @@ title: Installation
 description: How to install muxa on your system
 ---
 
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
 
 # Installation
 
@@ -14,24 +14,16 @@ muxa can be installed globally using your preferred package manager.
 
 <Tabs defaultValue="bun">
   <Tab value="bun" label="Bun">
-    ```bash
-    bun install -g @den-ai/muxa
-    ```
+    ```bash bun install -g @den-ai/muxa ```
   </Tab>
   <Tab value="npm" label="npm">
-    ```bash
-    npm install -g @den-ai/muxa
-    ```
+    ```bash npm install -g @den-ai/muxa ```
   </Tab>
   <Tab value="pnpm" label="pnpm">
-    ```bash
-    pnpm add -g @den-ai/muxa
-    ```
+    ```bash pnpm add -g @den-ai/muxa ```
   </Tab>
   <Tab value="yarn" label="Yarn">
-    ```bash
-    yarn global add @den-ai/muxa
-    ```
+    ```bash yarn global add @den-ai/muxa ```
   </Tab>
 </Tabs>
 
@@ -53,12 +45,14 @@ You should see the version number displayed.
 ## Platform Support
 
 muxa works on:
+
 - ✅ macOS
 - ✅ Linux
 - ✅ Windows (with WSL)
 
 <Callout type="info">
-**Note for Windows users**: muxa relies on Unix-style shell commands. For the best experience on Windows, use WSL (Windows Subsystem for Linux).
+  **Note for Windows users**: muxa relies on Unix-style shell commands. For the best experience on
+  Windows, use WSL (Windows Subsystem for Linux).
 </Callout>
 
 ## Troubleshooting
@@ -69,31 +63,16 @@ If you get a "command not found" error after installation, you may need to add t
 
 <Tabs defaultValue="npm">
   <Tab value="npm" label="npm">
-    ```bash
-    # Find npm global bin directory
-    npm bin -g
-    
-    # Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
-    export PATH="$PATH:$(npm bin -g)"
-    ```
+    ```bash # Find npm global bin directory npm bin -g # Add to your shell profile (~/.bashrc,
+    ~/.zshrc, etc.) export PATH="$PATH:$(npm bin -g)" ```
   </Tab>
   <Tab value="yarn" label="Yarn">
-    ```bash
-    # Find yarn global bin directory
-    yarn global bin
-    
-    # Add to your shell profile
-    export PATH="$PATH:$(yarn global bin)"
-    ```
+    ```bash # Find yarn global bin directory yarn global bin # Add to your shell profile export
+    PATH="$PATH:$(yarn global bin)" ```
   </Tab>
   <Tab value="pnpm" label="pnpm">
-    ```bash
-    # Find pnpm global bin directory
-    pnpm bin -g
-    
-    # Add to your shell profile
-    export PATH="$PATH:$(pnpm bin -g)"
-    ```
+    ```bash # Find pnpm global bin directory pnpm bin -g # Add to your shell profile export
+    PATH="$PATH:$(pnpm bin -g)" ```
   </Tab>
 </Tabs>
 

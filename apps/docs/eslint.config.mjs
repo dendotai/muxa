@@ -1,14 +1,27 @@
-import { FlatCompat } from '@eslint/eslintrc';
-import js from '@eslint/js';
+import { FlatCompat } from "@eslint/eslintrc";
+import js from "@eslint/js";
 
 const compat = new FlatCompat({
   baseDirectory: import.meta.dirname,
   recommendedConfig: js.configs.recommended,
 });
 
-export default [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+const config = [
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
-    ignores: ['.next/**', '.worker-next/**', 'node_modules/**'],
+    ignores: [
+      ".next/**",
+      ".worker-next/**",
+      "node_modules/**",
+      ".open-next/**",
+      ".wrangler/**",
+      "out/**",
+      "dist/**",
+      "build/**",
+      ".source/**",
+      "coverage/**",
+    ],
   },
 ];
+
+export default config;

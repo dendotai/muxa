@@ -1,10 +1,22 @@
-import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
+import { rehypeCode } from "fumadocs-core/mdx-plugins";
+import { defineConfig, defineDocs } from "fumadocs-mdx/config";
 
-export default defineConfig({});
-
-const docsConfig = defineDocs({
-  dir: 'content/docs',
+export default defineConfig({
+  mdxOptions: {
+    rehypePlugins: [
+      [
+        rehypeCode,
+        {
+          themes: {
+            light: "github-light",
+            dark: "github-dark",
+          },
+        },
+      ],
+    ],
+  },
 });
 
-export const docs = docsConfig.docs as any;
-export const meta = docsConfig.meta as any;
+export const { docs, meta } = defineDocs({
+  dir: "content/docs",
+});

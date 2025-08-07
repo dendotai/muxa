@@ -9,6 +9,17 @@ build/
 **/build/
 *.d.ts
 
+# Next.js
+**/.next/
+apps/docs/out/
+
+# Cloudflare
+**/.open-next/
+**/.wrangler/
+
+# Generated files
+**/.source/
+
 # Test coverage
 coverage/
 **/coverage/

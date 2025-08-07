@@ -1,11 +1,3 @@
----
-title: Getting Started
-description: Quick start guide for using muxa
----
-
-import { Steps, Step } from 'fumadocs-ui/components/steps';
-import { Callout } from 'fumadocs-ui/components/callout';
-
 # Getting Started
 
 Get up and running with muxa in minutes.
@@ -19,6 +11,7 @@ muxa 'npm run dev' 'npm run test:watch'
 ```
 
 This will:
+
 1. Start both commands in separate terminal panes
 2. Show live output from each command
 3. Allow you to switch between panes with keyboard shortcuts
@@ -45,7 +38,8 @@ muxa -c 'npm run dev' api -c 'npm run test' tests
 ```
 
 <Callout type="warning">
-**Important**: You cannot mix these modes. Choose one style and use it consistently in a single command.
+  **Important**: You cannot mix these modes. Choose one style and use it consistently in a single
+  command.
 </Callout>
 
 ## Common Workflows
@@ -85,6 +79,7 @@ Once muxa is running, you can:
 - **Exit**: Press `Ctrl+C` or `q`
 
 All your tools' interactive features are preserved:
+
 - Vite's dev server shortcuts work normally
 - Expo QR codes display correctly
 - Interactive prompts function as expected
@@ -93,33 +88,18 @@ All your tools' interactive features are preserved:
 
 <Steps>
   <Step>
-    ### Name your processes
-    
-    Give processes meaningful names for easier identification:
-    
-    ```bash
-    muxa -c 'npm run dev' frontend -c 'npm run api' backend
-    ```
+    ### Name your processes Give processes meaningful names for easier identification: ```bash muxa
+    -c 'npm run dev' frontend -c 'npm run api' backend ```
   </Step>
-  
+
+<Step>
+  ### List available workspaces In a monorepo, see all detected packages: ```bash muxa workspaces
+  ```
+</Step>
+
   <Step>
-    ### List available workspaces
-    
-    In a monorepo, see all detected packages:
-    
-    ```bash
-    muxa workspaces
-    ```
-  </Step>
-  
-  <Step>
-    ### Use shell features
-    
-    Commands with shell operators are automatically handled:
-    
-    ```bash
-    muxa -c 'npm run build && npm test' -c 'echo "Starting..." && npm run dev'
-    ```
+    ### Use shell features Commands with shell operators are automatically handled: ```bash muxa -c
+    'npm run build && npm test' -c 'echo "Starting..." && npm run dev' ```
   </Step>
 </Steps>
 

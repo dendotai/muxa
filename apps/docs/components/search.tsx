@@ -1,5 +1,6 @@
 "use client";
 
+import { withBasePath } from "@/lib/base-path";
 import { useDocsSearch } from "fumadocs-core/search/client";
 import {
   SearchDialog,
@@ -15,8 +16,8 @@ import {
 
 export default function DefaultSearchDialog(props: SharedProps) {
   const { search, setSearch, query } = useDocsSearch({
-    type: "fetch",
-    api: "/muxa/api/search",
+    type: "static",
+    from: withBasePath("/api/search"),
   });
 
   return (
