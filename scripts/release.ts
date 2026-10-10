@@ -15,8 +15,7 @@
  * - Explicit user confirmation required
  * - Pushes to GitHub trigger automated npm publishing via Actions
  *
- * Note: GitHub Actions will copy the root README.md to packages/muxa/README.md
- * before publishing to npm. See .github/workflows/release.yml
+ * Note: GitHub Actions will copy the root README.md to packages/muxa/README.md before publishing to npm. See .github/workflows/release.yml
  */
 
 import * as fs from "fs";
