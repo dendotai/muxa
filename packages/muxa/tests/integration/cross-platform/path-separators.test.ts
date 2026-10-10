@@ -16,8 +16,7 @@ describe("Path Separators", () => {
       // Check consistency
       normalized.forEach((p) => {
         expect(p).not.toContain("//");
-        // path.normalize may or may not remove trailing slashes
-        // depending on platform and path
+        // path.normalize may or may not remove trailing slashes depending on platform and path
       });
     });
 
@@ -37,8 +36,7 @@ describe("Path Separators", () => {
           // On Windows, should not have double backslashes
           expect(p).not.toContain("\\\\");
         } else {
-          // On Unix, backslashes are treated as regular characters
-          // not as path separators
+          // On Unix, backslashes are treated as regular characters not as path separators
           expect(p).toBeDefined();
         }
       });
