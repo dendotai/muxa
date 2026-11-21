@@ -1,6 +1,6 @@
 name: Release
 
-# A push to main releases: semantic-release reads the commits since the last tag, publishes @den-ai/muxa to npm, pushes the tag and writes the GitHub release, or releases nothing when no commit calls for it. RELEASING.md has the flow.
+# RELEASING.md has the flow. npmjs.com trusts this file by its name for publishing, so a rename breaks the publish.
 on:
   push:
     branches: [main]

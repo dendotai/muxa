@@ -27,8 +27,6 @@ A `!` after the type (`feat!:`) releases nothing with the default preset; write 
 ## How npm publishing works
 
 - `@semantic-release/npm` publishes from `packages/muxa` (`pkgRoot` in the `release` key of the root `package.json`).
-- Auth is trusted publishing (OIDC): npmjs.com trusts `release.yml` in this repo, so no token exists anywhere, and npm adds provenance on its own. The workflow needs `id-token: write` and `setup-node` with `registry-url: https://registry.npmjs.org`.
-- The workflow runs `npx semantic-release@25.0.9` with Node 24 on the path: `@semantic-release/npm` calls `npm publish`, and only npm 11.5.1 or later publishes through OIDC.
-- The workflow builds once before semantic-release runs, so the file `bin` names exists when npm first reads the manifest. The `prepack` script builds again after semantic-release writes the version, so `muxa --version` prints the release.
-- The workflow copies the root `README.md` into `packages/muxa/` before the publish, because npm shows the package's own README.
-- The `semantic-release-dry-run` job in `.github/workflows/release-dry-run.yml` runs the pinned version on each pull request, so a version that cannot load the config fails there and not on `main`.
+- Auth is trusted publishing (OIDC): npmjs.com trusts `.github/workflows/release.yml` in this repo, so no token exists anywhere, and npm adds provenance on its own. Renaming that file breaks the publish until the trust on npmjs.com names the new file.
+- The `prepack` script in `packages/muxa/package.json` builds after semantic-release writes the version, so `muxa --version` prints the release.
+- The comments in `release.yml` give the reason for each of its steps.
