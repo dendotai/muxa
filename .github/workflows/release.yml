@@ -11,12 +11,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # The ruleset on main requires no status check, so a red release PR can merge; the publish waits for CI on the merged commit.
-  ci:
-    uses: ./.github/workflows/ci.yml
-
   release:
-    needs: ci
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:

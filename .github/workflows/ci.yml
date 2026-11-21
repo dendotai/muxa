@@ -5,7 +5,6 @@ on:
     branches: ["**"]
   pull_request:
     branches: ["**"]
-  workflow_call:
 
 jobs:
   test:
@@ -51,3 +50,28 @@ jobs:
 
       - name: Build project (verification only)
         run: bun run build
+
+  # A pinned semantic-release that cannot load the release config fails on its PR instead of at the next release on main.
+  semantic-release-dry-run:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # the dry run still checks it may push (`git push --dry-run`); it pushes nothing
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # semantic-release reads every tag and commit since the last release
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.22.3
+
+      # On a pull_request run, semantic-release reads the branch from GitHub's variables as `refs/pull/<n>/merge`, a branch no config lists, and exits before it checks anything. With GITHUB_ACTIONS unset it reads the branch from git instead: the PR head, checked out as a local branch of the same name, which `--branches` makes the release branch for this run.
+      # `--plugins` leaves out @semantic-release/npm: its auth check needs the OIDC token that npmjs.com issues only to release.yml, and fails here with ENONPMTOKEN.
+      - run: |
+          git checkout -B "$GITHUB_HEAD_REF"
+          env -u GITHUB_ACTIONS npx semantic-release@25.0.9 --dry-run --branches "$GITHUB_HEAD_REF" --plugins @semantic-release/commit-analyzer,@semantic-release/release-notes-generator,@semantic-release/github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

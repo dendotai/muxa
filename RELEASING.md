@@ -6,8 +6,8 @@ A release is a `dev` → `main` pull request. Its merge publishes `@den-ai/muxa`
 
 - Feature pull requests merge into `dev`. The `commitlint` job in `.github/workflows/commits.yml` checks that each of their commits has a conventional prefix (`feat:`, `fix:`, `chore:`, …), and the `.husky/commit-msg` hook checks each local commit.
 - To release, open a pull request from `dev` into `main` titled `Release TBD`, with a `## What's Changed` list of the commits it brings.
-- Merge it with a **merge commit**. A squash merge turns the pull request title into the one commit semantic-release reads, and `Release TBD` carries no prefix.
-- The push to `main` runs `.github/workflows/release.yml`. It runs CI on the merged commit, then semantic-release: it reads the commits since the last tag, publishes the package to npm, pushes the new tag (`v1.4.2`) and writes the GitHub release with its notes.
+- Merge it once its checks pass, with a **merge commit**. The release does not run the tests again, and `main` requires no green check. A squash merge turns the pull request title into the one commit semantic-release reads, and `Release TBD` carries no prefix.
+- The push to `main` runs `.github/workflows/release.yml`. Its semantic-release step reads the commits since the last tag, publishes the package to npm, pushes the new tag (`v1.4.2`) and writes the GitHub release with its notes.
 - The `Rename the merged release PR` step renames the merged pull request to `Release v1.4.2`.
 - The same push deploys the docs when it changes `apps/docs/` (`.github/workflows/deploy-docs.yml`).
 
