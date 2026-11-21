@@ -1,89 +1,65 @@
 name: Release
 
+# RELEASING.md has the flow. npmjs.com trusts this file by its name for publishing, so a rename breaks the publish.
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+
+# A cancel between the tag push and the GitHub release leaves a tag with no release notes, so runs queue.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  ci:
-    uses: ./.github/workflows/ci.yml
-
-  publish:
-    needs: ci
-    runs-on: ubuntu-latest
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
-      contents: write # Required to create GitHub releases
+      contents: write # semantic-release pushes the tag and writes the GitHub release
+      id-token: write # npm trusted publishing: npmjs.com trusts this workflow file, so no token exists
+      pull-requests: write # `Rename the merged release PR` edits the PR title
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          bun-version: latest
+          fetch-depth: 0 # semantic-release reads every tag and commit since the last release
 
-      - name: Setup Node.js for npm publish
-        uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      # @semantic-release/npm calls `npm publish`, and only npm 11.5.1 or later publishes through OIDC; Node 24 ships it.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
+          node-version: 24.22.3
+          registry-url: https://registry.npmjs.org
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - run: bun install --frozen-lockfile
 
-      - name: Build
-        run: bun run build
-
-      # IMPORTANT: Copy README from root to package before publishing
-      # This ensures npm shows the full documentation
-      - name: Copy README for npm
-        run: cp README.md packages/muxa/README.md
-
-      - name: Publish to npm
-        run: npm publish --access public
+      # The files `bin` names must exist when npm first reads the manifest; `prepack` builds them again after semantic-release writes the version, and that build ships.
+      - run: bun run build
         working-directory: packages/muxa
+
+      # npm shows the package's own README, and the full one lives at the repo root.
+      - run: cp README.md packages/muxa/README.md
+
+      - name: Release
+        run: npx semantic-release@25.0.9
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get tag name
-        id: tag
+      # A release PR opens as "Release TBD", because the version does not exist until the Release step computes it. This step writes the real title ("Release v1.4.2") onto the PR whose merge started the run. Cosmetic: npm already has the release, so a failure here must not fail the run.
+      - name: Rename the merged release PR
+        continue-on-error: true
         run: |
-          TAG_NAME="${{ github.ref }}"
-          TAG_NAME="${TAG_NAME#refs/tags/}"
-          echo "name=$TAG_NAME" >> $GITHUB_OUTPUT
-          VERSION="${TAG_NAME#v}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Extract changelog for release
-        id: changelog
-        run: |
-          VERSION="${{ steps.tag.outputs.version }}"
-
-          # Extract the changelog section for this version
-          awk -v version="$VERSION" '
-            /^## \[/ {
-              if (found) exit
-              if ($0 ~ "\\[" version "\\]") {
-                found = 1
-                next
-              }
-            }
-            found && /^## \[/ { exit }
-            found { print }
-          ' packages/muxa/CHANGELOG.md > release_notes.md
-
-          # Set as output for GitHub release
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
-          cat release_notes.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag.outputs.name }}
-          name: Release ${{ steps.tag.outputs.name }}
-          body: ${{ steps.changelog.outputs.RELEASE_NOTES }}
-          draft: false
-          prerelease: false
+          tag=$(git tag --points-at "$GITHUB_SHA" | grep '^v' | head -1 || true)
+          if [ -z "$tag" ]; then
+            echo "no release tag on $GITHUB_SHA: nothing was released"
+            exit 0
+          fi
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].number' || true)
+          if [ -z "$pr" ] || [ "$pr" = null ]; then
+            echo "no PR behind $GITHUB_SHA (a direct push)"
+            exit 0
+          fi
+          gh pr edit "$pr" --title "Release $tag"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

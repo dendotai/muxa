@@ -18,17 +18,39 @@
     "dev:docs": "muxa -s docs dev",
     "muxa:local": "bun run packages/muxa/src/index.ts",
     "build": "bun run --filter='*' build",
-    "release:patch": "bun scripts/release.ts patch",
-    "release:minor": "bun scripts/release.ts minor",
-    "release:major": "bun scripts/release.ts major",
-    "prepare": "husky"
+    "prepare": "husky",
+    "githook:commit-msg": "commitlint --edit"
   },
   "devDependencies": {
-    "@den-ai/muxa": "^0.2.2",
+    "@commitlint/cli": "21.2.3",
+    "@commitlint/config-conventional": "21.2.3",
+    "@den-ai/muxa": "workspace:*",
     "@total-typescript/tsconfig": "^1.0.4",
     "husky": "^9.1.7",
     "prettier": "^3.6.2",
     "strip-ansi": "^7.1.0",
     "typescript": "^5.8.3"
+  },
+  "release": {
+    "branches": [
+      "main"
+    ],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      [
+        "@semantic-release/npm",
+        {
+          "pkgRoot": "packages/muxa"
+        }
+      ],
+      [
+        "@semantic-release/github",
+        {
+          "successComment": false,
+          "failComment": false
+        }
+      ]
+    ]
   }
 }
