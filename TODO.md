@@ -77,11 +77,6 @@
 
 **Note**: These limitations don't affect muxa's functionality - only test coverage.
 
-### Changelog
-
-- [ ] Consider enforcing good commit messages that can be used to generate changelog automatically
-- [ ] Restructure release script so that all actions are in function and we can call them for better readability
-
 ## Documentation: Command Parameter Breakdown
 
 ### Todo

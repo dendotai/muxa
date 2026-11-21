@@ -1,12 +1,12 @@
 {
   "name": "@den-ai/muxa",
-  "version": "0.2.2",
+  "version": "0.0.0",
   "description": "Run your entire dev stack in multiple virtual terminals with one concise command instead of long config files. Built-in monorepo support, preserved interactivity, and clean output.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
   "bin": {
-    "muxa": "./dist/index.js"
+    "muxa": "dist/index.js"
   },
   "scripts": {
     "build": "bun build ./src/index.ts --external mprocs --outdir ./dist --target node && tsc --emitDeclarationOnly",
@@ -15,7 +15,7 @@
     "test:watch": "MUXA_TEST_MODE=true bun test --watch",
     "test:coverage": "MUXA_TEST_MODE=true bun test --coverage --coverage-reporter=lcov",
     "typecheck": "tsc --noEmit --skipLibCheck",
-    "prepublishOnly": "bun run build && bun run test",
+    "prepack": "bun run build",
     "lint:ts": "eslint .",
     "lint:md": "markdownlint '**/*.md' --ignore node_modules",
     "lint": "bun run lint:ts && bun run lint:md",

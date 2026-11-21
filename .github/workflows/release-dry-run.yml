@@ -1,0 +1,33 @@
+name: Release dry run
+
+# Kept out of ci.yml: release.yml calls ci.yml, and a called job may not ask for more token permissions than the repo's read-only default.
+on:
+  pull_request:
+
+concurrency:
+  group: release-dry-run-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Runs the pinned semantic-release in dry-run mode, so a version that cannot load the release config or its plugins fails on its PR instead of at the next release on main.
+  semantic-release-dry-run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # the dry run still checks it may push (`git push --dry-run`); it pushes nothing
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # semantic-release reads every tag and commit since the last release
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.22.3
+
+      # On a pull_request run, semantic-release reads the branch from GitHub's variables as `refs/pull/<n>/merge`, a branch no config lists, and exits before it checks anything. With GITHUB_ACTIONS unset it reads the branch from git instead: the PR head, checked out as a local branch of the same name, which `--branches` makes the release branch for this run.
+      - run: |
+          git checkout -B "$GITHUB_HEAD_REF"
+          env -u GITHUB_ACTIONS npx semantic-release@25.0.9 --dry-run --branches "$GITHUB_HEAD_REF"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
