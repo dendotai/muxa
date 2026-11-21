@@ -12,29 +12,29 @@ muxa can be installed globally using your preferred package manager.
 
 ## Package Managers
 
-<Tabs defaultValue="bun">
-  <Tab value="bun" label="Bun">
+<Tabs items={["Bun", "npm", "pnpm", "Yarn"]}>
+  <Tab value="Bun">
 
     ```bash
     bun install -g @den-ai/muxa
     ```
 
   </Tab>
-  <Tab value="npm" label="npm">
+  <Tab value="npm">
 
     ```bash
     npm install -g @den-ai/muxa
     ```
 
   </Tab>
-  <Tab value="pnpm" label="pnpm">
+  <Tab value="pnpm">
 
     ```bash
     pnpm add -g @den-ai/muxa
     ```
 
   </Tab>
-  <Tab value="yarn" label="Yarn">
+  <Tab value="Yarn">
 
     ```bash
     yarn global add @den-ai/muxa
@@ -77,8 +77,8 @@ muxa works on:
 
 If you get a "command not found" error after installation, you may need to add the global bin directory to your PATH:
 
-<Tabs defaultValue="npm">
-  <Tab value="npm" label="npm">
+<Tabs items={["npm", "Yarn", "pnpm"]}>
+  <Tab value="npm">
 
     ```bash
     # Find npm global bin directory
@@ -89,7 +89,7 @@ If you get a "command not found" error after installation, you may need to add t
     ```
 
   </Tab>
-  <Tab value="yarn" label="Yarn">
+  <Tab value="Yarn">
 
     ```bash
     # Find yarn global bin directory
@@ -100,7 +100,7 @@ If you get a "command not found" error after installation, you may need to add t
     ```
 
   </Tab>
-  <Tab value="pnpm" label="pnpm">
+  <Tab value="pnpm">
 
     ```bash
     # Find pnpm global bin directory

@@ -59,8 +59,8 @@ muxa -s backend dev api -s frontend start web
 
 muxa intelligently resolves package identifiers:
 
-<Tabs defaultValue="name">
-  <Tab value="name" label="By Name">
+<Tabs items={["By Name", "By Path", "By Directory"]}>
+  <Tab value="By Name">
 
     ```bash
     # Using package.json name
@@ -69,7 +69,7 @@ muxa intelligently resolves package identifiers:
     ```
 
   </Tab>
-  <Tab value="path" label="By Path">
+  <Tab value="By Path">
 
     ```bash
     # Using relative path
@@ -78,7 +78,7 @@ muxa intelligently resolves package identifiers:
     ```
 
   </Tab>
-  <Tab value="dir" label="By Directory">
+  <Tab value="By Directory">
 
     ```bash
     # Using directory name (if unique)

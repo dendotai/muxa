@@ -48,8 +48,8 @@ When developing in a monorepo with multiple services, you need to run multiple p
 
 Run multiple commands in parallel:
 
-<Tabs defaultValue="basic">
-  <Tab value="basic" label="Basic">
+<Tabs items={["Basic", "Workspace", "Mixed"]}>
+  <Tab value="Basic">
 
     ```bash
     # Run multiple commands
@@ -57,7 +57,7 @@ Run multiple commands in parallel:
     ```
 
   </Tab>
-  <Tab value="workspace" label="Workspace">
+  <Tab value="Workspace">
 
     ```bash
     # Run scripts in specific packages
@@ -65,7 +65,7 @@ Run multiple commands in parallel:
     ```
 
   </Tab>
-  <Tab value="mixed" label="Mixed">
+  <Tab value="Mixed">
 
     ```bash
     # Mix workspace scripts and regular commands
