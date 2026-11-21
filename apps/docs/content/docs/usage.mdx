@@ -59,15 +59,33 @@ muxa -s backend dev api -s frontend start web
 
 muxa intelligently resolves package identifiers:
 
-<Tabs defaultValue="name">
-  <Tab value="name" label="By Name">
-    ```bash # Using package.json name muxa -s @myapp/backend dev muxa -s @myapp/frontend start ```
+<Tabs items={["By Name", "By Path", "By Directory"]}>
+  <Tab value="By Name">
+
+    ```bash
+    # Using package.json name
+    muxa -s @myapp/backend dev
+    muxa -s @myapp/frontend start
+    ```
+
   </Tab>
-  <Tab value="path" label="By Path">
-    ```bash # Using relative path muxa -s packages/backend dev muxa -s ./apps/frontend start ```
+  <Tab value="By Path">
+
+    ```bash
+    # Using relative path
+    muxa -s packages/backend dev
+    muxa -s ./apps/frontend start
+    ```
+
   </Tab>
-  <Tab value="dir" label="By Directory">
-    ```bash # Using directory name (if unique) muxa -s backend dev muxa -s frontend start ```
+  <Tab value="By Directory">
+
+    ```bash
+    # Using directory name (if unique)
+    muxa -s backend dev
+    muxa -s frontend start
+    ```
+
   </Tab>
 </Tabs>
 

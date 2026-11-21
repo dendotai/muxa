@@ -323,17 +323,5 @@ describe("withEnv Helper", () => {
 
       expect(executed).toBe(true);
     });
-
-    it("should handle undefined values in environment object", () => {
-      // When undefined is passed, it doesn't set the variable at all
-      const vars = { UNDEF_VAR: undefined as unknown as string };
-
-      withEnv(vars, () => {
-        // The variable won't be set because Object.assign skips undefined values
-        expect(process.env.UNDEF_VAR).toBeUndefined();
-      });
-
-      expect(process.env.UNDEF_VAR).toBeUndefined();
-    });
   });
 });

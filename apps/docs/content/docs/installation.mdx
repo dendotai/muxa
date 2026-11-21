@@ -12,18 +12,34 @@ muxa can be installed globally using your preferred package manager.
 
 ## Package Managers
 
-<Tabs defaultValue="bun">
-  <Tab value="bun" label="Bun">
-    ```bash bun install -g @den-ai/muxa ```
+<Tabs items={["Bun", "npm", "pnpm", "Yarn"]}>
+  <Tab value="Bun">
+
+    ```bash
+    bun install -g @den-ai/muxa
+    ```
+
   </Tab>
-  <Tab value="npm" label="npm">
-    ```bash npm install -g @den-ai/muxa ```
+  <Tab value="npm">
+
+    ```bash
+    npm install -g @den-ai/muxa
+    ```
+
   </Tab>
-  <Tab value="pnpm" label="pnpm">
-    ```bash pnpm add -g @den-ai/muxa ```
+  <Tab value="pnpm">
+
+    ```bash
+    pnpm add -g @den-ai/muxa
+    ```
+
   </Tab>
-  <Tab value="yarn" label="Yarn">
-    ```bash yarn global add @den-ai/muxa ```
+  <Tab value="Yarn">
+
+    ```bash
+    yarn global add @den-ai/muxa
+    ```
+
   </Tab>
 </Tabs>
 
@@ -61,18 +77,39 @@ muxa works on:
 
 If you get a "command not found" error after installation, you may need to add the global bin directory to your PATH:
 
-<Tabs defaultValue="npm">
-  <Tab value="npm" label="npm">
-    ```bash # Find npm global bin directory npm bin -g # Add to your shell profile (~/.bashrc,
-    ~/.zshrc, etc.) export PATH="$PATH:$(npm bin -g)" ```
+<Tabs items={["npm", "Yarn", "pnpm"]}>
+  <Tab value="npm">
+
+    ```bash
+    # Find npm global bin directory
+    npm bin -g
+
+    # Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+    export PATH="$PATH:$(npm bin -g)"
+    ```
+
   </Tab>
-  <Tab value="yarn" label="Yarn">
-    ```bash # Find yarn global bin directory yarn global bin # Add to your shell profile export
-    PATH="$PATH:$(yarn global bin)" ```
+  <Tab value="Yarn">
+
+    ```bash
+    # Find yarn global bin directory
+    yarn global bin
+
+    # Add to your shell profile
+    export PATH="$PATH:$(yarn global bin)"
+    ```
+
   </Tab>
-  <Tab value="pnpm" label="pnpm">
-    ```bash # Find pnpm global bin directory pnpm bin -g # Add to your shell profile export
-    PATH="$PATH:$(pnpm bin -g)" ```
+  <Tab value="pnpm">
+
+    ```bash
+    # Find pnpm global bin directory
+    pnpm bin -g
+
+    # Add to your shell profile
+    export PATH="$PATH:$(pnpm bin -g)"
+    ```
+
   </Tab>
 </Tabs>
 
