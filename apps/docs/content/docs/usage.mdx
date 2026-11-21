@@ -61,13 +61,31 @@ muxa intelligently resolves package identifiers:
 
 <Tabs defaultValue="name">
   <Tab value="name" label="By Name">
-    ```bash # Using package.json name muxa -s @myapp/backend dev muxa -s @myapp/frontend start ```
+
+    ```bash
+    # Using package.json name
+    muxa -s @myapp/backend dev
+    muxa -s @myapp/frontend start
+    ```
+
   </Tab>
   <Tab value="path" label="By Path">
-    ```bash # Using relative path muxa -s packages/backend dev muxa -s ./apps/frontend start ```
+
+    ```bash
+    # Using relative path
+    muxa -s packages/backend dev
+    muxa -s ./apps/frontend start
+    ```
+
   </Tab>
   <Tab value="dir" label="By Directory">
-    ```bash # Using directory name (if unique) muxa -s backend dev muxa -s frontend start ```
+
+    ```bash
+    # Using directory name (if unique)
+    muxa -s backend dev
+    muxa -s frontend start
+    ```
+
   </Tab>
 </Tabs>
 

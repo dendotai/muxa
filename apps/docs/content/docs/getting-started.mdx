@@ -1,3 +1,11 @@
+---
+title: Getting Started
+description: Quick start guide for using muxa
+---
+
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
+
 # Getting Started
 
 Get up and running with muxa in minutes.
@@ -88,18 +96,37 @@ All your tools' interactive features are preserved:
 
 <Steps>
   <Step>
-    ### Name your processes Give processes meaningful names for easier identification: ```bash muxa
-    -c 'npm run dev' frontend -c 'npm run api' backend ```
+
+    ### Name your processes
+
+    Give processes meaningful names for easier identification:
+
+    ```bash
+    muxa -c 'npm run dev' frontend -c 'npm run api' backend
+    ```
+
   </Step>
-
-<Step>
-  ### List available workspaces In a monorepo, see all detected packages: ```bash muxa workspaces
-  ```
-</Step>
-
   <Step>
-    ### Use shell features Commands with shell operators are automatically handled: ```bash muxa -c
-    'npm run build && npm test' -c 'echo "Starting..." && npm run dev' ```
+
+    ### List available workspaces
+
+    In a monorepo, see all detected packages:
+
+    ```bash
+    muxa workspaces
+    ```
+
+  </Step>
+  <Step>
+
+    ### Use shell features
+
+    Commands with shell operators are automatically handled:
+
+    ```bash
+    muxa -c 'npm run build && npm test' -c 'echo "Starting..." && npm run dev'
+    ```
+
   </Step>
 </Steps>
 
