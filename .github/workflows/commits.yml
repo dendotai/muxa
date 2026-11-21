@@ -1,0 +1,28 @@
+name: commits
+
+# The jobs here check what a PR writes into git history, which does not depend on the files it changes. So this workflow has no path filter: a PR that changes only docs, which starts no docs build, still gets its commits checked.
+on:
+  pull_request:
+
+concurrency:
+  group: commits-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Commit prefixes set the release version (RELEASING.md), so each commit is checked on its way into dev. A dev → main release PR is not checked again: its commits passed here.
+  commitlint:
+    if: github.base_ref == 'dev'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0 # commitlint walks the PR's commit range
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - run: bun install --frozen-lockfile
+
+      - run: bunx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
