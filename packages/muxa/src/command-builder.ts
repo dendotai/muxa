@@ -125,13 +125,17 @@ function transformCommand(
 /**
  * Build mprocs command line arguments
  */
-export function buildMprocsArgs(commands: TransformedCommand[], parsed: ParseResult): string[] {
-  const args: string[] = [...parsed.mprocsArgs];
-
-  // Add environment variables
-  if (!process.env.FORCE_COLOR) {
-    // FORCE_COLOR will be set when spawning mprocs
-  }
+export function buildMprocsArgs(
+  commands: TransformedCommand[],
+  parsed: ParseResult,
+  {
+    mprocsConfigFile,
+    processListTitle,
+  }: { mprocsConfigFile?: string; processListTitle?: string } = {},
+): string[] {
+  const args: string[] = [];
+  if (mprocsConfigFile) args.push("--config", mprocsConfigFile);
+  if (processListTitle) args.push("--proc-list-title", processListTitle);
 
   // Collect names
   const names = commands.map((cmd) => cmd.name).filter((name) => name !== "");

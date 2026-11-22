@@ -6,6 +6,13 @@ import { buildCommands, buildMprocsArgs } from "./command-builder";
 import { detectPackageManager } from "./package-manager";
 import { parseArguments } from "./parser";
 import {
+  readSettings,
+  removeTempMprocsConfig,
+  resolveProcessListTitle,
+  toMprocsConfig,
+  writeTempMprocsConfig,
+} from "./settings";
+import {
   checkDuplicateNames,
   checkNestedExecution,
   debugLog,
@@ -69,6 +76,11 @@ async function main() {
     // Build commands
     const commands = buildCommands(parsed, workspace, packageManager);
 
+    const cwd = process.cwd();
+    const settings = readSettings(cwd);
+    const mprocsConfig = toMprocsConfig(settings);
+    const processListTitle = resolveProcessListTitle(cwd, settings);
+
     // Validate tab names
     for (const cmd of commands) {
       if (cmd.name) {
@@ -85,8 +97,14 @@ async function main() {
       }
     }
 
-    // Build mprocs arguments
-    const mprocsArgs = buildMprocsArgs(commands, parsed);
+    let mprocsConfigFile: string | undefined;
+    if (mprocsConfig) {
+      const file = writeTempMprocsConfig(mprocsConfig);
+      process.on("exit", () => removeTempMprocsConfig(file));
+      mprocsConfigFile = file;
+    }
+
+    const mprocsArgs = buildMprocsArgs(commands, parsed, { mprocsConfigFile, processListTitle });
 
     // Debug output
     debugLog(`Executing: mprocs ${mprocsArgs.map((arg) => `'${arg}'`).join(" ")}`);
@@ -105,6 +123,9 @@ async function main() {
       }
 
       console.log(`Would execute: mprocs ${mprocsArgs.map((arg) => `'${arg}'`).join(" ")}`);
+      if (mprocsConfig) {
+        console.log(`mprocs config: ${JSON.stringify(mprocsConfig)}`);
+      }
 
       // Output environment variables that would be set
       // Always output FORCE_COLOR in test mode (either from env or what we would set)
@@ -158,14 +179,12 @@ async function main() {
       process.exit(code || 0);
     });
 
-    // Handle signals
-    process.on("SIGINT", () => {
-      proc.kill("SIGTERM");
-    });
-
-    process.on("SIGTERM", () => {
-      proc.kill("SIGTERM");
-    });
+    // A closed terminal sends SIGHUP; without a handler muxa dies before its exit cleanup runs
+    for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
+      process.on(signal, () => {
+        proc.kill("SIGTERM");
+      });
+    }
   } catch (error) {
     console.error(`Error: ${formatError(error)}`);
     process.exit(1);

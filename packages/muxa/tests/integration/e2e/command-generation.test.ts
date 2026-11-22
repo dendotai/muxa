@@ -96,20 +96,6 @@ describe("E2E: Command Generation and Validation", () => {
       expect(result.stdout).toContain("--names");
       expect(result.stdout).toContain("backend:dev,test:coverage,frontend:build");
     });
-
-    it("should handle pass-through options", async () => {
-      const result = await runMuxa(["-s", "backend", "test", "--", "--watch", "--coverage"], {
-        cwd: fixtureDir,
-        env: { MUXA_TEST_MODE: "true" },
-      });
-
-      expect(result.code).toBe(0);
-      // The -- and following options are passed to mprocs, not the npm script
-      expect(result.stdout).toContain("--");
-      expect(result.stdout).toContain("--watch");
-      expect(result.stdout).toContain("--coverage");
-      expect(result.stdout).toContain("npm run test");
-    });
   });
 
   describe("Help and version", () => {

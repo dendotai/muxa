@@ -107,9 +107,6 @@ muxa -w mobile 'npx expo start' expo
 ```sh
 # Commands with shell operators
 muxa -c 'npm run build && npm test' -c 'echo "Done" || exit 1'
-
-# Pass through mprocs options
-muxa --hide-help -c 'npm run dev' -c 'npm run test'
 ```
 
 ## Command Line Options
@@ -120,6 +117,22 @@ muxa --hide-help -c 'npm run dev' -c 'npm run test'
 - `-h, --help` - Display help
 - `--version` - Display version
 - `workspaces` - List all detected workspace packages
+
+## Settings
+
+Optional. Add a `muxa` key to the `package.json` in the folder you run muxa from:
+
+```json
+{
+  "muxa": {
+    "mouseScrollSpeed": 1,
+    "processListTitle": "Dev"
+  }
+}
+```
+
+- `mouseScrollSpeed` - Lines to scroll per mouse or touchpad scroll event, a whole number of 1 or more. mprocs scrolls 5 by default.
+- `processListTitle` - Heading above the process list, a non-empty string. By default, the `name` in that `package.json`, or the folder name.
 
 ## Important Usage Notes
 

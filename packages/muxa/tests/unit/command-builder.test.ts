@@ -33,7 +33,6 @@ describe("buildCommands", () => {
       const parsed: ParseResult = {
         mode: "advanced",
         commands: [{ type: "script", command: "", target: "@basic/backend", script: "dev" }],
-        mprocsArgs: [],
       };
 
       const result = buildCommands(parsed, workspace, packageManager);
@@ -54,7 +53,6 @@ describe("buildCommands", () => {
       const parsed: ParseResult = {
         mode: "advanced",
         commands: [{ type: "script", command: "", target: "@company/auth", script: "build" }],
-        mprocsArgs: [],
       };
 
       const result = buildCommands(parsed, workspace, packageManager);
@@ -78,7 +76,6 @@ describe("buildCommands", () => {
       const parsed: ParseResult = {
         mode: "advanced",
         commands: [{ type: "command", command: "echo hello", name: "test" }],
-        mprocsArgs: [],
       };
 
       const result = buildCommands(parsed, workspace, packageManager);
@@ -115,7 +112,6 @@ describe("buildCommands", () => {
         const parsed: ParseResult = {
           mode: "advanced",
           commands: [{ type: "command", command: cmd }],
-          mprocsArgs: [],
         };
 
         const result = buildCommands(parsed, workspace, packageManager);
@@ -137,7 +133,6 @@ describe("buildCommands", () => {
       const parsed: ParseResult = {
         mode: "advanced",
         commands: [{ type: "script", command: "", target: "api", script: "dev", name: "api:dev" }],
-        mprocsArgs: [],
       };
 
       const result = buildCommands(parsed, workspace, packageManager);
@@ -167,7 +162,6 @@ describe("buildCommands", () => {
       const parsed: ParseResult = {
         mode: "advanced",
         commands: [{ type: "script", command: "", target: ".", script: "build" }],
-        mprocsArgs: [],
       };
 
       const result = buildCommands(parsed, workspace, packageManager);
@@ -188,7 +182,6 @@ describe("buildCommands", () => {
       const parsed: ParseResult = {
         mode: "advanced",
         commands: [{ type: "script", command: "", target: "api", script: "nonexistent" }],
-        mprocsArgs: [],
       };
 
       expect(() => buildCommands(parsed, workspace, packageManager)).toThrow(
@@ -208,7 +201,6 @@ describe("buildCommands", () => {
       const parsed: ParseResult = {
         mode: "advanced",
         commands: [{ type: "script", command: "", script: "dev" } as ParsedCommand],
-        mprocsArgs: [],
       };
 
       expect(() => buildCommands(parsed, workspace, packageManager)).toThrow(
@@ -230,7 +222,6 @@ describe("buildCommands", () => {
       const parsed: ParseResult = {
         mode: "advanced",
         commands: [{ type: "workspace", target: "web", command: "ls -la", name: "list" }],
-        mprocsArgs: [],
       };
 
       const result = buildCommands(parsed, workspace, packageManager);
@@ -255,7 +246,6 @@ describe("buildCommands", () => {
       const parsed: ParseResult = {
         mode: "advanced",
         commands: [{ type: "workspace", target: "mobile", command: "pwd" }],
-        mprocsArgs: [],
       };
 
       const result = buildCommands(parsed, workspace, packageManager);
@@ -274,7 +264,6 @@ describe("buildCommands", () => {
       const parsed: ParseResult = {
         mode: "advanced",
         commands: [{ type: "workspace", command: "ls", target: "" } as ParsedCommand],
-        mprocsArgs: [],
       };
 
       expect(() => buildCommands(parsed, workspace, packageManager)).toThrow(
@@ -299,7 +288,6 @@ describe("buildCommands", () => {
       const parsed: ParseResult = {
         mode: "advanced",
         commands: [{ type: "script", command: "", target: "api", script: "dev" }],
-        mprocsArgs: [],
       };
 
       expect(() => buildCommands(parsed, workspace, packageManager)).toThrow(
@@ -325,7 +313,6 @@ describe("buildCommands", () => {
         const parsed: ParseResult = {
           mode: "advanced",
           commands: [{ type: "script", command: "", target: "test", script: "start" }],
-          mprocsArgs: [],
         };
 
         const result = buildCommands(parsed, workspace, packageManager);
@@ -358,7 +345,6 @@ describe("buildCommands", () => {
           { type: "script", command: "", target: "api", script: "dev" },
           { type: "workspace", target: "web", command: "npm install" },
         ],
-        mprocsArgs: [],
       };
 
       const result = buildCommands(parsed, workspace, packageManager);
@@ -377,7 +363,6 @@ describe("buildMprocsArgs", () => {
     const parsed: ParseResult = {
       mode: "advanced",
       commands: [],
-      mprocsArgs: [],
     };
 
     const args = buildMprocsArgs(commands, parsed);
@@ -392,28 +377,12 @@ describe("buildMprocsArgs", () => {
     const parsed: ParseResult = {
       mode: "advanced",
       commands: [],
-      mprocsArgs: [],
     };
 
     const args = buildMprocsArgs(commands, parsed);
 
     expect(args.some((arg) => arg.startsWith("sh -c"))).toBe(true);
     expect(args.some((arg) => arg.includes("echo hello && echo world"))).toBe(true);
-  });
-
-  it("should pass through mprocs args", () => {
-    const commands = [{ command: "echo hello", name: "test", needsShell: false }];
-    const parsed: ParseResult = {
-      mode: "advanced",
-      commands: [],
-      mprocsArgs: ["--hide-help", "--ctl", "c"],
-    };
-
-    const args = buildMprocsArgs(commands, parsed);
-
-    expect(args).toContain("--hide-help");
-    expect(args).toContain("--ctl");
-    expect(args).toContain("c");
   });
 
   it("should handle multiple commands with names", () => {
@@ -424,7 +393,6 @@ describe("buildMprocsArgs", () => {
     const parsed: ParseResult = {
       mode: "advanced",
       commands: [],
-      mprocsArgs: [],
     };
 
     const args = buildMprocsArgs(commands, parsed);
@@ -440,7 +408,6 @@ describe("buildMprocsArgs", () => {
     const parsed: ParseResult = {
       mode: "basic",
       commands: [],
-      mprocsArgs: [],
     };
 
     const args = buildMprocsArgs(commands, parsed);
@@ -457,7 +424,6 @@ describe("buildMprocsArgs", () => {
     const parsed: ParseResult = {
       mode: "advanced",
       commands: [],
-      mprocsArgs: [],
     };
 
     const args = buildMprocsArgs(commands, parsed);
@@ -472,7 +438,6 @@ describe("buildMprocsArgs", () => {
     const parsed: ParseResult = {
       mode: "advanced",
       commands: [],
-      mprocsArgs: [],
     };
 
     const args = buildMprocsArgs(commands, parsed);

@@ -32,8 +32,6 @@ export interface ParseResult {
   dryRun?: boolean;
   /** Skip confirmation prompts */
   yes?: boolean;
-  /** Additional mprocs arguments to pass through */
-  mprocsArgs: string[];
 }
 
 export class ParseError extends Error {
@@ -50,7 +48,6 @@ export function parseArguments(argv: string[]): ParseResult {
   const result: ParseResult = {
     mode: "basic",
     commands: [],
-    mprocsArgs: [],
   };
 
   let i = 0;
@@ -107,11 +104,8 @@ export function parseArguments(argv: string[]): ParseResult {
       continue;
     }
 
-    // Handle mprocs pass-through options
     if (arg.startsWith("--") && !isKnownFlag(arg)) {
-      result.mprocsArgs.push(arg);
-      i++;
-      continue;
+      throw new ParseError(`Unknown option '${arg}'`);
     }
 
     // Handle -c flag (arbitrary commands)

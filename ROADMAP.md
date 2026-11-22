@@ -104,23 +104,6 @@ When not in a monorepo context (i.e., when only using `-c` flags), consider usin
 - Fall back to `sh` if detection fails
 - Keep using `sh` for all workspace operations to ensure consistency
 
-## Configuration File Support
-
-Add support for configuration files to define reusable command presets.
-
-**Why this would be useful:**
-
-- Standardize common development workflows across team
-- Avoid typing long command sequences repeatedly
-- Version control your development setups
-- Share configurations between projects
-
-**Implementation considerations:**
-
-- Format TBD (YAML, JSON, or other)
-- Allow presets for common command combinations
-- Usage: `muxa --preset dev` or similar
-
 ## Docker Compose Integration
 
 Add native understanding of Docker Compose services as first-class citizens alongside workspace scripts.

@@ -64,8 +64,9 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
         clearTimeout(timeoutHandle);
 
         if (code === 0) {
-          // Extract the command from "Would execute: mprocs ..."
-          const match = stdout.match(/Would execute: mprocs (.+)/);
+          // Extract the command from "Would execute: mprocs ...", without the process list title
+          // muxa adds to every run, so command-generation tests do not depend on the runner's folder
+          const match = stdout.match(/Would execute: mprocs (?:'--proc-list-title' '[^']*' )?(.+)/);
           resolve({
             command: match && match[1] ? match[1] : null,
             error: null,

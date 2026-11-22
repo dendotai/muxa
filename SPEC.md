@@ -32,7 +32,7 @@ While `muxa` shines in monorepo environments, it's equally useful as a general-p
 
 3. **Preserved interactive features**: Expo QR codes, Vite shortcuts work
 
-4. **No config files needed** - all features available via CLI arguments (muxa may create temporary mprocs config internally)
+4. **No config files needed** - all features available via CLI arguments; optional Settings in `package.json` (muxa may create temporary mprocs config internally)
 
 5. **Clear errors** with helpful suggestions
 
@@ -486,17 +486,18 @@ muxa -c 'node server.js'
 ### Flag Mapping
 
 - Advanced commands automatically generate `--names` for mprocs
+- Every run passes `--proc-list-title`: `processListTitle` from Settings, else the `name` in `package.json`, else the folder name
 
 > [!NOTE]  
 > Some mprocs features like tab width are only configurable via config file, not CLI flags. Muxa focuses on CLI-only usage, so these features are not exposed.
 
-**Temporary Config Strategy** (if needed for future features):
+**Temporary Config Strategy** (used for `mouseScrollSpeed`):
 
-1. Create config in system temp directory (e.g., `/tmp/.muxa.mprocs.tmp.yaml`)
-2. If temp creation fails, fallback to `.muxa.mprocs.tmp.yaml` in current directory
-3. Delete immediately after mprocs starts (it reads config once at startup)
-4. For fallback file, ensure cleanup on exit (`SIGINT`/`SIGTERM`)
-5. Don't worry about `SIGKILL` scenarios - leftover `.muxa.mprocs.tmp.yaml` is clearly temporary
+1. Create `mprocs.json` in a new directory under the system temp directory and pass it with `--config`
+2. Delete it when muxa exits, which follows mprocs' exit
+3. Don't worry about `SIGKILL` scenarios - a leftover file in the system temp directory is clearly temporary
+
+Passing `--config` makes mprocs skip `./mprocs.yaml`, so only the command, Settings, and the global `~/.config/mprocs/mprocs.yaml` decide a run.
 
 ## Error Handling
 
@@ -532,9 +533,19 @@ Error: Cannot mix basic and advanced arguments
 
 ## Configuration Files
 
-**User configuration**: Not currently supported. All options must be provided via CLI arguments.
+**Commands stay self-contained**: everything that decides what runs is in the CLI arguments.
 
-**Internal usage**: `muxa` may create temporary mprocs config files when needed for features not available via mprocs CLI flags (see "Temporary Config Strategy" above).
+**Settings**: optional values under the `muxa` key of the `package.json` in the folder muxa runs from (no upward search). They change how muxa shows processes, never what runs. See `docs/adr/0001-settings-in-package-json.md`.
+
+```json
+{ "muxa": { "mouseScrollSpeed": 1, "processListTitle": "Dev" } }
+```
+
+- `mouseScrollSpeed`: whole number of 1 or more; mprocs `mouse_scroll_speed`, passed in the temporary config
+- `processListTitle`: non-empty string; muxa passes it as mprocs `--proc-list-title` on every run, by default the `name` in that `package.json`, else the folder name
+- An unknown key or a bad value stops muxa before mprocs starts, with an error naming `package.json`; an unknown key also lists the known keys
+
+**Internal usage**: `muxa` passes `mouseScrollSpeed` to mprocs in a temporary config file (see "Temporary Config Strategy" above).
 
 **Future**: See ROADMAP.md for potential user-facing config file support.
 

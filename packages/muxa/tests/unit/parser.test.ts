@@ -83,9 +83,13 @@ describe("Parser", () => {
       expect(result.commands[2]?.type).toBe("command");
     });
 
-    it("should parse mprocs pass-through options", () => {
-      const result = parseArguments(["--hide-help", "-c", "cmd1"]);
-      expect(result.mprocsArgs).toEqual(["--hide-help"]);
+    it("should reject an unknown option", () => {
+      expect(() => parseArguments(["--proc-list-title", "Dev", "-c", "cmd1"])).toThrow(
+        "Unknown option '--proc-list-title'",
+      );
+      expect(() => parseArguments(["-c", "cmd1", "--hide-help"])).toThrow(
+        "Unknown option '--hide-help'",
+      );
     });
 
     it("should parse special commands", () => {
@@ -196,19 +200,7 @@ describe("Parser", () => {
       );
     });
 
-    it("should pass through unknown flags to mprocs", () => {
-      // Test that unknown flags are passed through to mprocs
-      const result = parseArguments(["-c", "cmd1", "--unknown-flag"]);
-      expect(result.mprocsArgs).toContain("--unknown-flag");
-
-      // Test with multiple unknown flags (--ctl takes a value)
-      const result2 = parseArguments(["--hide-help", "--ctl", "-c", "cmd1"]);
-      expect(result2.mprocsArgs).toContain("--hide-help");
-      expect(result2.mprocsArgs).toContain("--ctl");
-    });
-
     it("should throw on unexpected argument in advanced mode", () => {
-      // This tests the uncovered line 256: throw new ParseError(`Unexpected argument: ${arg}`);
       // Single dash flags that are not recognized
       expect(() => parseArguments(["-c", "cmd1", "-x"])).toThrow("Unexpected argument: -x");
 
@@ -217,8 +209,7 @@ describe("Parser", () => {
         "Unexpected argument: -z",
       );
 
-      // Bare argument after pass-through option in advanced mode
-      expect(() => parseArguments(["--hide-help", "-c", "cmd1", "name", "unexpected"])).toThrow(
+      expect(() => parseArguments(["-c", "cmd1", "name", "unexpected"])).toThrow(
         "Unexpected argument: unexpected",
       );
 
