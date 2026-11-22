@@ -14,19 +14,22 @@
     "format:fix": "prettier --write .",
     "check": "bun run typecheck && bun run lint && bun run format",
     "check:fix": "bun run lint:fix && bun run format:fix",
+    "test": "bun test:coverage && bun run test:root",
     "test:coverage": "cd packages/muxa && bun test:coverage",
+    "test:root": "bun test ./checks/",
     "dev:docs": "muxa -s docs dev",
     "muxa:local": "bun run packages/muxa/src/index.ts",
     "build": "bun run --filter='*' build",
-    "prepare": "husky",
-    "githook:commit-msg": "commitlint --edit"
+    "prepare": "bun checks/githooks/install.mjs",
+    "githook:commit-msg": "commitlint --edit",
+    "githook:pre-commit": "bun run lint && bun run format",
+    "githook:pre-push": "bun run typecheck && bun run test"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.3",
     "@den-ai/muxa": "workspace:*",
     "@total-typescript/tsconfig": "^1.0.4",
-    "husky": "^9.1.7",
     "prettier": "^3.6.2",
     "strip-ansi": "^7.1.0",
     "typescript": "^5.8.3"

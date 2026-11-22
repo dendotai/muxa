@@ -28,7 +28,6 @@
   - Replace temporary directory creation in package-manager.test.ts for tests that still use it
   - Create/reuse reusable fixture helpers for better maintainability where they don't use it yet
   - Improve test readability and reduce duplication
-- [ ] Add automated check with husky or something. On save we
 
 ## CI/CD
 

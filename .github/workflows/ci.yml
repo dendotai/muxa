@@ -36,8 +36,7 @@ jobs:
         working-directory: packages/muxa
 
       - name: Run tests with coverage
-        run: bun test:coverage
-        working-directory: packages/muxa
+        run: bun run test
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
