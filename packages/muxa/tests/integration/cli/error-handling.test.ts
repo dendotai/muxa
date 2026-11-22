@@ -40,13 +40,17 @@ describe("Muxa CLI Integration > Simple Commands", () => {
   it("should run basic commands", async () => {
     const result = await runMuxaQuick(["echo hello", "echo world"]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("Would execute: mprocs 'echo hello' 'echo world'");
+    expect(result.stdout).toMatch(
+      /Would execute: mprocs '--proc-list-title' '[^']*' 'echo hello' 'echo world'/,
+    );
   });
 
   it("should run -c commands", async () => {
     const result = await runMuxaQuick(["-c", "echo hello", "-c", "echo world"]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("Would execute: mprocs 'echo hello' 'echo world'");
+    expect(result.stdout).toMatch(
+      /Would execute: mprocs '--proc-list-title' '[^']*' 'echo hello' 'echo world'/,
+    );
   });
 
   it("should run -c commands with names", async () => {
@@ -93,7 +97,7 @@ describe("Muxa CLI Integration > Workspace Errors", () => {
 
     const result = await runMuxaQuick(["-c", "echo hello"], tempDir);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("Would execute: mprocs 'echo hello'");
+    expect(result.stdout).toMatch(/Would execute: mprocs '--proc-list-title' '[^']*' 'echo hello'/);
 
     cleanupFixture(tempDir);
   });

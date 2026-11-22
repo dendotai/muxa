@@ -35,6 +35,13 @@ export function createPackageJson(
   fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify(packageJson, null, 2));
 }
 
+// Create a temporary folder whose root package.json holds `extras`
+export function createRootPackageWorkspace(extras?: PackageExtras): string {
+  const dir = createTempWorkspace("muxa-settings");
+  createPackageJson(dir, ".", "root", extras);
+  return dir;
+}
+
 // Create a pnpm-workspace.yaml file
 export function createPnpmWorkspace(rootDir: string, packages: string[]): void {
   const content = `packages:\n${packages.map((p) => `  - '${p}'`).join("\n")}\n`;

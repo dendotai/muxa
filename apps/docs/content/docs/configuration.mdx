@@ -18,6 +18,28 @@ muxa requires no configuration files. It automatically:
 - Handles different monorepo structures
 - Wraps commands appropriately
 
+## Settings
+
+Settings are optional values under the `muxa` key of the `package.json` in the folder you run muxa from; muxa does not look in parent folders. Your commands stay self-contained: Settings change how muxa shows processes, never what runs.
+
+```json
+{
+  "muxa": {
+    "mouseScrollSpeed": 1,
+    "processListTitle": "Dev"
+  }
+}
+```
+
+| Key                | Value                     | Default                                    | Effect                                              |
+| ------------------ | ------------------------- | ------------------------------------------ | --------------------------------------------------- |
+| `mouseScrollSpeed` | Whole number of 1 or more | 5                                          | Lines to scroll per mouse or touchpad scroll event. |
+| `processListTitle` | Non-empty string          | `name` in `package.json`, else folder name | Heading above the process list.                     |
+
+An unknown key or a bad value stops muxa before any process starts.
+
+muxa passes `mouseScrollSpeed` to mprocs in a temporary config file. mprocs then ignores a `mprocs.yaml` in the same folder. Your global mprocs config (`~/.config/mprocs/mprocs.yaml`) still applies for anything Settings do not set.
+
 ## Package Manager Detection
 
 muxa automatically detects your package manager using these methods:
@@ -249,7 +271,6 @@ If package manager detection fails:
 
 While muxa currently requires no configuration, future versions may support:
 
-- `.muxarc` file for saved command sets
 - Project-specific defaults
 - Team-shared configurations
 - CI-specific optimizations

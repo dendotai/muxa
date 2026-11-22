@@ -89,6 +89,6 @@ describe("Fixture Tests > error cases", () => {
   it("should work with -c flag without workspace configuration", async () => {
     const result = await runMuxaInFixture(".", ["-c", "echo hello"]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("Would execute: mprocs 'echo hello'");
+    expect(result.stdout).toMatch(/Would execute: mprocs '--proc-list-title' '[^']*' 'echo hello'/);
   });
 });
