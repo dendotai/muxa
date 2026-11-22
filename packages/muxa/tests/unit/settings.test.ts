@@ -2,7 +2,13 @@ import { describe, expect, it } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
 import { createRootPackageWorkspace, createTempWorkspace } from "@tests/helpers/fixture-helpers";
-import { readSettings, resolveProcessListTitle, toMprocsConfig } from "@/settings";
+import {
+  readSettings,
+  removeTempMprocsConfig,
+  resolveProcessListTitle,
+  toMprocsConfig,
+  writeTempMprocsConfig,
+} from "@/settings";
 
 function workspaceWithRawPackageJson(content: string): string {
   const dir = createTempWorkspace("muxa-settings");
@@ -100,5 +106,16 @@ describe("toMprocsConfig", () => {
 
   it("returns null when Settings set nothing", () => {
     expect(toMprocsConfig({})).toBeNull();
+  });
+});
+
+describe("temporary mprocs config", () => {
+  it("writes the config as JSON, then removes its folder", () => {
+    const file = writeTempMprocsConfig({ mouse_scroll_speed: 1 });
+    expect(path.basename(file)).toBe("mprocs.json");
+    expect(JSON.parse(fs.readFileSync(file, "utf-8"))).toEqual({ mouse_scroll_speed: 1 });
+
+    removeTempMprocsConfig(file);
+    expect(fs.existsSync(path.dirname(file))).toBe(false);
   });
 });
