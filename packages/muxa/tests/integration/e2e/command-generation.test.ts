@@ -37,6 +37,12 @@ describe("E2E: Command Generation and Validation", () => {
     cleanupFixture(fixtureDir);
   });
 
+  it("keeps each tab name on its own process when an unnamed -c comes before an -s", async () => {
+    const result = await runMuxa(["-c", "echo hi", "-s", "frontend", "start"], { cwd: fixtureDir });
+
+    expect(result.stdout).toContain("'--names' 'echo hi,frontend:start'");
+  });
+
   describe("Command validation", () => {
     it("should validate script commands exist", async () => {
       const result = await runMuxa(["-s", "backend", "nonexistent"], {

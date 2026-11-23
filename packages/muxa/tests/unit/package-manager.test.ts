@@ -51,6 +51,7 @@ describe("Package Manager", () => {
       expect(pm.type).toBe("npm");
       expect(pm.available).toBe(false); // npm also won't be available with PATH="/nonexistent"
       expect(pm.isFallback).toBe(true);
+      expect(pm.missing).toBe("yarn");
 
       // Restore PATH
       process.env.PATH = oldPath;
@@ -176,23 +177,7 @@ describe("Package Manager", () => {
 
       expect(errorMessages.some((msg) => msg.includes("Failed to read package.json"))).toBe(true);
 
-      // Test package manager not available with debug enabled
-      errorMessages.length = 0;
-      fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({}));
-      fs.writeFileSync(path.join(tempDir, "yarn.lock"), "");
-
-      const oldPath = process.env.PATH;
-      process.env.PATH = "/nonexistent";
-      detectPackageManager(tempDir);
-
-      expect(
-        errorMessages.some((msg) =>
-          msg.includes("yarn detected but not available in PATH, falling back to npm"),
-        ),
-      ).toBe(true);
-
       // Restore
-      process.env.PATH = oldPath;
       delete process.env.MUXA_DEBUG;
       console.error = originalError;
       cleanupFixture(tempDir);

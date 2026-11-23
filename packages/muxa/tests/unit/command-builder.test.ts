@@ -416,7 +416,7 @@ describe("buildMprocsArgs", () => {
     expect(args).toContain("echo hello");
   });
 
-  it("should skip empty names", () => {
+  it("names an unnamed process after its command, so each later name stays on its own process", () => {
     const commands = [
       { command: "echo one", name: "", needsShell: false },
       { command: "echo two", name: "second", needsShell: false },
@@ -428,9 +428,37 @@ describe("buildMprocsArgs", () => {
 
     const args = buildMprocsArgs(commands, parsed);
 
-    expect(args).toContain("--names");
-    expect(args).toContain("second");
-    expect(args).not.toContain(",second");
+    expect(args[args.indexOf("--names") + 1]).toBe("echo one,second");
+  });
+
+  it("replaces commas in a command used as a name, because --names splits on commas", () => {
+    const commands = [
+      { command: "echo a,b", name: "", needsShell: false },
+      { command: "echo two", name: "second", needsShell: false },
+    ];
+    const parsed: ParseResult = {
+      mode: "advanced",
+      commands: [],
+    };
+
+    const args = buildMprocsArgs(commands, parsed);
+
+    expect(args[args.indexOf("--names") + 1]).toBe("echo a b,second");
+  });
+
+  it("passes no names when no process has one", () => {
+    const commands = [
+      { command: "echo one", name: "", needsShell: false },
+      { command: "echo two", name: "", needsShell: false },
+    ];
+    const parsed: ParseResult = {
+      mode: "advanced",
+      commands: [],
+    };
+
+    const args = buildMprocsArgs(commands, parsed);
+
+    expect(args).not.toContain("--names");
   });
 
   it("should handle special characters in shell commands", () => {
