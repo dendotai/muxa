@@ -72,6 +72,11 @@ async function main() {
     // Detect package manager
     const packageManager = detectPackageManager(workspace.root);
     debugLog(`Detected package manager: ${packageManager.type}`);
+    if (packageManager.missing && parsed.commands.some((cmd) => cmd.type === "script")) {
+      console.error(
+        `Warning: ${packageManager.missing} is not in PATH, so muxa runs scripts with npm.`,
+      );
+    }
 
     // Build commands
     const commands = buildCommands(parsed, workspace, packageManager);

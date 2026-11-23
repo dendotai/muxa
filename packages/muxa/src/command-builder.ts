@@ -137,11 +137,9 @@ export function buildMprocsArgs(
   if (mprocsConfigFile) args.push("--config", mprocsConfigFile);
   if (processListTitle) args.push("--proc-list-title", processListTitle);
 
-  // Collect names
-  const names = commands.map((cmd) => cmd.name).filter((name) => name !== "");
-
-  // Add names if any
-  if (names.length > 0 && parsed.mode === "advanced") {
+  // dekit assigns --names by position, so an unnamed process takes its command as its name
+  if (parsed.mode === "advanced" && commands.some((cmd) => cmd.name !== "")) {
+    const names = commands.map((cmd) => cmd.name || cmd.command.replaceAll(",", " "));
     args.push("--names", names.join(","));
   }
 

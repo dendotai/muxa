@@ -15,6 +15,8 @@ export interface PackageManagerInfo {
   runCommand: string;
   /** Whether this was a fallback to npm (no explicit detection) */
   isFallback: boolean;
+  /** The detected manager that is not in PATH, when muxa fell back to npm for it */
+  missing?: PackageManager;
 }
 
 /**
@@ -89,12 +91,9 @@ export function detectPackageManager(rootDir: string = process.cwd()): PackageMa
   const available = isPackageManagerAvailable(detectedType);
 
   // If not available, fall back to npm
+  let missing: PackageManager | undefined;
   if (!available && detectedType !== "npm") {
-    if (process.env.MUXA_DEBUG) {
-      console.error(
-        `Warning: ${detectedType} detected but not available in PATH, falling back to npm`,
-      );
-    }
+    missing = detectedType;
     detectedType = "npm";
     isFallback = true;
   }
@@ -107,6 +106,7 @@ export function detectPackageManager(rootDir: string = process.cwd()): PackageMa
     available,
     runCommand,
     isFallback,
+    ...(missing && { missing }),
   };
 }
 
