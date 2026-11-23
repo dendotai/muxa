@@ -80,23 +80,11 @@ export class StdinSimulator {
   }
 
   /**
-   * Get all output collected so far
-   */
-  getOutput(): string {
-    return this.outputBuffer;
-  }
-
-  /**
-   * Clear the output buffer
-   */
-  clearOutput(): void {
-    this.outputBuffer = "";
-  }
-
-  /**
    * Wait for the process to exit
    */
   async waitForExit(timeout = 5000): Promise<number | null> {
+    // `write` waits after it sends, and a quick process exits during that wait
+    if (this.proc.exitCode !== null) return this.proc.exitCode;
     return new Promise((resolve, reject) => {
       let exited = false;
 
@@ -150,39 +138,4 @@ export class StdinSimulator {
     }
     return null;
   }
-}
-
-/**
- * Helper function to wait for a pattern in the output
- */
-export async function waitForOutput(
-  proc: ChildProcess,
-  pattern: string | RegExp,
-  timeout = 5000,
-): Promise<string> {
-  const simulator = new StdinSimulator(proc);
-  return simulator.waitForOutput(pattern, timeout);
-}
-
-/**
- * Helper function to wait for process exit
- */
-export async function waitForExit(proc: ChildProcess, timeout = 5000): Promise<number | null> {
-  return new Promise((resolve, reject) => {
-    let exited = false;
-
-    const exitHandler = (code: number | null) => {
-      exited = true;
-      resolve(code);
-    };
-
-    proc.once("exit", exitHandler);
-
-    setTimeout(() => {
-      if (!exited) {
-        proc.removeListener("exit", exitHandler);
-        reject(new Error("Process did not exit within timeout"));
-      }
-    }, timeout);
-  });
 }

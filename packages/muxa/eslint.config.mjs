@@ -22,6 +22,8 @@ export default [
         setTimeout: "readonly",
         clearTimeout: "readonly",
         NodeJS: "readonly",
+        Bun: "readonly",
+        TextDecoder: "readonly",
       },
     },
     plugins: {

@@ -1,314 +1,114 @@
 import { describe, it, expect } from "bun:test";
-import { spawn, type SpawnOptions } from "child_process";
+import { spawn } from "child_process";
 import { StdinSimulator } from "@tests/helpers/stdin-simulator";
-import { muxaPath, fixturesPath } from "@tests/helpers/constants";
+import { muxaPath, muxaRuntime, fixturesPath } from "@tests/helpers/constants";
+import { runInTerminal } from "@tests/helpers/terminal-runner";
 import * as path from "path";
 
-// Helper to spawn muxa with proper runtime
-function spawnMuxa(args: string[], options: SpawnOptions) {
-  const runtime = process.env.CI ? "node" : "bun";
-  return spawn(runtime, [muxaPath, ...args], options);
+const cwd = path.join(fixturesPath, "basic-npm");
+const duplicateArgs = ["-c", "echo 1", "name", "-c", "echo 2", "name"];
+
+// A terminal sends each key as the user presses it, so the prompt answers on the first y or n
+function promptInTerminal(args: string[] = duplicateArgs) {
+  return runInTerminal(args, { cwd, env: { MUXA_TEST_MODE: "true" } });
 }
 
-// Skip interactive tests - they require proper TTY emulation which is complex
-// TODO: Implement proper interactive testing with PTY emulation or mock the confirmPrompt function
-const skipInteractive = true;
-const describeInteractive = skipInteractive ? describe.skip : describe;
+// A pipe sends whole lines, so the prompt reads words and asks again on anything else
+function promptOverPipe(args: string[] = duplicateArgs) {
+  const proc = spawn(muxaRuntime, [muxaPath, ...args], {
+    stdio: ["pipe", "pipe", "pipe"],
+    cwd,
+    env: { ...process.env, MUXA_TEST_MODE: "true" },
+  });
+  return new StdinSimulator(proc);
+}
 
-describeInteractive("Interactive Confirmations", () => {
+describe("Duplicate process names in a terminal", () => {
+  it("warns about the duplicate name and starts on y", async () => {
+    const run = promptInTerminal(["-c", "echo 1", "test", "-c", "echo 2", "test"]);
+    await run.waitFor(/Continue with duplicate names\? \(y\/N\)/);
+    expect(run.output()).toContain("Warning: Duplicate tab name detected: test");
+
+    run.type("y");
+    expect(await run.exited()).toBe(0);
+    expect(run.output()).toContain("Would execute: dekit mprocs");
+  });
+
+  it("lists every duplicated name", async () => {
+    const run = promptInTerminal([
+      ...["-c", "echo 1", "test", "-c", "echo 2", "test"],
+      ...["-c", "echo 3", "other", "-c", "echo 4", "other"],
+    ]);
+    await run.waitFor(/Continue with duplicate names/);
+    expect(run.output()).toContain("Warning: Duplicate tab names detected: test, other");
+
+    run.type("y");
+    expect(await run.exited()).toBe(0);
+  });
+
+  for (const key of ["y", "Y", "у", "У"]) {
+    it(`starts on ${JSON.stringify(key)}`, async () => {
+      const run = promptInTerminal();
+      await run.waitFor(/Continue with duplicate names/);
+      run.type(key);
+      expect(await run.exited()).toBe(0);
+    });
+  }
+
+  const stopKeys: [label: string, key: string][] = [
+    ["n", "n"],
+    ["N", "N"],
+    ["Cyrillic н", "н"],
+    ["Enter", "\r"],
+    ["Ctrl+C", "\x03"],
+  ];
+  for (const [label, key] of stopKeys) {
+    it(`stops on ${label}`, async () => {
+      const run = promptInTerminal();
+      await run.waitFor(/Continue with duplicate names/);
+      run.type(key);
+      expect(await run.exited()).toBe(1);
+      expect(run.output()).not.toContain("Would execute");
+    });
+  }
+
+  it("ignores other keys until y or n", async () => {
+    const run = promptInTerminal();
+    await run.waitFor(/Continue with duplicate names/);
+    run.type("x");
+    await Bun.sleep(100);
+    run.type("y");
+    expect(await run.exited()).toBe(0);
+  });
+});
+
+describe("Duplicate process names over a pipe", () => {
   const timeout = 5000;
 
-  describe("Duplicate tab name warnings", () => {
-    it("should warn about duplicate tab names", async () => {
-      const proc = spawnMuxa(["-c", "echo 1", "test", "-c", "echo 2", "test"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      const simulator = new StdinSimulator(proc);
-
-      // Wait for the duplicate name warning
-      await simulator.waitForOutput(/Warning: Duplicate tab name/, timeout);
-
-      // Get the full output
-      const output = simulator.getOutput();
-      expect(output).toContain("Warning: Duplicate tab name");
-      expect(output).toContain("test");
-      expect(output).toContain("Continue with duplicate names?");
-
-      // Send 'y' to continue
-      await simulator.write("y\n");
-
-      // Process should exit successfully
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(0);
-    });
-
-    it("should exit when user rejects duplicate names", async () => {
-      const proc = spawnMuxa(["-c", "echo 1", "dup", "-c", "echo 2", "dup"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      const simulator = new StdinSimulator(proc);
-
-      // Wait for the warning
+  for (const answer of ["y", "yes", "YES", "yEs", "у"]) {
+    it(`starts on the line ${JSON.stringify(answer)}`, async () => {
+      const simulator = promptOverPipe();
       await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-
-      // Send 'n' to reject
-      await simulator.write("n\n");
-
-      // Process should exit with error
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(1);
+      await simulator.write(`${answer}\n`);
+      expect(await simulator.waitForExit(timeout)).toBe(0);
     });
+  }
 
-    it("should handle multiple sets of duplicates", async () => {
-      const proc = spawnMuxa(
-        [
-          "-c",
-          "echo 1",
-          "test",
-          "-c",
-          "echo 2",
-          "test",
-          "-c",
-          "echo 3",
-          "other",
-          "-c",
-          "echo 4",
-          "other",
-        ],
-        {
-          stdio: ["pipe", "pipe", "pipe"],
-          cwd: path.join(fixturesPath, "basic-npm"),
-          env: { ...process.env, MUXA_TEST_MODE: "true" },
-        },
-      );
-
-      const simulator = new StdinSimulator(proc);
-
-      // Should show both duplicate sets
-      await simulator.waitForOutput(/Warning: Duplicate tab names/, timeout);
-      const output = simulator.getOutput();
-      expect(output).toContain("test");
-      expect(output).toContain("other");
-
-      await simulator.write("y\n");
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(0);
-    });
-  });
-
-  describe("y/n/Enter key handling", () => {
-    it("should accept 'y' as confirmation", async () => {
-      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      const simulator = new StdinSimulator(proc);
+  for (const answer of ["n", "no", "NO", "nO", "н", ""]) {
+    it(`stops on the line ${JSON.stringify(answer)}`, async () => {
+      const simulator = promptOverPipe();
       await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-      await simulator.write("y\n");
-
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(0);
+      await simulator.write(`${answer}\n`);
+      expect(await simulator.waitForExit(timeout)).toBe(1);
     });
+  }
 
-    it("should accept 'Y' as confirmation", async () => {
-      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      const simulator = new StdinSimulator(proc);
-      await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-      await simulator.write("Y\n");
-
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(0);
-    });
-
-    it("should treat Enter as 'no'", async () => {
-      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      const simulator = new StdinSimulator(proc);
-      await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-      await simulator.write("\n");
-
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(1);
-    });
-
-    it("should accept 'n' as rejection", async () => {
-      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      const simulator = new StdinSimulator(proc);
-      await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-      await simulator.write("n\n");
-
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(1);
-    });
-
-    it("should accept 'N' as rejection", async () => {
-      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      const simulator = new StdinSimulator(proc);
-      await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-      await simulator.write("N\n");
-
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(1);
-    });
-  });
-
-  describe("Cyrillic keyboard support", () => {
-    it("should accept Cyrillic 'у' (looks like y) as yes", async () => {
-      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      const simulator = new StdinSimulator(proc);
-      await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-      await simulator.write("у\n"); // Cyrillic 'у'
-
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(0);
-    });
-
-    it("should accept Cyrillic 'н' (looks like n) as no", async () => {
-      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      const simulator = new StdinSimulator(proc);
-      await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-      await simulator.write("н\n"); // Cyrillic 'н'
-
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(1);
-    });
-  });
-
-  describe("Case sensitivity", () => {
-    it("should be case-insensitive for yes responses", async () => {
-      const testCases = ["y", "Y", "yes", "YES", "Yes", "yEs"];
-
-      for (const response of testCases) {
-        const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-          stdio: ["pipe", "pipe", "pipe"],
-          cwd: path.join(fixturesPath, "basic-npm"),
-          env: { ...process.env, MUXA_TEST_MODE: "true" },
-        });
-
-        const simulator = new StdinSimulator(proc);
-        await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-        await simulator.write(`${response}\n`);
-
-        const exitCode = await simulator.waitForExit(timeout);
-        expect(exitCode).toBe(0);
-      }
-    });
-
-    it("should be case-insensitive for no responses", async () => {
-      const testCases = ["n", "N", "no", "NO", "No", "nO"];
-
-      for (const response of testCases) {
-        const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-          stdio: ["pipe", "pipe", "pipe"],
-          cwd: path.join(fixturesPath, "basic-npm"),
-          env: { ...process.env, MUXA_TEST_MODE: "true" },
-        });
-
-        const simulator = new StdinSimulator(proc);
-        await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-        await simulator.write(`${response}\n`);
-
-        const exitCode = await simulator.waitForExit(timeout);
-        expect(exitCode).toBe(1);
-      }
-    });
-  });
-
-  describe("Invalid input handling", () => {
-    it("should re-prompt on invalid input", async () => {
-      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      const simulator = new StdinSimulator(proc);
-      await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-
-      // Send invalid input
-      await simulator.write("invalid\n");
-
-      // Should re-prompt
-      await simulator.waitForOutput(/\(y\/N\)/, timeout);
-      const fullOutput = simulator.getOutput();
-      expect(fullOutput).toContain("(y/N)");
-
-      // Now send valid input
-      await simulator.write("n\n");
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(1);
-    });
-
-    it("should handle empty lines as 'no'", async () => {
-      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      const simulator = new StdinSimulator(proc);
-      await simulator.waitForOutput(/Continue with duplicate names/, timeout);
-
-      // Send just Enter
-      await simulator.write("\n");
-
-      const exitCode = await simulator.waitForExit(timeout);
-      expect(exitCode).toBe(1);
-    });
-  });
-
-  describe("Non-interactive mode", () => {
-    it("should skip confirmation when stdin is not a TTY", async () => {
-      // This test might need adjustment based on how muxa detects TTY
-      const proc = spawnMuxa(["-c", "echo 1", "name", "-c", "echo 2", "name"], {
-        stdio: ["ignore", "pipe", "pipe"],
-        cwd: path.join(fixturesPath, "basic-npm"),
-        env: { ...process.env, MUXA_TEST_MODE: "true" },
-      });
-
-      // Should either skip the prompt or exit immediately
-      const simulator = new StdinSimulator(proc);
-      const exitCode = await simulator.waitForExit(timeout);
-
-      // The behavior might vary, but it should exit without hanging
-      expect(exitCode).toBeDefined();
-    });
+  it("asks again after a line that is not y or n", async () => {
+    const simulator = promptOverPipe();
+    await simulator.waitForOutput(/Continue with duplicate names/, timeout);
+    await simulator.write("invalid\n");
+    await simulator.waitForOutput(/Please enter y or n \(y\/N\)/, timeout);
+    await simulator.write("n\n");
+    expect(await simulator.waitForExit(timeout)).toBe(1);
   });
 });

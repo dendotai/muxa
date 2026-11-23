@@ -70,12 +70,12 @@ export function toMprocsConfig(settings: Settings): MprocsConfig | null {
 }
 
 /**
- * Write the config to a new temporary file and return its path. mprocs reads it at startup;
- * the caller deletes it with `removeTempMprocsConfig` when mprocs exits.
+ * Write the config to a new temporary file and return its path. dekit reads it at startup;
+ * the caller deletes it with `removeTempMprocsConfig` when dekit exits.
  */
 export function writeTempMprocsConfig(config: MprocsConfig): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muxa-"));
-  // mprocs picks the parser from the extension and accepts .json
+  // dekit picks the parser from the extension and accepts .json
   const file = path.join(dir, "mprocs.json");
   fs.writeFileSync(file, JSON.stringify(config));
   return file;

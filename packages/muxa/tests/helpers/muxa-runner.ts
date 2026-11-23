@@ -1,6 +1,13 @@
 import { spawn } from "child_process";
 import * as path from "path";
-import { muxaPath, DEFAULT_TIMEOUT, QUICK_TIMEOUT, FIXTURE_TIMEOUT, TEST_ENV } from "./constants";
+import {
+  muxaPath,
+  muxaRuntime,
+  DEFAULT_TIMEOUT,
+  QUICK_TIMEOUT,
+  FIXTURE_TIMEOUT,
+  TEST_ENV,
+} from "./constants";
 import { trackProcess } from "./process-cleanup";
 
 export interface MuxaResult {
@@ -24,9 +31,7 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
       MUXA_TEST_MODE: "true",
     };
 
-    // Use node in CI (preinstalled), bun locally
-    const runtime = process.env.CI ? "node" : "bun";
-    const proc = spawn(runtime, [muxaPath, ...args], {
+    const proc = spawn(muxaRuntime, [muxaPath, ...args], {
       env,
       cwd: cwd || process.cwd(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -64,9 +69,10 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
         clearTimeout(timeoutHandle);
 
         if (code === 0) {
-          // Extract the command from "Would execute: mprocs ...", without the process list title
-          // muxa adds to every run, so command-generation tests do not depend on the runner's folder
-          const match = stdout.match(/Would execute: mprocs (?:'--proc-list-title' '[^']*' )?(.+)/);
+          // Leave out the process list title muxa adds to every run, so command-generation tests do not depend on the runner's folder
+          const match = stdout.match(
+            /Would execute: dekit mprocs (?:'--proc-list-title' '[^']*' )?(.+)/,
+          );
           resolve({
             command: match && match[1] ? match[1] : null,
             error: null,
@@ -111,9 +117,7 @@ export function runMuxa(
       ? { ...process.env, ...options.env, MUXA_TEST_MODE: "true" }
       : { ...process.env, MUXA_TEST_MODE: "true" };
 
-    // Use node in CI (preinstalled), bun locally
-    const runtime = process.env.CI ? "node" : "bun";
-    const proc = spawn(runtime, [muxaPath, ...args], {
+    const proc = spawn(muxaRuntime, [muxaPath, ...args], {
       env,
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
@@ -167,9 +171,7 @@ export async function runMuxaQuick(args: string[], cwd?: string): Promise<MuxaRe
   const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true" };
 
   return new Promise<MuxaResult>((resolve) => {
-    // Use node in CI (preinstalled), bun locally
-    const runtime = process.env.CI ? "node" : "bun";
-    const proc = spawn(runtime, [muxaPath, ...args], {
+    const proc = spawn(muxaRuntime, [muxaPath, ...args], {
       env,
       cwd: cwd || process.cwd(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -223,9 +225,7 @@ export function runMuxaInFixture(fixture: string, args: string[]): Promise<MuxaR
   const cwd = path.join(__dirname, "..", "fixtures", fixture);
 
   return new Promise((resolve) => {
-    // Use node in CI (preinstalled), bun locally
-    const runtime = process.env.CI ? "node" : "bun";
-    const proc = spawn(runtime, [muxaPath, ...args], {
+    const proc = spawn(muxaRuntime, [muxaPath, ...args], {
       env,
       cwd,
       stdio: ["ignore", "pipe", "pipe"],

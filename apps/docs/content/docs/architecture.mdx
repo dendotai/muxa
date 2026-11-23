@@ -11,7 +11,7 @@ Understanding how muxa works under the hood.
 
 ## Overview
 
-muxa is built as a wrapper around [mprocs](https://github.com/pvolok/mprocs), providing:
+muxa is built as a wrapper around [dekit](https://github.com/pvolok/dekit), the next version of mprocs, in its mprocs mode, providing:
 
 1. **Simple CLI interface** - Intuitive command-line syntax
 2. **Workspace awareness** - Native monorepo support
@@ -40,7 +40,7 @@ Key responsibilities:
 - Detect input mode (basic vs advanced)
 - Parse command flags and arguments
 - Validate argument combinations
-- Generate mprocs configuration
+- Generate dekit configuration
 
 ### Workspace Resolver
 
@@ -73,22 +73,22 @@ Automatic detection strategy:
 
 ### Command Builder
 
-Transforms user input into mprocs commands:
+Transforms user input into dekit commands:
 
 ```typescript
 // User input
 muxa -s backend dev
 
 // Generated command
-mprocs --names backend \
+dekit mprocs --names backend \
   'sh -c "cd packages/backend && npm run dev"'
 ```
 
 ## Technical Design
 
-### Why mprocs?
+### Why dekit?
 
-mprocs provides:
+dekit provides:
 
 - **Terminal multiplexing** - Split terminal into panes
 - **Interactive support** - Preserves stdin/stdout
@@ -114,8 +114,8 @@ This ensures:
 
 1. **Parse** - Analyze command-line arguments
 2. **Resolve** - Find workspace packages if needed
-3. **Build** - Generate mprocs command
-4. **Execute** - Spawn mprocs with built command
+3. **Build** - Generate dekit command
+4. **Execute** - Spawn dekit with built command
 5. **Monitor** - Pass through exit codes
 
 ## Key Features Implementation
@@ -143,15 +143,15 @@ muxa -c 'npm run dev' frontend -> [frontend]
 ### Exit Code Handling
 
 ```typescript
-// Pass through mprocs exit code
-process.exit(mprocsProcess.exitCode);
+// Pass through dekit exit code, which is 0 after a quit
+process.exit(dekitProcess.exitCode);
 ```
 
 ## Performance Considerations
 
 ### Minimal Overhead
 
-- Direct execution via mprocs
+- Direct execution via dekit
 - No polling or watching
 - Efficient process spawning
 - Native terminal performance
@@ -159,7 +159,7 @@ process.exit(mprocsProcess.exitCode);
 ### Memory Usage
 
 - Lightweight wrapper (~50KB)
-- mprocs handles process management
+- dekit handles process management
 - No persistent state
 - Minimal dependencies
 
@@ -177,7 +177,7 @@ process.exit(mprocsProcess.exitCode);
 - Command execution failures
 - Missing scripts
 - Package resolution failures
-- mprocs spawn errors
+- dekit spawn errors
 
 ## Security Considerations
 
@@ -215,7 +215,7 @@ muxa --verbose workspaces
 
 ## Comparison with Alternatives
 
-### vs Direct mprocs
+### vs Direct dekit or mprocs
 
 muxa adds:
 

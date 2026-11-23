@@ -3,6 +3,9 @@ import * as path from "path";
 // Path to the built muxa executable
 export const muxaPath = path.join(__dirname, "..", "..", "dist", "index.js");
 
+// Runtime that starts muxa: node in CI, where it is preinstalled, bun locally
+export const muxaRuntime = process.env.CI ? "node" : "bun";
+
 // Path to test fixtures
 export const fixturesPath = path.join(__dirname, "..", "fixtures");
 

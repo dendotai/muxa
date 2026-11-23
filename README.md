@@ -32,7 +32,7 @@ When developing in a monorepo with multiple services, you need to run multiple p
 `muxa` combines the best of both worlds:
 
 - Simple CLI interface like concurrently
-- Superior output handling from mprocs
+- Superior output handling from dekit, the next version of mprocs
 - Built-in workspace support for monorepos
 - Preserves rich interactive features (Expo QR codes, Vite shortcuts, etc.)
 - No configuration files required
@@ -131,7 +131,7 @@ Optional. Add a `muxa` key to the `package.json` in the folder you run muxa from
 }
 ```
 
-- `mouseScrollSpeed` - Lines to scroll per mouse or touchpad scroll event, a whole number of 1 or more. mprocs scrolls 5 by default.
+- `mouseScrollSpeed` - Lines to scroll per mouse or touchpad scroll event, a whole number of 1 or more. dekit scrolls 5 by default.
 - `processListTitle` - Heading above the process list, a non-empty string. By default, the `name` in that `package.json`, or the folder name.
 
 ## Important Usage Notes
@@ -248,13 +248,13 @@ muxa -c 'npm run lint && npm run build' -c 'npm test || exit 1'
 
 - Works with any package manager
 - More flexible command composition
-- Better terminal UI with mprocs
+- Better terminal UI with dekit
 - Mix workspace and non-workspace commands
 
 ## Requirements
 
 - Node.js >= 16.0.0
-- mprocs (automatically installed as dependency)
+- dekit (automatically installed as dependency)
 
 ## Contributing
 

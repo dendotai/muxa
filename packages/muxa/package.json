@@ -9,7 +9,7 @@
     "muxa": "dist/index.js"
   },
   "scripts": {
-    "build": "bun build ./src/index.ts --external mprocs --outdir ./dist --target node && tsc --emitDeclarationOnly",
+    "build": "bun build ./src/index.ts --outdir ./dist --target node && tsc --emitDeclarationOnly",
     "test": "MUXA_TEST_MODE=true bun test",
     "test:clean": "MUXA_TEST_MODE=true CI=true bun test --bail",
     "test:watch": "MUXA_TEST_MODE=true bun test --watch",
@@ -29,13 +29,14 @@
     "multiplexer",
     "monorepo",
     "workspace",
-    "mprocs"
+    "mprocs",
+    "dekit"
   ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "@total-typescript/tsconfig": "^1.0.4",
-    "@types/bun": "^1.0.0",
+    "@types/bun": "^1.3.5",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
     "eslint": "^9.31.0",
@@ -53,6 +54,6 @@
     "dist"
   ],
   "dependencies": {
-    "mprocs": "^0.7.3"
+    "@dekit/cli": "^0.10.3"
   }
 }

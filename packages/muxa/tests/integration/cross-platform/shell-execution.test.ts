@@ -33,7 +33,7 @@ describe("Shell Execution", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       // Commands with shell variables should be wrapped in sh -c
       expect(result.stdout).toMatch(/sh -c.*echo \$SHELL/);
     });
@@ -48,7 +48,7 @@ describe("Shell Execution", () => {
         });
 
         expect(result.code).toBe(0);
-        expect(result.stdout).toContain("Would execute: mprocs");
+        expect(result.stdout).toContain("Would execute: dekit mprocs");
         // Commands with shell operators should be wrapped
         expect(result.stdout).toContain("sh -c");
       }
@@ -61,7 +61,7 @@ describe("Shell Execution", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("hello world");
     });
   });
@@ -176,7 +176,7 @@ describe("Shell Execution", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
     });
 
     it("should normalize command paths", async () => {

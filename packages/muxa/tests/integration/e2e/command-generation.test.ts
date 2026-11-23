@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { runMuxa } from "@tests/helpers/muxa-runner";
 import { createMonorepoFixture, cleanupFixture } from "@tests/helpers/fixture-helpers";
 import { spawn } from "child_process";
-import { muxaPath } from "@tests/helpers/constants";
+import { muxaPath, muxaRuntime } from "@tests/helpers/constants";
 
 describe("E2E: Command Generation and Validation", () => {
   let fixtureDir: string;
@@ -92,7 +92,7 @@ describe("E2E: Command Generation and Validation", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("--names");
       expect(result.stdout).toContain("backend:dev,test:coverage,frontend:build");
     });
@@ -163,8 +163,7 @@ describe("E2E: Command Generation and Validation", () => {
   describe("Real script execution (single command)", () => {
     it("should execute a single npm script", async () => {
       // Run a single script without mprocs to test basic execution
-      const runtime = process.env.CI ? "node" : "bun";
-      const proc = spawn(runtime, [muxaPath, "-s", "backend", "test"], {
+      const proc = spawn(muxaRuntime, [muxaPath, "-s", "backend", "test"], {
         cwd: fixtureDir,
         env: { ...process.env, MUXA_SINGLE_MODE: "true" }, // Hypothetical single mode
       });

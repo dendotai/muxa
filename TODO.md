@@ -11,7 +11,7 @@
 ## Features
 
 - [ ] Add single mode for running commands without multiplexer
-  - When only one service is specified, skip mprocs and run directly
+  - When only one service is specified, skip dekit and run directly
   - Example: `muxa -s docs dev` instead of `cd apps/docs && bun run dev`
   - Preserves all output formatting and behavior of the original command
   - Useful for CI/CD and simpler workflows
@@ -38,43 +38,6 @@
   - Test on multiple OS (ubuntu, macos, windows)
   - Do NOT run release script on PRs
   - Cache dependencies for faster runs
-
-## Future: Testing Infrastructure
-
-### Long-term Goal: Custom Terminal Multiplexer for Testing
-
-**Current Limitation**: The test suite uses `MUXA_TEST_MODE=true` to verify command generation without actually running processes. This is because mprocs requires a real TTY, making true E2E testing difficult.
-
-**Potential Solution**: Create a Python-based terminal multiplexer using Textual framework
-
-- [ ] Built-in headless terminal support for true E2E testing
-- [ ] Snapshot testing capabilities
-- [ ] Can simulate user interactions in tests
-- [ ] No PTY/TTY requirements
-- [ ] Keep same CLI interface as mprocs for compatibility
-- [ ] Support process spawning, output capture, and multiplexing
-- [ ] Add test-specific features (output capture, deterministic rendering)
-
-**Benefits**:
-
-- Full control over multiplexer UI and cli
-- Enable testing of actual process execution
-- Verify terminal UI output
-- Test interactive features properly
-- More reliable and deterministic tests
-
-### Current Testing Limitations
-
-#### Interactive Confirmation Tests
-
-- The `confirmPrompt` function works in production but is difficult to test
-- Tests for this feature are currently skipped
-- Options for improvement:
-  - Use node-pty for PTY emulation (needs Bun compatibility)
-  - Mock the confirmPrompt function in tests
-  - Wait for custom multiplexer solution above
-
-**Note**: These limitations don't affect muxa's functionality - only test coverage.
 
 ## Documentation: Command Parameter Breakdown
 
