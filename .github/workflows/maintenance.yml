@@ -1,0 +1,61 @@
+name: maintenance
+
+# All lightweight repo-hygiene automation lives in this one workflow — one job per concern, each gated on its own trigger/condition — so hygiene doesn't fragment into a pile of tiny workflow files. To add an automation: add its event under `on:`, and a new job with an `if:` gate for that event.
+#
+# Jobs converge the whole repo to their rule instead of touching only the triggering object — so a missed event self-heals on the next run, and `workflow_dispatch` (the manual "Run workflow" button) can apply everything on demand.
+
+on:
+  issues:
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+# Runs are repo-wide and idempotent; serialize them so overlapping closes don't race each other.
+concurrency:
+  group: maintenance
+  cancel-in-progress: false
+
+jobs:
+  # A `tracking` issue is a split parent: it stays open only while children remain. The children close through their PRs ("Closes #N"), but no PR ever closes the parent — so once every sub-issue is closed, close the parent as completed. A parent with no sub-issues is left alone: there is nothing to infer from an empty list. Runs before strip-state-labels so a parent closed here loses its state labels in the same run — a GITHUB_TOKEN close does not retrigger this workflow.
+  close-finished-tracking-parents:
+    if: github.event_name == 'issues' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue list --repo "$REPO" --state open --label tracking \
+            --limit 500 --json number --jq '.[].number' |
+            while read -r number; do
+              states=$(gh api --paginate "repos/$REPO/issues/$number/sub_issues" --jq '.[].state')
+              if [ -n "$states" ] && ! grep -qv '^closed$' <<<"$states"; then
+                gh issue close "$number" --repo "$REPO" --reason completed \
+                  --comment "Every sub-issue is closed — closing this tracking parent."
+                echo "closed #$number"
+              fi
+            done
+
+  # Closed is the terminal state, so no live triage-state label survives it — otherwise closed issues keep showing up in label-filtered triage views. `wontfix` is deliberately kept: it records why the issue closed.
+  strip-state-labels:
+    # always(): a failed parent-close sweep must not leave closed issues wearing live state labels.
+    needs: close-finished-tracking-parents
+    if: ${{ always() && (github.event_name == 'issues' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          for label in needs-triage needs-info ready-for-agent tracking in-progress needs-human in-review; do
+            gh issue list --repo "$REPO" --state closed --label "$label" \
+              --limit 500 --json number --jq '.[].number' |
+              while read -r number; do
+                gh issue edit "$number" --repo "$REPO" --remove-label "$label"
+                echo "removed $label from #$number"
+              done
+          done
