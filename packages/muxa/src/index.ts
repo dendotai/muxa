@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { spawn } from "child_process";
-import mprocsPath from "mprocs";
 import { version as VERSION } from "../package.json";
 import { buildCommands, buildMprocsArgs } from "./command-builder";
+import { dekitBinaryPath } from "./dekit";
 import { detectPackageManager } from "./package-manager";
 import { parseArguments } from "./parser";
 import {
@@ -106,10 +106,8 @@ async function main() {
 
     const mprocsArgs = buildMprocsArgs(commands, parsed, { mprocsConfigFile, processListTitle });
 
-    // Debug output
-    debugLog(`Executing: mprocs ${mprocsArgs.map((arg) => `'${arg}'`).join(" ")}`);
+    debugLog(`Executing: dekit mprocs ${mprocsArgs.map((arg) => `'${arg}'`).join(" ")}`);
 
-    // In test mode, just print what would be executed
     if (process.env.MUXA_TEST_MODE === "true") {
       // Set up environment for test mode too
       const testEnv: NodeJS.ProcessEnv = {
@@ -122,7 +120,7 @@ async function main() {
         testEnv.FORCE_COLOR = "1";
       }
 
-      console.log(`Would execute: mprocs ${mprocsArgs.map((arg) => `'${arg}'`).join(" ")}`);
+      console.log(`Would execute: dekit mprocs ${mprocsArgs.map((arg) => `'${arg}'`).join(" ")}`);
       if (mprocsConfig) {
         console.log(`mprocs config: ${JSON.stringify(mprocsConfig)}`);
       }
@@ -164,14 +162,13 @@ async function main() {
       env.FORCE_COLOR = "1";
     }
 
-    // Spawn mprocs
-    const proc = spawn(mprocsPath, mprocsArgs, {
+    const proc = spawn(dekitBinaryPath(), ["mprocs", ...mprocsArgs], {
       stdio: "inherit",
       env,
     });
 
     proc.on("error", (err) => {
-      console.error("Failed to start mprocs:", err.message);
+      console.error("Failed to start dekit:", err.message);
       process.exit(1);
     });
 

@@ -60,7 +60,7 @@ describe("Monorepo Workflows", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("npm run dev");
       expect(result.stdout).toContain("npm run start");
       expect(result.stdout).toContain("npm run watch");
@@ -76,7 +76,7 @@ describe("Monorepo Workflows", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("npm run test");
     });
 
@@ -90,7 +90,7 @@ describe("Monorepo Workflows", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("npm run build");
     });
   });
@@ -118,7 +118,7 @@ describe("Monorepo Workflows", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("--names");
       expect(result.stdout).toContain("api,web,services");
       expect(result.stdout).toContain("docker-compose up");
@@ -146,7 +146,7 @@ describe("Monorepo Workflows", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("packages/backend");
       expect(result.stdout).toContain("packages/frontend");
       expect(result.stdout).toContain("npm run migrate");
@@ -180,7 +180,7 @@ describe("Monorepo Workflows", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("--names");
       expect(result.stdout).toContain("infra,api,web,proxy");
       expect(result.stdout).toContain("docker-compose up -d");
@@ -208,7 +208,7 @@ describe("Monorepo Workflows", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("--names");
       expect(result.stdout).toContain("database,migrate,api");
       expect(result.stdout).toContain("npm run db:start");
@@ -242,7 +242,7 @@ describe("Monorepo Workflows", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("--names");
       expect(result.stdout).toContain("lint,types,test:backend,test:frontend");
       expect(result.stdout).toContain("npm run lint");
@@ -275,7 +275,7 @@ describe("Monorepo Workflows", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("--names");
       expect(result.stdout).toContain("build:shared,build:backend,build:frontend,test:e2e");
       expect(result.stdout).toContain("npm run test:e2e");
@@ -309,7 +309,7 @@ describe("Monorepo Workflows", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("--names");
       expect(result.stdout).toContain("watch:shared,watch:backend,watch:frontend,watch:tests");
       expect(result.stdout).toContain("npm run test -- --watch");
@@ -343,7 +343,7 @@ describe("Monorepo Workflows", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("--names");
       expect(result.stdout).toContain("build:shared,build:backend,build:frontend,deploy");
       expect(result.stdout).toContain("npm run build:prod");
@@ -359,7 +359,7 @@ describe("Monorepo Workflows", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       expect(result.stdout).toContain("npm run dev");
       expect(result.stdout).toContain("npm run start");
     });

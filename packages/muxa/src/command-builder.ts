@@ -123,7 +123,7 @@ function transformCommand(
 }
 
 /**
- * Build mprocs command line arguments
+ * Build the arguments of `dekit mprocs`
  */
 export function buildMprocsArgs(
   commands: TransformedCommand[],

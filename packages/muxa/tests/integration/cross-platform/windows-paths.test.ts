@@ -126,13 +126,13 @@ describe("Windows Paths", () => {
       const result = await runMuxa(["-c", "echo %PATH%"]);
 
       // On Windows, should use appropriate shell wrapping
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
     });
 
     it("should handle environment variables Windows-style", async () => {
       const result = await runMuxa(["-c", "echo %USERPROFILE%"]);
 
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
       // Command should preserve Windows env var syntax
     });
 
@@ -142,7 +142,7 @@ describe("Windows Paths", () => {
       });
 
       // This would need PowerShell detection
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
     });
   });
 

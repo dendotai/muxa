@@ -10,7 +10,7 @@
 
 - **Cleaner than concurrently**: `muxa -s frontend dev` vs `concurrently "cd packages/frontend && npm run dev"`
 - **Monorepo-native**: Understands your workspace structure, auto-detects npm/yarn/pnpm/bun
-- **Fully interactive**: Built on mprocs to preserve all terminal features
+- **Fully interactive**: Built on dekit, the next version of mprocs, to preserve all terminal features
 - **Zero friction**: No config files, no setup, sensible defaults
 
 While `muxa` shines in monorepo environments, it's equally useful as a general-purpose parallel process runner. Run database servers, API mocks, build watchers, or any combination of processes you need. We're exploring expanding `muxa` to understand more process types like Docker Compose services, making it a universal orchestration tool for local development.
@@ -287,33 +287,32 @@ muxa -c 'bun run build'   # Always uses bun
 
 ### TTY and Interactivity
 
-- Each process gets its own pseudo-TTY via mprocs
+- Each process gets its own pseudo-TTY via dekit
 - Preserves interactive features (Expo QR codes, Vite shortcuts)
-- Stdin is not multiplexed - keyboard input goes to focused tab
+- Stdin is not multiplexed - keyboard input goes to the focused process
 
 ## Process Lifecycle Management
 
 ### Process Management
 
 - **Startup**: All processes start in parallel
-  - mprocs launches all processes simultaneously, not one-by-one
+  - dekit launches all processes simultaneously, not one-by-one
   - No dependency management or startup order control
   - If you need sequential startup, use shell operators: `muxa -c 'sleep 2 && npm start'`
   - All processes start regardless of whether others succeed or fail
-- **Signals**: When muxa/mprocs receives `SIGINT`/`SIGTERM` from the system (e.g., `kill <pid>`), these are forwarded to all child processes
+- **Signals**: When muxa/dekit receives `SIGINT`/`SIGTERM` from the system (e.g., `kill <pid>`), these are forwarded to all child processes
 - **Exit behavior**: When a process exits, it shows as dead in the UI while others continue running
   - This allows users to see error output and diagnose why the process stopped
   - Other processes remain unaffected, preserving your development workflow
 - **No kill-all feature**: `muxa` does not terminate other processes when one exits
-- **Exit codes**: muxa exits with the same code that mprocs returns
-  - When exiting via mprocs keybindings (e.g., `q`), the exit code depends on mprocs' internal logic
+- **Exit codes**: muxa exits with the code dekit returns, which is 0 after a quit, even when a process failed
   - When terminated by signals, exit code reflects the signal termination
 
 ### Signal Handling
 
-- **<kbd>Ctrl</kbd>+<kbd>C</kbd> in mprocs**: Sends signal to the focused process only (keyboard input goes to focused tab)
-- **Exiting muxa**: Use mprocs keybindings (default: <kbd>q</kbd>) to quit and terminate all processes
-- **Shutdown**: When exiting, mprocs attempts graceful shutdown of all child processes
+- **<kbd>Ctrl</kbd>+<kbd>C</kbd> in dekit**: Sends signal to the focused process only (keyboard input goes to the focused process)
+- **Exiting muxa**: Press <kbd>q</kbd>, then <kbd>x</kbd> (Quit), to stop all processes and exit
+- **Shutdown**: When exiting, dekit attempts graceful shutdown of all child processes
 
 ### Log Output
 
@@ -349,7 +348,7 @@ No special log handling needed - muxa passes commands through to the shell.
 
 - **For npm/yarn/pnpm**: Node.js >= 16.0.0
 - **For bun**: Bun >= 1.0.0 (no Node.js required)
-- mprocs binary (auto-installed as npm dependency)
+- dekit binary (auto-installed with the `@dekit/cli` npm dependency)
 
 ### Install
 
@@ -382,13 +381,13 @@ bunx @den-ai/muxa -s frontend dev -s backend dev
 
 ### Memory and CPU Usage
 
-- **Minimal overhead**: muxa spawns mprocs as a child process (following mprocs' npm wrapper pattern)
-- **Memory**: Small runtime overhead for muxa + mprocs (Rust binary), plus memory for each child process
-- **CPU**: Near-zero CPU usage - muxa only does argument parsing; mprocs efficiently handles terminal multiplexing
-- **Scalability**: Can handle many processes thanks to mprocs being written in Rust
-- **No polling**: mprocs uses event-driven I/O for terminal handling
+- **Minimal overhead**: muxa spawns the dekit binary as a child process, from the platform package `@dekit/cli` installs
+- **Memory**: Small runtime overhead for muxa + dekit (Rust binary), plus memory for each child process
+- **CPU**: Near-zero CPU usage - muxa only does argument parsing; dekit efficiently handles terminal multiplexing
+- **Scalability**: Can handle many processes thanks to dekit being written in Rust
+- **No polling**: dekit uses event-driven I/O for terminal handling
 
-The resource usage is primarily determined by your child processes, not by the muxa/mprocs infrastructure.
+The resource usage is primarily determined by your child processes, not by the muxa/dekit infrastructure.
 
 ## Working Directory
 
@@ -408,7 +407,7 @@ The resource usage is primarily determined by your child processes, not by the m
 muxa -s backend dev api -w mobile 'npx expo start'
 
 # Transforms to
-mprocs --names api,mobile \
+dekit mprocs --names api,mobile \
   'sh -c "cd /path/to/backend && yarn run dev"' \
   'sh -c "cd /path/to/mobile && npx expo start"'
 
@@ -416,14 +415,14 @@ mprocs --names api,mobile \
 muxa -s backend dev api -s frontend start
 
 # Transforms to
-mprocs --names api,frontend \
+dekit mprocs --names api,frontend \
   'sh -c "cd /path/to/backend && pnpm run dev"' \
   'sh -c "cd /path/to/frontend && pnpm run start"'
 ```
 
 ### Shell Wrapping
 
-When muxa passes commands to mprocs, it decides whether to wrap them with `sh -c`. This is needed because mprocs executes commands directly, but certain features require a shell.
+When muxa passes commands to dekit, it decides whether to wrap them with `sh -c`.
 
 **Commands wrapped with `sh -c` when:**
 
@@ -431,61 +430,55 @@ When muxa passes commands to mprocs, it decides whether to wrap them with `sh -c
 
    ```bash
    muxa -s backend dev
-   # Becomes: mprocs 'sh -c "cd /path/to/backend && npm run dev"'
-
-   # Why sh -c? Try this yourself to see why:
-   # $ mprocs 'cd /tmp && echo hello'
-   # Error: No such file or directory (os error 2)
-   #
-   # mprocs tries to execute 'cd' as a program, but cd is a shell builtin!
+   # Becomes: dekit mprocs 'sh -c "cd /path/to/backend && npm run dev"'
 
    muxa -w mobile 'npx expo start'
-   # Becomes: mprocs 'sh -c "cd /path/to/mobile && npx expo start"'
+   # Becomes: dekit mprocs 'sh -c "cd /path/to/mobile && npx expo start"'
    ```
 
 2. **Contains shell operators** (`&&`, `||`, `|`, `;`, `>`, `<`):
 
    ```bash
    muxa -c 'npm test && npm build'
-   # Becomes: mprocs 'sh -c "npm test && npm build"'
+   # Becomes: dekit mprocs 'sh -c "npm test && npm build"'
 
    muxa -c 'npm run dev | grep error'
-   # Becomes: mprocs 'sh -c "npm run dev | grep error"'
+   # Becomes: dekit mprocs 'sh -c "npm run dev | grep error"'
    ```
 
 3. **Contains glob patterns** (`*`, `?`, `[...]`):
 
    ```bash
    muxa -c 'rm dist/*.js'
-   # Becomes: mprocs 'sh -c "rm dist/*.js"'
+   # Becomes: dekit mprocs 'sh -c "rm dist/*.js"'
 
    muxa -c 'cat logs/2024-*.log'
-   # Becomes: mprocs 'sh -c "cat logs/2024-*.log"'
+   # Becomes: dekit mprocs 'sh -c "cat logs/2024-*.log"'
    ```
 
 4. **Contains environment variables** (`$VAR`):
 
    ```bash
    muxa -c 'echo $HOME'
-   # Becomes: mprocs 'sh -c "echo $HOME"'
+   # Becomes: dekit mprocs 'sh -c "echo $HOME"'
 
    muxa -c 'NODE_ENV=$ENV npm start'
-   # Becomes: mprocs 'sh -c "NODE_ENV=$ENV npm start"'
+   # Becomes: dekit mprocs 'sh -c "NODE_ENV=$ENV npm start"'
    ```
 
 **Not wrapped** (simple commands execute directly for better performance):
 
 ```bash
 muxa -c 'npm test'
-# Becomes: mprocs 'npm test'
+# Becomes: dekit mprocs 'npm test'
 
 muxa -c 'node server.js'
-# Becomes: mprocs 'node server.js'
+# Becomes: dekit mprocs 'node server.js'
 ```
 
 ### Flag Mapping
 
-- Advanced commands automatically generate `--names` for mprocs
+- Advanced commands automatically generate `--names` for dekit
 - Every run passes `--proc-list-title`: `processListTitle` from Settings, else the `name` in `package.json`, else the folder name
 
 > [!NOTE]  
@@ -494,10 +487,10 @@ muxa -c 'node server.js'
 **Temporary Config Strategy** (used for `mouseScrollSpeed`):
 
 1. Create `mprocs.json` in a new directory under the system temp directory and pass it with `--config`
-2. Delete it when muxa exits, which follows mprocs' exit
+2. Delete it when muxa exits, which follows dekit's exit
 3. Don't worry about `SIGKILL` scenarios - a leftover file in the system temp directory is clearly temporary
 
-Passing `--config` makes mprocs skip `./mprocs.yaml`, so only the command, Settings, and the global `~/.config/mprocs/mprocs.yaml` decide a run.
+Passing `--config` makes dekit skip `./mprocs.yaml`, so only the command, Settings, and the global `~/.config/mprocs/mprocs.yaml` decide a run.
 
 ## Error Handling
 
@@ -516,7 +509,7 @@ Error: Cannot mix basic and advanced arguments
 
 ## Implementation Notes
 
-**Dependencies**: `mprocs` only (no CLI framework needed)
+**Dependencies**: `@dekit/cli` only (no CLI framework needed)
 
 **Internal utilities needed**:
 
@@ -542,10 +535,10 @@ Error: Cannot mix basic and advanced arguments
 ```
 
 - `mouseScrollSpeed`: whole number of 1 or more; mprocs `mouse_scroll_speed`, passed in the temporary config
-- `processListTitle`: non-empty string; muxa passes it as mprocs `--proc-list-title` on every run, by default the `name` in that `package.json`, else the folder name
-- An unknown key or a bad value stops muxa before mprocs starts, with an error naming `package.json`; an unknown key also lists the known keys
+- `processListTitle`: non-empty string; muxa passes it as `--proc-list-title` on every run, by default the `name` in that `package.json`, else the folder name
+- An unknown key or a bad value stops muxa before dekit starts, with an error naming `package.json`; an unknown key also lists the known keys
 
-**Internal usage**: `muxa` passes `mouseScrollSpeed` to mprocs in a temporary config file (see "Temporary Config Strategy" above).
+**Internal usage**: `muxa` passes `mouseScrollSpeed` to dekit in a temporary config file (see "Temporary Config Strategy" above).
 
 **Future**: See ROADMAP.md for potential user-facing config file support.
 
@@ -556,7 +549,7 @@ Error: Cannot mix basic and advanced arguments
 ```bash
 MUXA_DEBUG=1 muxa -s backend dev
 
-# Shows: workspace resolution, command transformation, mprocs args
+# Shows: workspace resolution, command transformation, dekit args
 ```
 
 ### Environment Variables for debugging
@@ -566,13 +559,13 @@ MUXA_DEBUG=1 muxa -s backend dev
 - Enables debug logging with `[muxa debug]` prefix
 - Shows workspace discovery details
 - Shows package manager detection
-- Shows final mprocs command before execution
+- Shows final dekit command before execution
 - Useful for troubleshooting configuration issues
 
 **`MUXA_TEST_MODE=1`**
 
-- Prevents actual execution of mprocs
-- Prints `Would execute: mprocs <args>` instead of spawning
+- Prevents actual execution of dekit
+- Prints `Would execute: dekit mprocs <args>` instead of spawning
 - Exits immediately after showing the command
 - Used in test suite and for dry-run command verification
 
@@ -591,11 +584,11 @@ MUXA_DEBUG=1 MUXA_TEST_MODE=1 muxa -s backend dev -s frontend start
 # Output:
 # [muxa debug] Found 5 workspace packages
 # [muxa debug] Detected package manager: npm
-# [muxa debug] Executing: mprocs '--names' 'backend:dev,frontend:start' ...
-# Would execute: mprocs '--names' 'backend:dev,frontend:start' ...
+# [muxa debug] Executing: dekit mprocs '--names' 'backend:dev,frontend:start' ...
+# Would execute: dekit mprocs '--names' 'backend:dev,frontend:start' ...
 ```
 
-**Important**: All output appears before launching, since mprocs will take over the terminal:
+**Important**: All output appears before launching, since dekit will take over the terminal:
 
 **Errors** (exits immediately):
 
@@ -646,7 +639,7 @@ Found 5 workspaces (using npm workspaces):
 
 - **"Package not found"**: Run `muxa workspaces` to see available packages
 - **"Script not found"**: Use `-c` instead of `-s` for arbitrary commands
-- **No colors**: mprocs or terminal might not support colors
+- **No colors**: dekit or terminal might not support colors
 
 ## Migration from Concurrently
 
@@ -916,7 +909,7 @@ Warning: Duplicate tab name 'api' detected.
 Continue with duplicate names? (y/N):
 ```
 
-- Pressing <kbd>y</kbd> continues (mprocs will show multiple tabs with same name)
+- Pressing <kbd>y</kbd> continues (dekit shows several processes with the same name)
 - Pressing <kbd>n</kbd> or <kbd>Enter</kbd> exits so user can fix the command
 
 ## Testing Requirements

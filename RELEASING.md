@@ -19,8 +19,11 @@ A release is a `dev` → `main` pull request. Its merge publishes `@den-ai/muxa`
 | ----------------------------------------------- | ------------------- |
 | a `fix:` or a `perf:`                           | `v1.4.1` → `v1.4.2` |
 | a `feat:`                                       | `v1.4.2` → `v1.5.0` |
-| `BREAKING CHANGE:` in the body                  | `v1.5.0` → `v2.0.0` |
+| `BREAKING CHANGE:` in the body, below 1.0       | `v0.3.0` → `v0.4.0` |
+| `BREAKING CHANGE:` in the body, from 1.0        | `v1.5.0` → `v2.0.0` |
 | only `chore:`, `docs:`, `test:`, `refactor:`, … | no release          |
+
+Below 1.0, the `releaseRules` of `@semantic-release/commit-analyzer` in the root `package.json` turn a breaking change into a minor release. To release 1.0.0, delete that rule in a pull request whose commit carries a `BREAKING CHANGE:` footer.
 
 A `!` after the type (`feat!:`) releases nothing with the default preset; write the `BREAKING CHANGE:` footer. npm updates the README only on a publish, so a `docs:` change to it reaches npm with the next release.
 

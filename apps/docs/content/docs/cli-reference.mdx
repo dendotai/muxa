@@ -208,18 +208,14 @@ muxa automatically sets `FORCE_COLOR=1` to preserve colored output from tools li
 
 ### Stopping Processes
 
-- **Ctrl+C**: Stop all processes gracefully
-- **q**: Quit muxa (stops all processes)
+- **Ctrl+C**: Sends Ctrl+C to the focused process only
+- **q**, then **x**: Quit muxa (stops all processes)
 - Individual processes can exit on their own
 
 ## Exit Codes
 
-muxa returns different exit codes:
-
-- `0`: All processes exited successfully
-- `1`: One or more processes failed
-- `2`: Invalid command-line arguments
-- `130`: Interrupted by user (Ctrl+C)
+- `0`: You quit muxa, even when a process failed
+- `1`: muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, or a rejected duplicate name
 
 ## Debugging
 
@@ -233,7 +229,7 @@ muxa workspaces
 
 ### Verbose Output
 
-See the generated mprocs command:
+See the generated dekit command:
 
 ```bash
 # Dry run (coming in future version)

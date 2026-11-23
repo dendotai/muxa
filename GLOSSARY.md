@@ -1,6 +1,6 @@
 # muxa
 
-muxa runs several commands side by side in one terminal, with monorepo awareness, on top of mprocs.
+muxa runs several commands side by side in one terminal, with monorepo awareness, on top of dekit in mprocs mode.
 
 ## Language
 

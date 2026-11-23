@@ -91,7 +91,7 @@ describe("Script Restrictions", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
     });
   });
 
@@ -186,7 +186,7 @@ describe("Script Restrictions", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
     });
 
     it("should allow mixing -s with -w", async () => {
@@ -196,7 +196,7 @@ describe("Script Restrictions", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: mprocs");
+      expect(result.stdout).toContain("Would execute: dekit mprocs");
     });
 
     it("should validate each -s independently", async () => {
