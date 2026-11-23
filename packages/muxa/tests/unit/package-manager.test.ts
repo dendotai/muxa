@@ -24,6 +24,17 @@ describe("Package Manager", () => {
       cleanupFixture(tempDir);
     });
 
+    it("should detect pnpm from pnpm-lock.yaml", () => {
+      const tempDir = createTempWorkspace("muxa-pm-test");
+      fs.writeFileSync(path.join(tempDir, "pnpm-lock.yaml"), "lockfileVersion: '9.0'");
+
+      const pm = detectPackageManager(tempDir);
+      // `missing` names the detected manager when it is not in PATH and muxa fell back to npm
+      expect(pm.missing ?? pm.type).toBe("pnpm");
+
+      cleanupFixture(tempDir);
+    });
+
     // TODO: These tests are environment-dependent and should be run in a CI matrix
     // with different package managers installed. See ROADMAP.md
 
