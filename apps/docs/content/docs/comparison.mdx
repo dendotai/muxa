@@ -30,6 +30,7 @@ How muxa compares to other tools for running multiple processes.
 - **Better output** - Clean terminal UI with dekit
 - **Monorepo native** - Built-in workspace support
 - **Simpler syntax** - Cleaner command structure
+- **Any package manager** - `-s` runs the script with npm, yarn, pnpm or bun, detected from the lockfile (`bun.lockb` for bun); with concurrently you write the package manager into each command
 
 ### When to use concurrently
 
@@ -38,17 +39,72 @@ How muxa compares to other tools for running multiple processes.
 - Existing scripts using it
 - No interactive features needed
 
-### Migration Example
+### Example: Three Dev Servers in a Monorepo
 
-```bash
-# concurrently
-concurrently -n "api,web" \
-  "cd packages/api && npm run dev" \
-  "cd packages/web && npm run dev"
-
-# muxa
-muxa -s api dev api -s web dev web
+```text
+project/
+├── apps/
+│   ├── web/          # Next.js app
+│   ├── mobile/       # Expo app
+│   └── api/          # Express API
+└── package.json      # Workspaces config
 ```
+
+With concurrently, each command repeats its `cd`, the output of the three servers is mixed, and the Expo QR code and Vite shortcuts stop working:
+
+```json
+{
+  "scripts": {
+    "dev": "concurrently 'cd apps/web && npm run dev' 'cd apps/mobile && npx expo start' 'cd apps/api && npm run dev'"
+  }
+}
+```
+
+npm-run-all needs one script per server, plus one more dependency, and loses interactivity the same way:
+
+```json
+{
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:*",
+    "dev:web": "cd apps/web && npm run dev",
+    "dev:mobile": "cd apps/mobile && npx expo start",
+    "dev:api": "cd apps/api && npm run dev"
+  }
+}
+```
+
+Workspace helper scripts shorten the commands, but add scripts and still lose interactivity:
+
+```json
+{
+  "scripts": {
+    "backend": "yarn workspace @monorepo/express-backend",
+    "frontend": "yarn workspace @monorepo/react-frontend",
+    "dev": "concurrently --names 'backend,frontend' 'yarn backend dev' 'yarn frontend dev'"
+  }
+}
+```
+
+With muxa, one script names each package once, and each server runs as its own interactive process:
+
+```json
+{
+  "scripts": {
+    "dev": "muxa -s web dev -w mobile 'npx expo start' -s api dev"
+  }
+}
+```
+
+### Migration Guide
+
+| concurrently                                                                                  | muxa                                                   | Notes                                                               |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------- |
+| `concurrently 'npm run dev' 'npm test'`                                                       | `muxa 'npm run dev' 'npm test'`                        | Same syntax: replace `concurrently` with muxa                       |
+| `concurrently -n "web,api" "npm run web" "npm run api"`                                       | `muxa -c 'npm run web' web -c 'npm run api' api`       | A process name follows its command, in place of one `-n` list       |
+| `concurrently "cd apps/web && npm start" "cd apps/api && npm start"`                          | `muxa -w apps/web 'npm start' -w apps/api 'npm start'` | `-w` runs a command in a package, with no `cd`                      |
+| `concurrently -n "api,web" "cd packages/api && npm run dev" "cd packages/web && npm run dev"` | `muxa -s api dev api -s web dev web`                   | `-s` runs a package's script                                        |
+| `concurrently "npm:dev:*"`                                                                    | `muxa -c 'npm run dev:web' -c 'npm run dev:api'`       | List each script; muxa has no wildcards                             |
+| `concurrently --kill-others "npm start" "npm test"`                                           | No equivalent                                          | When one process exits, the others keep running until you quit muxa |
 
 ## vs mprocs (direct usage)
 
@@ -216,7 +272,7 @@ muxa -c 'docker-compose up' services \
 | Run commands    | ✅   | ✅           | ✅     | ✅          |
 | Named processes | ✅   | ✅           | ✅     | ❌          |
 | Color output    | ✅   | ✅           | ✅     | ✅          |
-| Exit on failure | ✅   | ✅           | ✅     | ✅          |
+| Exit on failure | ❌   | ✅           | ✅     | ✅          |
 
 ### Advanced Features
 
@@ -235,6 +291,46 @@ muxa -c 'docker-compose up' services \
 | Simple syntax  | ✅   | ✅           | ❌     | ✅          |
 | Good errors    | ✅   | ⚠️           | ⚠️     | ⚠️          |
 | Monorepo aware | ✅   | ❌           | ❌     | ⚠️          |
+
+## Real-World Examples
+
+### Full-Stack Development
+
+```bash
+# Next.js frontend + Express API + PostgreSQL
+muxa -s frontend dev \
+     -s backend dev \
+     -c "docker-compose up postgres" db
+```
+
+### Mobile Development
+
+```bash
+# Expo app + GraphQL API + Redis for caching
+muxa -w apps/mobile "npx expo start" \
+     -s api dev \
+     -c "redis-server" cache
+```
+
+### Microservices
+
+```bash
+# Multiple Node.js services
+muxa -s auth dev \
+     -s gateway dev \
+     -s notifications dev \
+     -c "docker-compose up kafka postgres redis" infra
+```
+
+### Monorepo Build Pipeline
+
+```bash
+# Watch and rebuild shared packages
+muxa -s shared build:watch \
+     -s ui-components build:watch \
+     -s frontend dev \
+     -s backend dev
+```
 
 ## Choosing the Right Tool
 
