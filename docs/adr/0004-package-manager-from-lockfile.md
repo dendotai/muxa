@@ -8,10 +8,10 @@
 
 ## Decision
 
-muxa checks once at startup, in the folder it runs from:
+muxa checks at startup, in the folder it runs from:
 
 - the lockfile, in this order: `bun.lockb` (bun), `yarn.lock` (yarn), `pnpm-lock.yaml` (pnpm), `package-lock.json` (npm); the first one found wins
-- else the name before `@` in the `packageManager` field (`pnpm@8.0.0` gives pnpm)
+- else the `packageManager` field, when it names npm, yarn, pnpm, or bun before `@` (`pnpm@8.0.0` gives pnpm)
 - else npm
 
 When the picked manager is not in `PATH`, muxa uses npm. Scripts run as `<manager> run <script>`, `yarn run` included, so every manager gets the same form.
@@ -21,6 +21,7 @@ When the picked manager is not in `PATH`, muxa uses npm. Scripts run as `<manage
 - **Positive:** no Setting and no flag; `-s` runs the script the way the team's installs do.
 - **Accepted trade-off:** a folder with lockfiles of two managers gets the first one in the order, whatever its `packageManager` field says.
 - **Accepted trade-off:** a user who wants another manager for one process writes it out with `-c` or `-w` (`-w frontend 'yarn dev'`).
+- **Open:** bun's text lockfile, `bun.lock`, is not in the list yet, so a bun project with only that file falls through to the field or npm (#39).
 
 ## Rejected
 

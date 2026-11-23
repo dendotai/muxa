@@ -14,7 +14,7 @@ Each of `-c`, `-s`, and `-w` reads the arguments after it by position:
 - `-s <package> <script> [name]`
 - `-w <package> <command> [name]`
 
-The optional name is the next argument when it does not start with `-`. Basic mode (`muxa 'npm run dev' 'npm test'`) takes commands alone, and a command line that mixes basic mode with a flag stops with `Cannot mix basic and advanced arguments`, because muxa cannot tell a command from a name there. muxa parses arguments itself, with no CLI framework.
+The optional name is the next argument when it does not start with `-`. Basic mode (`muxa 'npm run dev' 'npm test'`) takes commands alone, and the two modes do not mix, because muxa cannot tell a command from a name there: a bare command before a flag stops with `Cannot mix basic and advanced arguments`, and one after a flag's parts stops with `Unexpected argument`. muxa parses arguments itself, with no CLI framework.
 
 ## Consequences
 

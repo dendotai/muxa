@@ -14,7 +14,7 @@ When the command gives no name:
 - `-s`: the package's folder name, a colon, and the script (`backend:dev`); the root is `.` (`.:build`)
 - `-w`: the package's folder name alone (`mobile`)
 
-The folder name is used however the package was named in the command: `-s @myapp/backend dev` and `-s ./packages/backend dev` both give `backend:dev`.
+Below the root, the folder name is used however the package was named in the command: `-s @myapp/backend dev` and `-s ./packages/backend dev` both give `backend:dev`.
 
 ## Consequences
 
