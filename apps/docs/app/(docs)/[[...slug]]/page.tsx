@@ -1,6 +1,8 @@
 import { getPage, getPages } from "@/lib/source";
+import { mdxComponents } from "@/components/mdx";
 import { DocsBody, DocsPage } from "fumadocs-ui/page";
 import type { Metadata } from "next";
+import type { MDXComponents } from "mdx/types";
 import { notFound } from "next/navigation";
 
 interface PageProps {
@@ -16,7 +18,7 @@ export default async function Page({ params }: PageProps) {
   }
 
   const pageData = page.data as {
-    body: React.ComponentType;
+    body: React.ComponentType<{ components?: MDXComponents }>;
     toc: Array<{ title: string; url: string; depth: number }>;
     full?: boolean;
   };
@@ -34,7 +36,7 @@ export default async function Page({ params }: PageProps) {
       }}
     >
       <DocsBody>
-        <MDXContent />
+        <MDXContent components={mdxComponents} />
       </DocsBody>
     </DocsPage>
   );
