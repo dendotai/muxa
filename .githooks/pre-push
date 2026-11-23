@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+# A hook in a worktree gets git's own variables, and a check that runs git in another folder would then act on this repo.
+unset GIT_DIR GIT_INDEX_FILE GIT_PREFIX
+[ -d node_modules ] || { echo "node_modules is missing: run \`bun install\`, then repeat the command." >&2; exit 1; }
+
+# A push that only deletes branches, or sends nothing, has no commit to check.
+awk '$2 !~ /^0+$/ { found = 1 } END { exit !found }' || exit 0
+
+bun run githook:pre-push

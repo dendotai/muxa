@@ -14,7 +14,7 @@ Thank you for your interest in contributing to `muxa`! This guide will help you 
 git clone https://github.com/dendotai/muxa.git
 cd muxa
 
-# Install dependencies
+# Install dependencies (this also turns on the git hooks in .githooks/)
 bun install
 
 # Run muxa from source (without building)
@@ -35,7 +35,7 @@ This is a monorepo with workspaces:
 #### Testing
 
 ```bash
-bun test                # Run all tests
+bun run test            # Run all tests
 ```
 
 #### Building
