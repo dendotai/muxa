@@ -32,7 +32,7 @@ This documentation site is deployed to Cloudflare Workers using [OpenNext](https
 The deployment requires three main configuration files:
 
 1. **`wrangler.jsonc`** - Cloudflare Worker configuration
-   - Defines the worker name, entry point, and compatibility settings
+   - Defines the worker name, entry point, and compatibility settings (`nodejs_compat`)
    - Configures static assets serving via the `assets` binding
    - Sets up environment-specific variables
 
@@ -50,12 +50,12 @@ The deployment requires three main configuration files:
 
 The following packages are required in `dependencies` (not devDependencies):
 
-```json
+```jsonc
 {
   "dependencies": {
     "@opennextjs/cloudflare": "^1.6.3",
-    "next": "~15.3.0" // Note: Check OpenNext compatibility
-  }
+    "next": "~15.3.0", // Note: Check OpenNext compatibility
+  },
 }
 ```
 
@@ -107,10 +107,17 @@ The deploy step reads two GitHub Actions secrets:
 ### Hosting
 
 - The worker is named `muxa-docs`.
-- `wrangler.jsonc` defines no route. The route that serves `docs.den.ai/muxa` is set outside this repo.
+- `wrangler.jsonc` defines no route. How requests to `docs.den.ai/muxa` reach a worker is set outside this repo, and it is not confirmed that `muxa-docs` serves them ([issue #26](https://github.com/dendotai/muxa/issues/26)).
 - The `workers.dev` URL of the worker does not answer.
 - Static assets are served using Cloudflare Workers Static Assets.
 - The worker handles all Next.js server-side rendering and API routes.
+
+## Features
+
+- Search (see [Search](#search))
+- Light and dark themes, from the Fumadocs `RootProvider`
+- Code highlighting with the `github-light` and `github-dark` themes, set in `source.config.ts`
+- Copy buttons on code blocks and a sidebar with collapsible sections, from Fumadocs UI defaults
 
 ## Structure
 
