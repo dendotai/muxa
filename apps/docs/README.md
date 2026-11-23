@@ -1,6 +1,11 @@
 # muxa Documentation
 
-This is the documentation site for muxa, built with [Fumadocs](https://fumadocs.vercel.app/) and deployed to Cloudflare Workers.
+This is the documentation site for muxa, built with [Fumadocs](https://fumadocs.vercel.app/) on Next.js and deployed to Cloudflare Workers. Bun installs and runs it, as in the rest of the repo.
+
+## URLs
+
+- **Production**: <https://docs.den.ai/muxa>
+- **Local**: <http://localhost:3000/muxa> (`bun run dev`; the root path `/` returns 404)
 
 ## Development
 
@@ -27,7 +32,7 @@ This documentation site is deployed to Cloudflare Workers using [OpenNext](https
 The deployment requires three main configuration files:
 
 1. **`wrangler.jsonc`** - Cloudflare Worker configuration
-   - Defines the worker name, entry point, and compatibility settings
+   - Defines the worker name, entry point, and compatibility settings (`nodejs_compat`)
    - Configures static assets serving via the `assets` binding
    - Sets up environment-specific variables
 
@@ -45,12 +50,12 @@ The deployment requires three main configuration files:
 
 The following packages are required in `dependencies` (not devDependencies):
 
-```json
+```jsonc
 {
   "dependencies": {
     "@opennextjs/cloudflare": "^1.6.3",
-    "next": "~15.3.0" // Note: Check OpenNext compatibility
-  }
+    "next": "~15.3.0", // Note: Check OpenNext compatibility
+  },
 }
 ```
 
@@ -69,53 +74,65 @@ bun run deploy  # Builds and deploys to Cloudflare
 
 ### Environment Variables
 
-- **`NEXT_PUBLIC_BASE_PATH`** - Set during build for subpath deployments (e.g., `/muxa`)
-- **`NODE_ENV`** - Set to `production` in wrangler.jsonc for production deployments
+- **`NEXT_PUBLIC_BASE_PATH`** - Set during build for subpath deployments (e.g., `/muxa`). It is compiled into the client bundle, so a Worker var cannot set it.
+- **`NODE_ENV`** - `wrangler.jsonc` sets it to `production` only under `env.production`, which applies to `wrangler deploy --env production`. `bun run deploy` and the `deploy-docs` workflow deploy without `--env`.
 
-### Deployment Architecture
+### Base Path
 
-1. The site is deployed as a private Cloudflare Worker without public routes (you need to disable it in the settings, since it adds it even if you don't specify routes in the `wrangler.jsonc`)
-2. It's accessed via service bindings through a router at docs.den.ai
-3. Static assets are served using Cloudflare Workers Static Assets
-4. The worker handles all Next.js server-side rendering and API routes
+The site is served under `/muxa`, and every link, asset, and API route must carry that prefix.
 
-### Manual Deployment
+- `next.config.mjs` takes `basePath` and `assetPrefix` from `NEXT_PUBLIC_BASE_PATH`.
+- The Fumadocs source in `lib/source.ts` uses `baseUrl: "/"`, because Next.js adds the `/muxa` prefix itself.
+- Client code that builds a URL by hand prefixes it with `withBasePath()` from `lib/base-path.ts`.
 
-```bash
-# Deploy to production
-bun run deploy
+### Search
 
-# Deploy with specific environment
-wrangler deploy --env production
-```
+Search uses Orama over a static index that Next.js builds at build time.
+
+- `app/api/search/route.ts` exports `staticGET` with `dynamic = "force-static"` and `revalidate = false`.
+- `components/search.tsx` fetches it with `useDocsSearch({ type: "static", from: withBasePath("/api/search") })`.
+
+### CI/CD
+
+The `deploy-docs` workflow (`.github/workflows/deploy-docs.yml`) runs when a change touches `apps/docs/` or the workflow itself:
+
+- A push to `main` builds the site and deploys it with `wrangler deploy`.
+- A pull request into `dev` or `main`, and a manual run, build the site and do not deploy it.
+
+The deploy step reads two GitHub Actions secrets:
+
+- `CLOUDFLARE_API_TOKEN` - Cloudflare API token with Workers permissions
+- `CLOUDFLARE_ACCOUNT_ID` - Cloudflare account ID
+
+### Hosting
+
+- The worker is named `muxa-docs`.
+- `wrangler.jsonc` defines no route. How requests to `docs.den.ai/muxa` reach a worker is set outside this repo, and it is not confirmed that `muxa-docs` serves them ([issue #26](https://github.com/dendotai/muxa/issues/26)).
+- The `workers.dev` URL of the worker does not answer.
+- Static assets are served using Cloudflare Workers Static Assets.
+- The worker handles all Next.js server-side rendering and API routes.
+
+## Features
+
+- Search (see [Search](#search))
+- Light and dark themes, from the Fumadocs `RootProvider`
+- Code highlighting with the `github-light` and `github-dark` themes, set in `source.config.ts`
+- Copy buttons on code blocks and a sidebar with collapsible sections, from Fumadocs UI defaults
 
 ## Structure
 
 - `/app` - Next.js app directory
 - `/content/docs` - MDX documentation files
-- `/public` - Static assets
+- `/content/docs/meta.json` - sidebar navigation order
 - `next.config.mjs` - Next.js configuration
-- `wrangler.toml` - Cloudflare Workers configuration
+- `wrangler.jsonc` - Cloudflare Workers configuration
 
 ## Adding Documentation
 
 1. Create a new `.mdx` file in `/content/docs/`
 2. Add frontmatter with title and description
-3. Update the navigation in `/app/docs/layout.tsx`
+3. Add the page name to `pages` in `/content/docs/meta.json`
 4. The page will be automatically available at the corresponding URL
-
-## Environment Variables
-
-Required for deployment:
-
-- `CLOUDFLARE_API_TOKEN` - Cloudflare API token with Workers permissions
-- `CLOUDFLARE_ACCOUNT_ID` - Your Cloudflare account ID
-
-## URLs
-
-- **Production**: <https://docs.den.ai/muxa>
-- **Preview**: <https://muxa-docs.workers.dev>
-- **Local**: <http://localhost:3000>
 
 ## Troubleshooting
 
