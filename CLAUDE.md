@@ -6,7 +6,7 @@ Issues live in this repo's GitHub Issues (`gh` CLI). See `docs/agents/issue-trac
 
 ### Triage labels
 
-The five canonical triage roles mapped to muxa's labels, plus the state labels the maintenance workflow manages. See `docs/agents/triage-labels.md`.
+The five canonical labels, strings equal to their names, plus the state labels the maintenance workflow manages. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
