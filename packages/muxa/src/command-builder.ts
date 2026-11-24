@@ -1,6 +1,7 @@
 // Command transformation and building for muxa
 
 import * as path from "path";
+import { MAX_TAB_NAME_LENGTH } from "./log-files";
 import { type PackageManagerInfo, validateScript } from "./package-manager";
 import type { ParsedCommand, ParseResult } from "./parser";
 import { type WorkspaceConfig, resolvePackage } from "./workspace";
@@ -123,6 +124,21 @@ function transformCommand(
 }
 
 /**
+ * The tab name of each process, before dekit numbers duplicates
+ */
+export function buildTabNames(commands: TransformedCommand[], parsed: ParseResult): string[] {
+  const mprocsCommands = commands.map(toMprocsCommand);
+  const named = parsed.mode === "advanced" && commands.some((cmd) => cmd.name !== "");
+  const fits = mprocsCommands.every((command) => command.length <= MAX_TAB_NAME_LENGTH);
+  if (!named && fits) return mprocsCommands;
+
+  // A comma separates the names in --names
+  return commands.map((cmd) =>
+    (cmd.name || cmd.command.replaceAll(",", " ")).slice(0, MAX_TAB_NAME_LENGTH),
+  );
+}
+
+/**
  * Build the arguments of `dekit mprocs`
  */
 export function buildMprocsArgs(
@@ -131,28 +147,31 @@ export function buildMprocsArgs(
   {
     mprocsConfigFile,
     processListTitle,
-  }: { mprocsConfigFile?: string; processListTitle?: string } = {},
+    logDir,
+  }: { mprocsConfigFile?: string; processListTitle?: string; logDir?: string } = {},
 ): string[] {
   const args: string[] = [];
   if (mprocsConfigFile) args.push("--config", mprocsConfigFile);
   if (processListTitle) args.push("--proc-list-title", processListTitle);
-
-  // dekit assigns --names by position, so an unnamed process takes its command as its name
-  if (parsed.mode === "advanced" && commands.some((cmd) => cmd.name !== "")) {
-    const names = commands.map((cmd) => cmd.name || cmd.command.replaceAll(",", " "));
-    args.push("--names", names.join(","));
+  if (logDir) {
+    // --log-file overrides a `proc_log.file` in the user's mprocs.yaml; dekit resolves a relative one from the current folder, not inside --log-dir
+    const logFile = path.resolve(logDir, "{name}.log");
+    args.push("--log-dir", logDir, "--log-file", logFile, "--log-mode", "append");
   }
 
-  // Add commands
-  for (const cmd of commands) {
-    if (cmd.needsShell) {
-      args.push(`sh -c '${escapeShellCommand(cmd.command)}'`);
-    } else {
-      args.push(cmd.command);
-    }
+  const mprocsCommands = commands.map(toMprocsCommand);
+
+  // dekit assigns --names by position; with no --names, it names each process by its command
+  const tabNames = buildTabNames(commands, parsed);
+  if (tabNames.some((name, i) => name !== mprocsCommands[i])) {
+    args.push("--names", tabNames.join(","));
   }
 
-  return args;
+  return [...args, ...mprocsCommands];
+}
+
+function toMprocsCommand({ command, needsShell }: TransformedCommand): string {
+  return needsShell ? `sh -c '${escapeShellCommand(command)}'` : command;
 }
 
 /**

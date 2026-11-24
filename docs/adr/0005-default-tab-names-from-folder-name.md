@@ -10,7 +10,7 @@ A process with no name in the command gets one from muxa. The tab name shows in 
 
 When the command gives no name:
 
-- `-c` and basic mode: the command itself (`npm run dev`), with each comma turned into a space, because dekit splits `--names` at commas
+- `-c` and basic mode: the command itself (`npm run dev`), with each comma turned into a space, because dekit splits `--names` at commas; a name over 200 characters is shortened to 200, because dekit names the log file after it
 - `-s`: the package's folder name, a colon, and the script (`backend:dev`); the root is `.` (`.:build`)
 - `-w`: the package's folder name alone (`mobile`)
 

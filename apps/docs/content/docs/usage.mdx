@@ -164,6 +164,35 @@ muxa -c 'PORT=3000 npm run dev' api \
      -c 'PORT=3001 npm run dev' web
 ```
 
+## Log Files
+
+muxa writes the output of every process to a file in `.muxa/logs/`, beside the `package.json` of the folder you run it from. A process that is not selected, and the lines that scrolled off the screen, are in its file too:
+
+```bash
+muxa -s backend dev api -s frontend start web
+
+# In another terminal
+grep -i warning .muxa/logs/*.log
+```
+
+A file is named after the [tab name](/cli-reference#tab-names) of its process. Every character outside `A-Z`, `a-z`, `0-9`, `-`, `_` and `.` becomes `_`: `backend:dev` writes `.muxa/logs/backend_dev.log`.
+
+At each start, muxa adds a line with the local date, time, and time zone to the file of each process it starts:
+
+```text
+=== muxa started 2026-01-31 09:30:00+01:00 ===
+```
+
+The lines after the last start line belong to the current run, and those above it to earlier runs. muxa never clears a file.
+
+A `proc_log` in your own `mprocs.yaml` does not change where muxa writes these files.
+
+`.muxa/.gitignore` keeps the folder out of git; your own `.gitignore` stays as it is.
+
+In a folder with no `package.json`, the files go to `~/.local/state/muxa/logs/<folder path>/` (or `$XDG_STATE_HOME/muxa/logs/<folder path>/`), where each `/` of the folder path is `_` and each `_` is `__`. A run in `/Users/me/Downloads` writes to `~/.local/state/muxa/logs/Users_me_Downloads/`.
+
+When muxa cannot write the files, it asks whether to continue without them. With no terminal on its input, it prints a warning and starts.
+
 ## Real-World Examples
 
 ### Full-Stack Development
@@ -233,14 +262,6 @@ muxa -c 'npm run start:api' backend \
 muxa -c 'PORT=3000 npm run dev' api-1 \
      -c 'PORT=3001 npm run dev' api-2 \
      -c 'PORT=3002 npm run dev' api-3
-```
-
-### Log Collection
-
-```bash
-# Run with logging
-muxa -c 'npm run dev 2>&1 | tee api.log' api \
-     -c 'npm run dev 2>&1 | tee web.log' web
 ```
 
 ## Tips and Tricks
