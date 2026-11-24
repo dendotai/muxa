@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { spawn } from "child_process";
 import { version as VERSION } from "../package.json";
-import { buildCommands, buildMprocsArgs, buildTabNames } from "./command-builder";
+import { buildCommands, buildMprocsArgs, buildProcessNames } from "./command-builder";
 import { dekitBinaryPath } from "./dekit";
 import { resolveLogDir, startLogFiles } from "./log-files";
+import { printLog } from "./logs";
 import { detectPackageManager } from "./package-manager";
-import { parseArguments } from "./parser";
+import { parseArguments, RESERVED_WORDS } from "./parser";
 import {
   readSettings,
   removeTempMprocsConfig,
@@ -26,9 +27,6 @@ import { discoverWorkspaces, formatWorkspaceList } from "./workspace";
 // Main execution
 async function main() {
   try {
-    // Check for nested execution
-    checkNestedExecution();
-
     // Parse arguments
     const args = process.argv.slice(2);
     if (args.length === 0) {
@@ -55,6 +53,15 @@ async function main() {
       process.exit(0);
     }
 
+    if (parsed.verbCall?.verb === "logs") {
+      await printLog(process.cwd(), parsed.verbCall.process);
+      return;
+    }
+
+    if (parsed.verbCall) {
+      throw new Error(`muxa ${parsed.verbCall.verb} is not yet implemented`);
+    }
+
     if (parsed.migrate) {
       // TODO: Implement migration tool
       console.error("Migration tool not yet implemented");
@@ -66,6 +73,9 @@ async function main() {
       showHelp();
       process.exit(0);
     }
+
+    // After the commands that start nothing: an agent that muxa runs as a process reads the other processes with `muxa logs`
+    checkNestedExecution();
 
     // Discover workspace configuration
     const workspace = discoverWorkspaces();
@@ -117,7 +127,7 @@ async function main() {
     // Test mode starts nothing, so its run gets no start line
     if (!testMode) {
       try {
-        startLogFiles(cwd, logDir, buildTabNames(commands, parsed));
+        startLogFiles(cwd, logDir, buildProcessNames(commands, parsed));
       } catch (error) {
         console.error(`Warning: muxa cannot write log files in ${logDir}: ${formatError(error)}`);
         logDir = undefined;
@@ -226,6 +236,7 @@ Usage:
   muxa -w <package> <command> [name] ...Run commands in workspace context
   muxa workspaces                       List all workspace packages
   muxa migrate [--dry-run] [--yes]      Migrate from concurrently
+  muxa logs <process>                   Print a process's output since the last start
 
 Examples:
   # Simple commands (like concurrently)
@@ -246,6 +257,10 @@ Options:
   -w, --workspace   Run command in workspace directory
   -h, --help        Show help
   -V, --version     Show version
+
+Reserved words:
+  ${RESERVED_WORDS.join(", ")}
+  To run a program with one of these names, use -c: muxa -c logs
 
 Environment:
   MUXA_DEBUG=1      Enable debug output`);

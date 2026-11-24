@@ -7,6 +7,7 @@ import {
   createRootPackageWorkspace,
   createTempWorkspace,
 } from "@tests/helpers/fixture-helpers";
+import { runMuxa } from "@tests/helpers/muxa-runner";
 import { runInTerminal, type TerminalRun } from "@tests/helpers/terminal-runner";
 
 const basicNpm = path.join(fixturesPath, "basic-npm");
@@ -80,8 +81,35 @@ describe("log files of a dekit session", () => {
     Object.fromEntries(
       fs
         .readdirSync(logDir(cwd))
+        .filter((file) => file.endsWith(".log"))
         .map((file) => [file, readLog(cwd, file).replace(startLine, "start ")]),
     );
+
+  it("are beside a processes.json with the name and the log file of each process", async () => {
+    const cwd = createRootFolder();
+    for (const [args, processes] of [
+      [
+        ["-c", "echo hi", "backend:dev", "-c", "echo hi,; echo"],
+        [
+          { name: "backend:dev", file: "backend_dev.log" },
+          { name: "echo hi,; echo", file: "echo_hi___echo.log" },
+        ],
+      ],
+      [["echo 1; echo"], [{ name: "echo 1; echo", file: "sh_-c__echo_1__echo_.log" }]],
+    ] as const) {
+      const run = runInTerminal([...args], { cwd });
+      await run.waitFor(new RegExp(`(DOWN \\(0\\)[^]*){${processes.length}}`));
+      expect(await quit(run)).toBe(0);
+      expect(JSON.parse(readLog(cwd, "processes.json")).slice(0, processes.length)).toEqual([
+        ...processes,
+      ]);
+    }
+  });
+
+  const printLog = async (cwd: string, name: string) => {
+    const { stdout, stderr } = await runMuxa(["logs", name], { cwd });
+    return stdout.replace(startLine, "start ") + stderr;
+  };
 
   it("hold a process that is not selected and the lines that scrolled off", async () => {
     const cwd = createRootFolder();
@@ -128,16 +156,22 @@ describe("log files of a dekit session", () => {
     await run.waitFor(/server\.log\s+DOWN \(0\)/);
     expect(await quit(run)).toBe(0);
 
-    expect(readLogs(cwd)).toEqual({
+    const { "a_b.log": spaced, ...logs } = readLogs(cwd);
+    expect(spaced).toBe("start output-1\r\n");
+    const slashed = Object.keys(logs).find((file) => /^a_b-[a-z0-9]{3}\.log$/.test(file)) ?? "";
+    expect(logs).toEqual({
       "backend_dev.log": "start output-0\r\n",
-      "a_b.log": "start output-1\r\n",
-      "a_b-2.log": "start output-2\r\n",
+      [slashed]: "start output-2\r\n",
       "web.log": "start output-3\r\n",
       "dots.log": "start output-4\r\n",
       "task.log": "start output-5\r\n",
       "__.log": "start output-6\r\n",
       "server.log": "start output-7\r\n",
     });
+    for (const [i, name] of names.entries()) {
+      expect(await printLog(cwd, name)).toBe(`start output-${i}\n`);
+    }
+    expect(await printLog(cwd, "a:b")).toContain("Error: No log file for 'a:b' in .muxa/logs\n");
   });
 
   it("are named by the command in basic mode, also for a repeated or a long command", async () => {
@@ -152,6 +186,119 @@ describe("log files of a dekit session", () => {
       "echo_same__2_.log": "start same\r\n",
       [`echo_long_${"x".repeat(190)}.log`]: `start long,${"x".repeat(300)}\r\n`,
     });
+  });
+
+  it("print by the command, as written, of a process with no name", async () => {
+    const cwd = createRootFolder();
+    const commands = ["echo one,two", "echo a; echo b", `echo ${"x".repeat(300)}`];
+    const outputs = ["one,two", "a\nb", "x".repeat(300)];
+    const runs = [commands.slice(0, 2), commands, ["-c", "echo hi", "api"]];
+    for (const [i, args] of runs.entries()) {
+      const advanced = i === 2 ? [...args, ...commands.flatMap((c) => ["-c", c])] : args;
+      const run = runInTerminal(advanced, { cwd });
+      await run.waitFor(new RegExp(`(DOWN \\(0\\)[^]*){${i === 2 ? 4 : args.length}}`));
+      expect(await quit(run)).toBe(0);
+      for (const [j, command] of commands.entries()) {
+        if (i > 0 || j < 2) expect(await printLog(cwd, command)).toBe(`start ${outputs[j]}\n`);
+      }
+    }
+  });
+
+  it("print by a duplicate name only with the number from the process list", async () => {
+    const cwd = createRootFolder();
+    const run = runInTerminal(["echo same", "echo same"], { cwd });
+    await run.waitFor(/(DOWN \(0\)[^]*){2}/);
+    expect(await quit(run)).toBe(0);
+    expect(await printLog(cwd, "echo same")).toBe(
+      "Error: 2 processes are named 'echo same'. Start each with its own name.\n",
+    );
+    expect(await printLog(cwd, "echo same (2)")).toBe("start same\n");
+  });
+
+  it("are separate for names that would give one log file, and the same at each start", async () => {
+    const cwd = createRootFolder();
+    const names = [".web", "web", "web.log"];
+    if (process.platform === "darwin") names.push("Web");
+    const files = new Set<string>();
+    for (const order of [names, [...names].reverse()]) {
+      const run = runInTerminal(
+        order.flatMap((name) => ["-c", `echo output-of-${name}`, name]),
+        { cwd },
+      );
+      await run.waitFor(new RegExp(`(DOWN \\(0\\)[^]*){${names.length}}`));
+      expect(await quit(run)).toBe(0);
+
+      for (const { name, file } of JSON.parse(readLog(cwd, "processes.json"))) {
+        expect(readLog(cwd, file).replace(startLine, "start ")).toEndWith(
+          `start output-of-${name}\r\n`,
+        );
+        expect(await printLog(cwd, name)).toBe(`start output-of-${name}\n`);
+        // The name in the process list
+        const shown = name === file.slice(0, -4) ? name : name + file.slice(-8, -4);
+        expect(run.output()).toContain(shown);
+        expect(await printLog(cwd, shown)).toBe(`start output-of-${name}\n`);
+        if (name.toLowerCase() !== "web") files.add(file);
+      }
+    }
+    expect([...files]).toEqual([
+      expect.stringMatching(/^web-[a-z0-9]{3}\.log$/),
+      expect.stringMatching(/^web\.log-[a-z0-9]{3}\.log$/),
+    ]);
+
+    const run = runInTerminal(["-c", "echo hi", "api"], { cwd });
+    await run.waitFor(/api\s+DOWN \(0\)/);
+    expect(await quit(run)).toBe(0);
+    expect(await printLog(cwd, ".web")).toBe("start output-of-.web\n");
+  });
+
+  it("are separate for a name that equals the number dekit adds", async () => {
+    const cwd = createRootFolder();
+    const run = runInTerminal(["-c", "echo 1", "-c", "echo 1", "-c", "echo 2", ".echo_1__2_"], {
+      cwd,
+    });
+    await run.waitFor(/(DOWN \(0\)[^]*){3}/);
+    expect(await quit(run)).toBe(0);
+    expect(await printLog(cwd, "echo 1 (2)")).toBe("start 1\n");
+    expect(await printLog(cwd, ".echo_1__2_")).toBe("start 2\n");
+  });
+
+  it("stay in processes.json while they exist and no later process takes them", async () => {
+    const cwd = createRootFolder();
+    const start = async (names: string[]) => {
+      const run = runInTerminal(
+        names.flatMap((name) => ["-c", `echo from-${name}`, name]),
+        { cwd },
+      );
+      await run.waitFor(new RegExp(`(DOWN \\(0\\)[^]*){${names.length}}`));
+      expect(await quit(run)).toBe(0);
+    };
+    const processes = () => JSON.parse(readLog(cwd, "processes.json"));
+    await start(["a b", "web", "gone"]);
+    fs.rmSync(path.join(logDir(cwd), "gone.log"));
+    await start(["api", ".web"]);
+    expect(processes()).toEqual([
+      { name: "api", file: "api.log" },
+      { name: ".web", file: "web.log" },
+      { name: "a b", file: "a_b.log" },
+    ]);
+    expect(await printLog(cwd, "a b")).toBe("start from-a b\n");
+    expect(await printLog(cwd, "a/b")).toBe(
+      "Error: No log file for 'a/b' in .muxa/logs\nAvailable processes: api, .web, a b\n",
+    );
+    await start(["a/b"]);
+    expect(processes()[0]).toEqual({ name: "a/b", file: "a_b.log" });
+    expect(processes()).toHaveLength(3);
+  });
+
+  it("print for a process that only an earlier run started", async () => {
+    const cwd = createRootFolder();
+    for (const name of ["web", "api"]) {
+      const run = runInTerminal(["-c", `echo from-${name}`, name], { cwd });
+      await run.waitFor(/DOWN \(0\)/);
+      expect(await quit(run)).toBe(0);
+    }
+    expect(await printLog(cwd, "web")).toBe("start from-web\n");
+    expect(await printLog(cwd, "wbe")).toContain("Available processes: api, web\n");
   });
 
   it("stay in .muxa/logs when an mprocs.yaml names another log file", async () => {

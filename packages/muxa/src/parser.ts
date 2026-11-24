@@ -2,6 +2,17 @@
 
 export type ParseMode = "basic" | "advanced";
 
+/** Each verb acts on one process: `muxa <verb> <process>` */
+const VERBS = ["logs", "restart", "stop", "start"] as const;
+
+export interface VerbCall {
+  verb: (typeof VERBS)[number];
+  process: string;
+}
+
+/** A first argument that muxa does not run as a command */
+export const RESERVED_WORDS = ["workspaces", "ws", "check", "migrate", ...VERBS] as const;
+
 export interface ParsedCommand {
   /** The command to execute */
   command: string;
@@ -26,6 +37,8 @@ export interface ParseResult {
   version?: boolean;
   /** Show workspaces */
   workspaces?: boolean;
+  /** A verb and the process it acts on */
+  verbCall?: VerbCall;
   /** Migration command */
   migrate?: boolean;
   /** Dry run for migration */
@@ -69,31 +82,8 @@ export function parseArguments(argv: string[]): ParseResult {
       return result;
     }
 
-    // Handle workspaces command
-    if (firstArg === "workspaces" || firstArg === "ws") {
-      result.workspaces = true;
-      return result;
-    }
-
-    // Handle migration commands
-    if (firstArg === "check") {
-      result.migrate = true;
-      result.dryRun = true;
-      return result;
-    }
-
-    if (firstArg === "migrate") {
-      result.migrate = true;
-      // Check for additional flags
-      for (let j = 1; j < argv.length; j++) {
-        if (argv[j] === "--dry-run") {
-          result.dryRun = true;
-        } else if (argv[j] === "--yes" || argv[j] === "-y") {
-          result.yes = true;
-        }
-      }
-      return result;
-    }
+    const reserved = RESERVED_WORDS.find((word) => word === firstArg);
+    if (reserved) return { ...result, ...parseReserved(reserved, argv.slice(1)) };
   }
 
   // Parse command flags
@@ -251,6 +241,41 @@ export function parseArguments(argv: string[]): ParseResult {
   }
 
   return result;
+}
+
+function parseReserved(
+  word: (typeof RESERVED_WORDS)[number],
+  args: string[],
+): Omit<ParseResult, "mode" | "commands"> {
+  switch (word) {
+    case "workspaces":
+    case "ws":
+      return { workspaces: true };
+    case "check":
+      return { migrate: true, dryRun: true };
+    case "migrate":
+      return {
+        migrate: true,
+        dryRun: args.includes("--dry-run") || undefined,
+        yes: args.includes("--yes") || args.includes("-y") || undefined,
+      };
+    case "logs":
+    case "restart":
+    case "stop":
+    case "start":
+      return { verbCall: parseVerb(word, args) };
+  }
+}
+
+function parseVerb(verb: VerbCall["verb"], [target, extra]: string[]): VerbCall {
+  if (!target) {
+    throw new ParseError(
+      `muxa ${verb} needs a process name. To run a program named ${verb}, use: muxa -c ${verb}`,
+    );
+  }
+  if (target.startsWith("-")) throw new ParseError(`Unknown option '${target}'`);
+  if (extra !== undefined) throw new ParseError(`Unexpected argument: ${extra}`);
+  return { verb, process: target };
 }
 
 function isKnownFlag(flag: string): boolean {

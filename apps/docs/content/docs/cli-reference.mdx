@@ -17,6 +17,7 @@ muxa -c <command> [name] [-c ...]
 muxa -s <package> <script> [name] [-s ...]
 muxa -w <package> <command> [name] [-w ...]
 muxa workspaces
+muxa logs <process>
 ```
 
 `muxa` with no arguments prints the help.
@@ -128,6 +129,37 @@ Found 4 workspaces (using npm workspaces):
 
 With no `package.json` in the folder, it prints `No workspaces found in current directory`.
 
+### `logs <process>`
+
+Print the output of a process, from the last [start line](/usage#log-files) to the end. It reads the log files of the folder you run it from, so it also works after muxa quit.
+
+```bash
+muxa logs web
+
+# A process with no name, by its command
+muxa logs 'npm run dev'
+
+# Plain text through a pipe
+muxa logs web | grep -i warning
+```
+
+- `<process>` is the name as you typed it, the name in the process list, or the command of a process with no name.
+- In a terminal, the output keeps its colors. Anywhere else it is plain text. The log file and the screen of muxa keep every code.
+- A line that rewrites itself, such as a progress bar, shows only its last state.
+- A process that the last start did not run prints the output of its own last run.
+- When two processes have one name, `muxa logs` stops with an error. The second one also answers to the name with the number that the process list shows: `muxa logs 'web (2)'`.
+- It works in a process that muxa runs, so an agent started with `muxa -c 'npm run dev' web -c claude agent` can read `web`. A process from `-s` or `-w` runs in its package's folder: go to the folder of the muxa command first.
+
+## Reserved Words
+
+muxa does not run these first words as commands: `workspaces`, `ws`, `check`, `migrate`, `logs`, `restart`, `stop`, `start`.
+
+To run a program with one of these names, use `-c`:
+
+```bash
+muxa -c restart
+```
+
 ## Package Resolution
 
 `-s` and `-w` take a package by any of these:
@@ -181,9 +213,10 @@ A process without a name in the command gets one:
 
 - A name cannot start with `-`.
 - A name cannot hold a comma: muxa stops with `Tab name 'web,mobile' contains comma. Commas are reserved as separators.`
-- A comma in a default name shows as a space when the command names another process, or when muxa shortens a name.
+- A comma in a default name shows as a space when the command names another process, or when muxa shortens a name or adds a suffix.
 - A name over 200 characters is shortened to 200, because it also names the process's [log file](/usage#log-files).
 - When two processes have one name, given in the command or taken from a package, muxa asks `Continue with duplicate names? (y/N)`. `y` starts them with that name; `n` or Enter stops muxa.
+- When different names would give one [log file](/usage#log-files), muxa adds a short suffix to all but one of them: `.web` beside `web` shows as `.web-oyv`. Such names differ only in characters that become `_` (`a b`, `a/b`), in dots at the ends (`.web`, `web`), in a `.log` ending (`web.log`, `web`), or, on macOS, in case (`Web`, `web`). The suffix comes from the name, so it is the same at each start. The name that equals its file name (`web`, in `web.log`) keeps it, or else the first one.
 
 ## Shell Wrapping
 
@@ -225,7 +258,7 @@ DEBUG=app:* muxa -c 'npm run dev' app
 | Variable         | Set by | Effect                                                                                                                   |
 | ---------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
 | `FORCE_COLOR`    | muxa   | `1` for every process, so tools keep their colors. A value you set is kept.                                              |
-| `MUXA_RUNNING`   | muxa   | `1` for every process. muxa stops with an error when it is set, so a script that muxa runs cannot start muxa.            |
+| `MUXA_RUNNING`   | muxa   | `1` for every process. muxa starts no process when it is set, so a script that muxa runs cannot start muxa.              |
 | `MUXA_DEBUG`     | you    | Any value: muxa prints what it detected and the dekit command, with `[muxa debug]` in front.                             |
 | `MUXA_TEST_MODE` | you    | `true`, and no other value: muxa prints the dekit command and some environment variables, and starts nothing. A dry run. |
 
@@ -266,8 +299,8 @@ On `SIGINT`, `SIGTERM` or `SIGHUP` (a closed terminal), muxa stops every process
 
 ## Exit Codes
 
-- `0`: You quit muxa, even when a process failed, or a signal stopped it. Also `--help`, `--version` and `workspaces`, even when it finds none.
-- `1`: muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a bad tab name, a rejected duplicate name, muxa inside muxa, no terminal (`Stdin is not a tty`), or no dekit binary for the platform. Also `migrate` and `check`.
+- `0`: You quit muxa, even when a process failed, or a signal stopped it. Also `--help`, `--version`, `logs`, and `workspaces`, even when it finds none.
+- `1`: muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a bad tab name, a rejected duplicate name, muxa inside muxa, no terminal (`Stdin is not a tty`), or no dekit binary for the platform. Also `logs` with no log file for the process, `restart`, `stop`, `start`, `migrate` and `check`.
 
 ## Errors
 
@@ -311,3 +344,4 @@ Fixes for common problems: [Troubleshooting](/configuration#troubleshooting).
 - In basic mode, an option after the first argument (`muxa 'npm run dev' --help`) and an unknown option with one dash (`-x`) run as commands.
 - When input ends with no answer to the duplicate-name question, muxa starts nothing and exits 0.
 - `muxa migrate` and `muxa check` only print `Migration tool not yet implemented` ([issue #37](https://github.com/dendotai/muxa/issues/37)).
+- `muxa restart`, `muxa stop` and `muxa start` only print `muxa restart is not yet implemented`, and the same for each ([issue #19](https://github.com/dendotai/muxa/issues/19)).

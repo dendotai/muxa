@@ -125,6 +125,9 @@ export function runMuxa(
 
     trackProcess(proc);
 
+    // A character can be split between two chunks
+    proc.stdout?.setEncoding("utf8");
+    proc.stderr?.setEncoding("utf8");
     let stdout = "";
     let stderr = "";
     let finished = false;
@@ -146,7 +149,8 @@ export function runMuxa(
       stderr += data.toString();
     });
 
-    proc.on("exit", (code) => {
+    // "close" and not "exit", because output can still arrive after the exit
+    proc.on("close", (code) => {
       if (!finished) {
         finished = true;
         clearTimeout(timeoutHandle);

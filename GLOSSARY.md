@@ -22,6 +22,12 @@ The file that holds the output of one process.
 **Start line**:
 The line `=== muxa started <date time> ===` that opens a run in a log file.
 
+**Verb**:
+A first word that acts on one process: `logs`, `restart`, `stop`, `start`.
+
+**Reserved word**:
+A first word that muxa does not run as a command.
+
 **Tab name**:
 The name of a process in the process list.
 _Avoid_: process name

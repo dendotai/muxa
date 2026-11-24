@@ -136,6 +136,7 @@ muxa -c 'npm run build && npm test' -c 'echo "Done" || exit 1'
 - `-h, --help` - Display help
 - `-V, --version` - Display version
 - `workspaces`, `ws` - List the packages muxa finds
+- `logs <process>` - Print a process's output since the last start
 
 `--help` and `--version` work only as the first argument. `-s` takes no script arguments; use `-w backend 'npm run test -- --watch'` for those.
 
@@ -176,14 +177,14 @@ Optional. Add a `muxa` key to the `package.json` in the folder you run muxa from
 ## Environment Variables
 
 - `FORCE_COLOR` - muxa sets it to `1` for every process, unless you set a value
-- `MUXA_RUNNING` - muxa sets it to `1` for every process, and stops with an error when it is set, so a script that muxa runs cannot start muxa
+- `MUXA_RUNNING` - muxa sets it to `1` for every process, and starts no process when it is set, so a script that muxa runs cannot start muxa
 - `MUXA_DEBUG=1` - Print what muxa detected and the dekit command
 - `MUXA_TEST_MODE=true` - Print the dekit command, and start nothing
 
 ## Exit Codes
 
 - `0` - You quit muxa, even when a process failed, or a signal stopped it
-- `1` - muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a bad tab name, a rejected duplicate name, muxa inside muxa, no terminal, or no dekit binary for the platform
+- `1` - muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a bad tab name, a rejected duplicate name, muxa inside muxa, no terminal, or no dekit binary for the platform. Also `logs` with no log file for the process
 
 ## Important Usage Notes
 
@@ -319,7 +320,7 @@ muxa -c 'npm run lint && npm run build' -c 'npm test || exit 1'
 
 ## Requirements
 
-- Node.js >= 16.0.0, or Bun through `bun run` or `bunx`
+- Node.js >= 22, or Bun through `bun run` or `bunx`
 - macOS, Linux, or Windows through WSL
 - dekit (automatically installed as dependency)
 

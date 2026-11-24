@@ -5,7 +5,7 @@ Thank you for your interest in contributing to `muxa`! This guide will help you 
 ## Prerequisites
 
 - Bun >= 1.0.0 (required package manager)
-- Node.js >= 16.0.0 (for TypeScript tooling)
+- Node.js >= 22 (for TypeScript tooling)
 
 ## Getting Started
 
