@@ -35,9 +35,6 @@ describe("Package Manager", () => {
       cleanupFixture(tempDir);
     });
 
-    // TODO: These tests are environment-dependent and should be run in a CI matrix
-    // with different package managers installed. See ROADMAP.md
-
     it("should default to npm when no indicators", () => {
       const tempDir = createTempWorkspace("muxa-pm-test");
 
