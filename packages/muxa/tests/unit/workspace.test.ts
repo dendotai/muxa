@@ -131,9 +131,6 @@ describe("Workspace", () => {
       process.chdir(originalCwd);
     });
 
-    // TODO: This test is environment-dependent and should be run in a CI matrix
-    // with yarn installed. See ROADMAP.md
-
     it("should handle ambiguous directory names", () => {
       const originalCwd = process.cwd();
       process.chdir(path.join(__dirname, "..", "fixtures", "ambiguous-names"));

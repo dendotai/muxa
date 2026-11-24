@@ -374,7 +374,7 @@ bunx @den-ai/muxa -s frontend dev -s backend dev
 
 - **macOS/Linux**: Full support
 - **Windows**: Requires WSL or Git Bash (due to `sh -c` usage)
-- **Shell**: Always uses `sh` for consistency, not user's shell (see ROADMAP.md for future user shell support)
+- **Shell**: Always uses `sh` for consistency, not user's shell
 - **Path handling**: Converts Windows paths when needed
 
 ## Resource Requirements
@@ -540,8 +540,6 @@ Error: Cannot mix basic and advanced arguments
 
 **Internal usage**: `muxa` passes `mouseScrollSpeed` to dekit in a temporary config file (see "Temporary Config Strategy" above).
 
-**Future**: See ROADMAP.md for potential user-facing config file support.
-
 ## Debugging and Troubleshooting
 
 ### Debug Mode
@@ -706,7 +704,7 @@ Apply changes to package.json? (y/N): y
 - `cd X && cmd` → Converts to `-w X 'cmd'` when workspace exists
 - **NOT converted**:
   - `run-s` / sequential commands → Stay as-is (muxa is for parallel execution)
-  - Commands with fail-fast behavior (`--kill-others`, `--bail`) → Not supported (see ROADMAP.md)
+  - Commands with fail-fast behavior (`--kill-others`, `--bail`) → Not supported
   - Commands that would become longer with muxa
   - Complex shell scripts or pipes
 
