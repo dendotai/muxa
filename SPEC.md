@@ -374,7 +374,7 @@ bunx @den-ai/muxa -s frontend dev -s backend dev
 
 - **macOS/Linux**: Full support
 - **Windows**: Requires WSL or Git Bash (due to `sh -c` usage)
-- **Shell**: Always uses `sh` for consistency, not user's shell
+- **Shell**: Always uses `sh` for consistency, not user's shell (#25)
 - **Path handling**: Converts Windows paths when needed
 
 ## Resource Requirements
@@ -704,7 +704,7 @@ Apply changes to package.json? (y/N): y
 - `cd X && cmd` → Converts to `-w X 'cmd'` when workspace exists
 - **NOT converted**:
   - `run-s` / sequential commands → Stay as-is (muxa is for parallel execution)
-  - Commands with fail-fast behavior (`--kill-others`, `--bail`) → Not supported
+  - Commands with fail-fast behavior (`--kill-others`, `--bail`) → Not supported (#47)
   - Commands that would become longer with muxa
   - Complex shell scripts or pipes
 
