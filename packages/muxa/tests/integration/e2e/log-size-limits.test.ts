@@ -57,6 +57,13 @@ function writeLog(file: string, size: number, age = 0) {
   fs.utimesSync(file, changed, changed);
 }
 
+/** The record of an open run that writes this log file, from this many minutes ago */
+function writeRecord(record: string, logFile: string, age = 0, rotationSize = 100 * KB) {
+  fs.writeFileSync(record, JSON.stringify({ files: [logFile], rotationSize }));
+  const changed = Date.now() / 1000 - 60 * age;
+  fs.utimesSync(record, changed, changed);
+}
+
 async function waitUntil(condition: () => boolean, what: string, timeout = 10000) {
   const deadline = Date.now() + timeout;
   while (!condition()) {
@@ -96,12 +103,20 @@ describe("rotation of a log file", () => {
       ["run-9999999999999-other.json", true],
     ] as const) {
       const { cwd, dir } = createProject({ maxSizePerProcess: "200KB" });
-      fs.writeFileSync(path.join(dir, first), JSON.stringify(["web.log"]));
+      writeRecord(path.join(dir, first), "web.log");
       writeLog(path.join(dir, "web.log"), 100 * KB);
       await runProcesses(["web"], { cwd });
       expect(size(path.join(dir, "web.log.1")) !== undefined).toBe(rotates);
       expect(fs.readdirSync(dir).filter((name) => name.startsWith("run-"))).toEqual([first]);
     }
+  });
+
+  it("comes at the smaller of the limits of the open runs that write the log file", async () => {
+    const { cwd, dir } = createProject();
+    writeRecord(path.join(dir, "run-9999999999999-other.json"), "web.log");
+    writeLog(path.join(dir, "web.log"), 100 * KB);
+    await runProcesses(["web"], { cwd });
+    expect(size(path.join(dir, "web.log.1"))).toBeGreaterThan(100 * KB);
   });
 
   it("brings no warning when the log folder is deleted during the run", async () => {
@@ -414,15 +429,27 @@ describe("total size of the log files", () => {
 
   it("empties the log of another run when its muxa no longer runs", async () => {
     const { cwd, dir } = createProject({ maxSizeTotal: "100KB" });
+    writeRecord(path.join(dir, "run-0000000000001-killed.json"), "other.log", 1);
     writeLog(path.join(dir, "other.log"), 60 * KB);
-    writeLog(path.join(dir, "web.log"), 49 * KB);
-    const record = path.join(dir, "run-killed.json");
-    fs.writeFileSync(record, JSON.stringify(["other.log"]));
-    const changed = Date.now() / 1000 - 60;
-    fs.utimesSync(record, changed, changed);
-    await runProcesses(["web"], { cwd });
-    expect(size(path.join(dir, "other.log"))).toBe(0);
+    writeLog(path.join(dir, "web.log.1"), 20 * KB);
+    // The total comes over the limit only after the first check
+    const run = runInTerminal(["-c", `sleep 1.5; ${numbers(1, 300)}`, "web"], { cwd });
+    await waitUntil(() => size(path.join(dir, "other.log")) === 0, "muxa frees the log");
+    expect(await quit(run)).toBe(0);
+    expect(size(path.join(dir, "web.log.1"))).toBe(20 * KB);
     expect(fs.readdirSync(dir).filter((name) => name.startsWith("run-"))).toEqual([]);
+  });
+
+  it("takes no other run for an ended one at its first check, as after a sleep of the computer", async () => {
+    const { cwd, dir } = createProject({ maxSizeTotal: "100KB" });
+    writeRecord(path.join(dir, "run-0000000000001-asleep.json"), "other.log", 1);
+    writeLog(path.join(dir, "other.log"), 60 * KB);
+    writeLog(path.join(dir, "web.log"), 10 * KB);
+    writeLog(path.join(dir, "web.log.1"), 45 * KB);
+    const run = runInTerminal(["-c", "true", "web"], { cwd });
+    await waitUntil(() => size(path.join(dir, "web.log.1")) === undefined, "muxa frees a log");
+    expect(size(path.join(dir, "other.log"))).toBe(60 * KB);
+    expect(await quit(run)).toBe(0);
   });
 
   it("frees a copy that a killed muxa left", async () => {

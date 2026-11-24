@@ -4,7 +4,7 @@ import * as path from "path";
 import { copyFrom, fileKey } from "./log-files";
 import type { LogLimits } from "./settings";
 
-/** A file in the log folder, with the names of the log files of one open run; the run writes it at each check */
+/** A file in the log folder, with the log files of one open run and the size that rotates them; the run writes it at each check */
 const RUN_RECORD = /^run-.*\.json$/;
 
 const RUN_RECORD_EXPIRY_MS = 30_000;
@@ -23,18 +23,22 @@ interface OpenRun {
   /** The file name of the record; the one of the run that started first comes first */
   record: string;
   logFileKeys: string[];
+  rotationSize: number;
 }
 
 /** The check of the log sizes that a run does again and again, and the record that it is open */
 export class LogLimiter {
   private readonly record: string;
-  private checkedAt = Date.now();
+  private readonly rotationSize: number;
+  private checkedAt = 0;
 
   constructor(
     private readonly logDir: string,
     private readonly logFiles: string[],
     private readonly limits: LogLimits,
   ) {
+    // With a higher limit than the total, a file would be emptied before it is ever rotated
+    this.rotationSize = Math.min(limits.maxSizePerProcess, limits.maxSizeTotal) / 2;
     this.record = `run-${Date.now()}-${randomUUID()}.json`;
   }
 
@@ -57,19 +61,16 @@ export class LogLimiter {
     if (!fs.existsSync(this.logDir)) return;
     attempt(() => this.writeRecord());
     // After a sleep of the computer, the records of the other open runs look expired until their next check
-    const isLate = Date.now() - this.checkedAt > RUN_RECORD_EXPIRY_MS / 2;
+    const canExpire = Date.now() - this.checkedAt < RUN_RECORD_EXPIRY_MS / 2;
     this.checkedAt = Date.now();
-    if (isLate) return;
 
     const openRuns: OpenRun[] = [];
-    for (const dir of dirs) attempt(() => openRuns.push(...listOpenRuns(dir)));
+    for (const dir of dirs) attempt(() => openRuns.push(...listOpenRuns(dir, canExpire)));
 
-    // With a higher limit than the total, a file would be emptied before it is ever rotated
-    const half = Math.min(this.limits.maxSizePerProcess, this.limits.maxSizeTotal) / 2;
     for (const file of this.logFiles) {
       attempt(() => {
         const stat = fs.lstatSync(file, { throwIfNoEntry: false });
-        if (stat?.isFile() && stat.size >= half && this.rotates(file, openRuns)) rotate(file);
+        if (stat?.isFile() && this.rotates(file, stat.size, openRuns)) rotate(file);
       });
     }
 
@@ -99,16 +100,20 @@ export class LogLimiter {
 
   private writeRecord(): void {
     const file = path.join(this.logDir, this.record);
-    const names = this.logFiles.map((logFile) => path.basename(logFile));
+    const files = this.logFiles.map((logFile) => path.basename(logFile));
+    const content = JSON.stringify({ files, rotationSize: this.rotationSize });
     // Renamed, because another run that reads half a record takes this run for an ended one
-    fs.writeFileSync(`${file}.tmp`, JSON.stringify(names));
+    fs.writeFileSync(`${file}.tmp`, content);
     fs.renameSync(`${file}.tmp`, file);
   }
 
   /** Of two open runs with one log file, the first one rotates it: two rotations at one moment lose its content */
-  private rotates(file: string, openRuns: OpenRun[]): boolean {
+  private rotates(file: string, size: number, openRuns: OpenRun[]): boolean {
     const owners = openRuns.filter((run) => run.logFileKeys.includes(fileKey(file)));
-    return owners.every(({ record }) => record >= this.record);
+    return (
+      size >= Math.min(this.rotationSize, ...owners.map((run) => run.rotationSize)) &&
+      owners.every(({ record }) => record >= this.record)
+    );
   }
 
   /** The run no longer writes its log files */
@@ -121,24 +126,25 @@ export class LogLimiter {
   }
 }
 
-function listOpenRuns(dir: string): OpenRun[] {
+function listOpenRuns(dir: string, canExpire: boolean): OpenRun[] {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir).flatMap((name) => {
     if (!RUN_RECORD.test(name)) return [];
     const file = path.join(dir, name);
     const stat = fs.statSync(file, { throwIfNoEntry: false });
     if (!stat) return [];
-    if (Date.now() - stat.mtimeMs > RUN_RECORD_EXPIRY_MS) {
+    if (canExpire && Date.now() - stat.mtimeMs > RUN_RECORD_EXPIRY_MS) {
       fs.rmSync(file, { force: true });
       return [];
     }
     try {
-      const names: unknown = JSON.parse(fs.readFileSync(file, "utf-8"));
-      if (!Array.isArray(names)) return [];
-      const logFileKeys = names.map((logFile) => fileKey(path.join(dir, String(logFile))));
-      return [{ record: name, logFileKeys }];
+      const record: { files: string[]; rotationSize: number } = JSON.parse(
+        fs.readFileSync(file, "utf-8"),
+      );
+      const logFileKeys = record.files.map((logFile) => fileKey(path.join(dir, logFile)));
+      return [{ record: name, logFileKeys, rotationSize: record.rotationSize }];
     } catch {
-      // The other run has just deleted it
+      // The other run has just deleted it, or another program wrote it
       return [];
     }
   });
