@@ -11,10 +11,10 @@ How muxa's tests are built, and the fixture monorepos they need.
 
 ## Test mode
 
-With `MUXA_TEST_MODE=true`, muxa prints the command it would run and starts no dekit:
+With `MUXA_TEST_MODE=true`, muxa prints the command it would run, starts no dekit, and writes no log file:
 
 ```text
-Would execute: dekit mprocs '--proc-list-title' 'basic-npm-monorepo' '--names' 'frontend' 'sh -c '…''
+Would execute: dekit mprocs '--proc-list-title' 'basic-npm-monorepo' '--log-dir' '.muxa/logs' '--log-file' '/…/.muxa/logs/{name}.log' '--log-mode' 'append' '--names' 'frontend' 'sh -c '…''
 FORCE_COLOR=1
 ```
 

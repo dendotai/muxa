@@ -41,7 +41,9 @@ Turns the arguments into one dekit command:
 muxa -s backend dev api -w mobile 'npx expo start'
 
 # Generated command
-dekit mprocs --proc-list-title myapp --names api,mobile \
+dekit mprocs --proc-list-title myapp \
+  --log-dir .muxa/logs --log-file '/path/to/.muxa/logs/{name}.log' --log-mode append \
+  --names api,mobile \
   "sh -c 'cd /path/to/packages/backend && yarn run dev'" \
   "sh -c 'cd /path/to/apps/mobile && npx expo start'"
 ```
@@ -63,7 +65,8 @@ dekit provides:
 2. **Resolve** - Find the workspace packages and the package manager
 3. **Build** - Generate the dekit command, with commands [wrapped in `sh -c`](/cli-reference#shell-wrapping) where needed
 4. **Check** - Validate Settings and tab names
-5. **Execute** - Start dekit, and exit with the code it returns
+5. **Log** - Add the start line to each [log file](/usage#log-files)
+6. **Execute** - Start dekit, and exit with the code it returns
 
 ## Performance Considerations
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { spawn } from "child_process";
 import { version as VERSION } from "../package.json";
-import { buildCommands, buildMprocsArgs } from "./command-builder";
+import { buildCommands, buildMprocsArgs, buildTabNames } from "./command-builder";
 import { dekitBinaryPath } from "./dekit";
+import { resolveLogDir, startLogFiles } from "./log-files";
 import { detectPackageManager } from "./package-manager";
 import { parseArguments } from "./parser";
 import {
@@ -15,6 +16,7 @@ import {
 import {
   checkDuplicateNames,
   checkNestedExecution,
+  confirmPrompt,
   debugLog,
   formatError,
   validateTabName,
@@ -109,11 +111,32 @@ async function main() {
       mprocsConfigFile = file;
     }
 
-    const mprocsArgs = buildMprocsArgs(commands, parsed, { mprocsConfigFile, processListTitle });
+    const testMode = process.env.MUXA_TEST_MODE === "true";
+
+    let logDir: string | undefined = resolveLogDir(cwd);
+    // Test mode starts nothing, so its run gets no start line
+    if (!testMode) {
+      try {
+        startLogFiles(cwd, logDir, buildTabNames(commands, parsed));
+      } catch (error) {
+        console.error(`Warning: muxa cannot write log files in ${logDir}: ${formatError(error)}`);
+        logDir = undefined;
+        // dekit's screen hides the warning until the user quits
+        if (process.stdin.isTTY && !(await confirmPrompt("Continue without log files?"))) {
+          process.exit(1);
+        }
+      }
+    }
+
+    const mprocsArgs = buildMprocsArgs(commands, parsed, {
+      mprocsConfigFile,
+      processListTitle,
+      logDir,
+    });
 
     debugLog(`Executing: dekit mprocs ${mprocsArgs.map((arg) => `'${arg}'`).join(" ")}`);
 
-    if (process.env.MUXA_TEST_MODE === "true") {
+    if (testMode) {
       // Set up environment for test mode too
       const testEnv: NodeJS.ProcessEnv = {
         ...process.env,

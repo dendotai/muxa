@@ -16,6 +16,12 @@ _Avoid_: app, tab, task
 A folder of the monorepo that `-s` and `-w` name.
 _Avoid_: app
 
+**Log file**:
+The file that holds the output of one process.
+
+**Start line**:
+The line `=== muxa started <date time> ===` that opens a run in a log file.
+
 **Tab name**:
 The name of a process in the process list.
 _Avoid_: process name

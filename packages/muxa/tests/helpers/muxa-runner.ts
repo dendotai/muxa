@@ -69,9 +69,9 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
         clearTimeout(timeoutHandle);
 
         if (code === 0) {
-          // Leave out the process list title muxa adds to every run, so command-generation tests do not depend on the runner's folder
+          // Leave out the arguments muxa adds to every run, so command-generation tests check only what their own arguments produce
           const match = stdout.match(
-            /Would execute: dekit mprocs (?:'--proc-list-title' '[^']*' )?(.+)/,
+            /Would execute: dekit mprocs (?:'--proc-list-title' '[^']*' )?(?:'--log-dir' '[^']*' '--log-file' '[^']*' '--log-mode' '[^']*' )?(.+)/,
           );
           resolve({
             command: match && match[1] ? match[1] : null,
