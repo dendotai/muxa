@@ -1,5 +1,8 @@
 // Utility functions for muxa
 
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 import * as readline from "readline";
 import { loadLatinKeyMap } from "./keyboard-layout";
 
@@ -187,4 +190,14 @@ export function formatError(error: unknown): string {
     return error.message;
   }
   return String(error);
+}
+
+/** Whether a project owns the folder; otherwise its logs and its Settings are in the home folder */
+export function hasPackageJson(dir: string): boolean {
+  return fs.existsSync(path.join(dir, "package.json"));
+}
+
+/** The folder of an XDG variable; the XDG spec has programs ignore a relative one */
+export function xdgHome(value: string | undefined, defaultInHome: string): string {
+  return value && path.isAbsolute(value) ? value : path.join(os.homedir(), defaultInHome);
 }

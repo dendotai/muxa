@@ -5,7 +5,7 @@ muxa runs several commands side by side in one terminal, with monorepo awareness
 ## Language
 
 **Settings**:
-Optional values under the `muxa` key of the root `package.json`.
+Optional values under the `muxa` key of the root `package.json`, or in `~/.config/muxa/settings.json` for runs in a folder with no `package.json`.
 _Avoid_: config, configuration file, mprocs settings
 
 **Process**:
@@ -18,6 +18,9 @@ _Avoid_: app
 
 **Log file**:
 The file that holds the output of one process.
+
+**Rotation**:
+The copy of a log file to `<process>.log.1`, after which muxa empties the log file.
 
 **Start line**:
 The line `=== muxa started <date time> ===` that opens a run in a log file.

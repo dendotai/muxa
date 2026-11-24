@@ -21,6 +21,7 @@ export default [
         __filename: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
+        setInterval: "readonly",
         NodeJS: "readonly",
         Bun: "readonly",
         TextDecoder: "readonly",

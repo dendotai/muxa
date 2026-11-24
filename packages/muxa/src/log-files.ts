@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import * as fs from "fs";
-import * as os from "os";
 import * as path from "path";
+import { hasPackageJson, xdgHome } from "./utils";
 
 const PROJECT_LOG_DIR = ".muxa/logs";
 
@@ -25,17 +25,24 @@ export const MAX_TAB_NAME_LENGTH = MAX_FILE_NAME_LENGTH;
  * package.json. Otherwise no project owns the folder, and its logs go to the user's state folder.
  */
 export function resolveLogDir(cwd: string): string {
-  if (fs.existsSync(path.join(cwd, "package.json"))) return PROJECT_LOG_DIR;
-
-  // The XDG spec has programs ignore a relative XDG_STATE_HOME
-  const xdgStateHome = process.env.XDG_STATE_HOME ?? "";
-  const stateHome = path.isAbsolute(xdgStateHome)
-    ? xdgStateHome
-    : path.join(os.homedir(), ".local", "state");
+  if (hasPackageJson(cwd)) return PROJECT_LOG_DIR;
 
   // A doubled `_` keeps `/a_b` apart from `/a/b`; dekit fills in `{name}` and the like in a log folder
   const folder = cwd.replaceAll("_", "__").replace(/[/\\:{}]/g, "_");
-  return path.join(stateHome, "muxa", "logs", lastBytes(folder.replace(/^_/, "") || "_"));
+  return path.join(homeLogDir(), lastBytes(folder.replace(/^_/, "") || "_"));
+}
+
+function homeLogDir(): string {
+  return path.join(xdgHome(process.env.XDG_STATE_HOME, ".local/state"), "muxa", "logs");
+}
+
+/** The folders that share one `maxSizeTotal` with `logDir`, itself included */
+export function logDirsInTotal(cwd: string, logDir: string): string[] {
+  if (logDir === PROJECT_LOG_DIR) return [path.resolve(cwd, logDir)];
+  return fs
+    .readdirSync(homeLogDir(), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(homeLogDir(), entry.name));
 }
 
 /** A process with its name as the user typed it, or its command */
@@ -52,9 +59,10 @@ export interface ProcessNames {
 
 /**
  * Start a run in the log file of each process: a start line, after the output of earlier runs.
- * `logDir` is from `resolveLogDir`, and `names` are in the order dekit gets them.
+ * `logDir` is from `resolveLogDir`, and `names` are in the order dekit gets them. Returns the paths
+ * of the log files.
  */
-export function startLogFiles(cwd: string, logDir: string, names: ProcessNames[]): void {
+export function startLogFiles(cwd: string, logDir: string, names: ProcessNames[]): string[] {
   const dir = path.resolve(cwd, logDir);
   fs.mkdirSync(dir, { recursive: true });
 
@@ -80,6 +88,7 @@ export function startLogFiles(cwd: string, logDir: string, names: ProcessNames[]
   } finally {
     for (const fd of opened) fs.closeSync(fd);
   }
+  return files.map((file) => path.join(dir, file));
 }
 
 /**

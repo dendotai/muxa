@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
 import { createRootPackageWorkspace, createTempWorkspace } from "@tests/helpers/fixture-helpers";
@@ -17,10 +17,6 @@ function workspaceWithRawPackageJson(content: string): string {
 }
 
 describe("readSettings", () => {
-  it("returns no Settings when the folder has no package.json", () => {
-    expect(readSettings(createTempWorkspace("muxa-settings"))).toEqual({});
-  });
-
   it("returns no Settings when package.json has no muxa key", () => {
     expect(readSettings(createRootPackageWorkspace())).toEqual({});
   });
@@ -75,6 +71,98 @@ describe("readSettings", () => {
     expect(() => readSettings(createRootPackageWorkspace({ muxa: 1 }))).toThrow(
       `'muxa' in package.json must be an object`,
     );
+  });
+});
+
+describe("readSettings for log size limits", () => {
+  const settingsWith = (logs: unknown) =>
+    readSettings(createRootPackageWorkspace({ muxa: { logs } }));
+
+  it("reads sizes in KB, MB, and GB as bytes", () => {
+    expect(settingsWith({ maxSizePerProcess: "512KB", maxSizeTotal: "1.5 gb" })).toEqual({
+      logs: { maxSizePerProcess: 524288, maxSizeTotal: 1610612736 },
+    });
+    expect(settingsWith({ maxSizeTotal: "20MB" })).toEqual({ logs: { maxSizeTotal: 20971520 } });
+  });
+
+  it("rejects a value that is not a size above 0", () => {
+    for (const value of ["100", "100MiB", "-1MB", "0MB", "0.0001KB", 100, null, ""]) {
+      expect(() => settingsWith({ maxSizeTotal: value })).toThrow(
+        `'muxa.logs.maxSizeTotal' in package.json must be a size such as "100MB", in KB, MB, or GB, got ${JSON.stringify(value)}`,
+      );
+    }
+  });
+
+  it("rejects an unknown key and names the known keys", () => {
+    expect(() => settingsWith({ maxSize: "1MB" })).toThrow(
+      "Unknown key 'maxSize' in package.json 'muxa.logs'. Known keys: maxSizePerProcess, maxSizeTotal",
+    );
+  });
+
+  it("rejects a logs key that is not an object", () => {
+    for (const value of [false, "100MB", ["100MB"]]) {
+      expect(() => settingsWith(value)).toThrow("'muxa.logs' in package.json must be an object");
+    }
+  });
+});
+
+describe("readSettings in a folder with no package.json", () => {
+  const { XDG_CONFIG_HOME } = process.env;
+  let configHome: string;
+  beforeEach(() => {
+    configHome = createTempWorkspace("muxa-config");
+    process.env.XDG_CONFIG_HOME = configHome;
+  });
+  afterEach(() => {
+    process.env.XDG_CONFIG_HOME = XDG_CONFIG_HOME;
+    if (XDG_CONFIG_HOME === undefined) delete process.env.XDG_CONFIG_HOME;
+  });
+
+  const file = () => path.join(configHome, "muxa", "settings.json");
+  const writeSettings = (content: string) => {
+    fs.mkdirSync(path.dirname(file()), { recursive: true });
+    fs.writeFileSync(file(), content);
+  };
+  const read = () => readSettings(createTempWorkspace("muxa-settings"));
+
+  it("returns no Settings when there is no settings.json", () => {
+    expect(read()).toEqual({});
+  });
+
+  it("reads the same keys as package.json, from settings.json", () => {
+    writeSettings(
+      `{ "mouseScrollSpeed": 2, "processListTitle": "Mine", "logs": { "maxSizeTotal": "1KB" } }`,
+    );
+    expect(read()).toEqual({
+      mouseScrollSpeed: 2,
+      processListTitle: "Mine",
+      logs: { maxSizeTotal: 1024 },
+    });
+  });
+
+  it("is not read in a folder with a package.json", () => {
+    writeSettings(`{ "mouseScrollSpeed": 2 }`);
+    expect(readSettings(createRootPackageWorkspace())).toEqual({});
+    expect(readSettings(workspaceWithRawPackageJson("not JSON"))).toEqual({});
+  });
+
+  it("names settings.json in each error", () => {
+    for (const [content, error] of [
+      [
+        `{ "muxa": {} }`,
+        `Unknown key 'muxa' in ${file()}. Known keys: mouseScrollSpeed, processListTitle, logs`,
+      ],
+      [
+        `{ "logs": { "maxSize": "1MB" } }`,
+        `Unknown key 'maxSize' in ${file()} 'logs'. Known keys: maxSizePerProcess, maxSizeTotal`,
+      ],
+      [`{ "logs": { "maxSizeTotal": 5 } }`, `'logs.maxSizeTotal' in ${file()} must be a size`],
+      [`[]`, `${file()} must hold an object`],
+      [`{ "logs": {}, }`, `${file()} is not valid JSON: `],
+    ] as const) {
+      writeSettings(content);
+      expect(read).toThrow(error);
+    }
   });
 });
 

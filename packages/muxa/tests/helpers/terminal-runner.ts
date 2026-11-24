@@ -70,3 +70,11 @@ export function runInTerminal(
     },
   };
 }
+
+/** Quit muxa as a user does, and return its exit code */
+export async function quit(run: TerminalRun): Promise<number> {
+  run.type("q");
+  await run.waitFor(/Save and quit/);
+  run.type("x");
+  return run.exited();
+}

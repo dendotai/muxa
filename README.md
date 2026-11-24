@@ -166,13 +166,20 @@ Optional. Add a `muxa` key to the `package.json` in the folder you run muxa from
 {
   "muxa": {
     "mouseScrollSpeed": 1,
-    "processListTitle": "Dev"
+    "processListTitle": "Dev",
+    "logs": {
+      "maxSizePerProcess": "100MB",
+      "maxSizeTotal": "500MB"
+    }
   }
 }
 ```
 
 - `mouseScrollSpeed` - Lines to scroll per mouse or touchpad scroll event, a whole number of 1 or more. dekit scrolls 5 by default.
 - `processListTitle` - Heading above the process list, a non-empty string. By default, the `name` in that `package.json`, or the folder name.
+- `logs.maxSizePerProcess`, `logs.maxSizeTotal` - Size limits for the log files, as a number with `KB`, `MB`, or `GB`. The values above are the defaults.
+
+In a folder with no `package.json`, muxa reads the same keys from `~/.config/muxa/settings.json`.
 
 ## Environment Variables
 

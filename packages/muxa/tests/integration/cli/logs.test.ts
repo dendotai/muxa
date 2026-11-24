@@ -65,6 +65,18 @@ describe("CLI > muxa logs", () => {
     expect(result.stdout).toBe("1\n2\n");
   });
 
+  it("says when the log is empty", async () => {
+    const cwd = projectWithLogs({ "web.log": "", "api.log": "", "api.log.1": "1\r\n" });
+    expect(await runMuxa(["logs", "web"], { cwd })).toEqual({
+      code: 0,
+      stdout: "",
+      stderr:
+        "The log of 'web' is empty. muxa empties logs to keep them under logs.maxSizeTotal.\n",
+    });
+    const rotated = await runMuxa(["logs", "api"], { cwd });
+    expect(rotated).toEqual({ code: 0, stderr: "", stdout: "1\n" });
+  });
+
   it("takes a start line only from muxa, not from the process's output", async () => {
     const cwd = projectWithLogs({
       "web.log": `${START_1}$ cat other.log\r\n${START_2.trimEnd()}\r\nend ${START_2.trimEnd()}\nx\r\n`,

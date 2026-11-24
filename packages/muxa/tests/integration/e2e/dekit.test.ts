@@ -8,7 +8,7 @@ import {
   createTempWorkspace,
 } from "@tests/helpers/fixture-helpers";
 import { runMuxa } from "@tests/helpers/muxa-runner";
-import { runInTerminal, type TerminalRun } from "@tests/helpers/terminal-runner";
+import { quit, runInTerminal } from "@tests/helpers/terminal-runner";
 
 const basicNpm = path.join(fixturesPath, "basic-npm");
 
@@ -21,13 +21,6 @@ const createRootFolder = (...extras: Parameters<typeof createRootPackageWorkspac
   toDelete.push(dir);
   return dir;
 };
-
-async function quit(run: TerminalRun): Promise<number> {
-  run.type("q");
-  await run.waitFor(/Save and quit/);
-  run.type("x");
-  return run.exited();
-}
 
 // Each run starts dekit and waits for its screen, which takes longer than a test-mode run
 setDefaultTimeout(15000);

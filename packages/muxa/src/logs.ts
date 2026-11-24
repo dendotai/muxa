@@ -43,6 +43,13 @@ interface FilePart {
  */
 export async function printLog(cwd: string, nameOrCommand: string): Promise<void> {
   const parts = currentRun(resolveLogFile(cwd, nameOrCommand));
+  if (parts.every(({ start, end }) => start === end)) {
+    // On stderr, so a pipe gets only the output of the process
+    console.error(
+      `The log of '${nameOrCommand}' is empty. muxa empties logs to keep them under logs.maxSizeTotal.`,
+    );
+    return;
+  }
 
   const out = process.stdout;
   // A reader that has enough, such as `head`, closes the pipe

@@ -3,13 +3,15 @@ import { spawn } from "child_process";
 import { version as VERSION } from "../package.json";
 import { buildCommands, buildMprocsArgs, buildProcessNames } from "./command-builder";
 import { dekitBinaryPath } from "./dekit";
-import { resolveLogDir, startLogFiles } from "./log-files";
+import { logDirsInTotal, resolveLogDir, startLogFiles } from "./log-files";
+import { enforceLogLimits } from "./log-limits";
 import { printLog } from "./logs";
 import { detectPackageManager } from "./package-manager";
 import { parseArguments, RESERVED_WORDS } from "./parser";
 import {
   readSettings,
   removeTempMprocsConfig,
+  resolveLogLimits,
   resolveProcessListTitle,
   toMprocsConfig,
   writeTempMprocsConfig,
@@ -23,6 +25,8 @@ import {
   validateTabName,
 } from "./utils";
 import { discoverWorkspaces, formatWorkspaceList } from "./workspace";
+
+const LOG_LIMITS_INTERVAL = 1000;
 
 // Main execution
 async function main() {
@@ -124,10 +128,11 @@ async function main() {
     const testMode = process.env.MUXA_TEST_MODE === "true";
 
     let logDir: string | undefined = resolveLogDir(cwd);
+    let logFiles: string[] = [];
     // Test mode starts nothing, so its run gets no start line
     if (!testMode) {
       try {
-        startLogFiles(cwd, logDir, buildProcessNames(commands, parsed));
+        logFiles = startLogFiles(cwd, logDir, buildProcessNames(commands, parsed));
       } catch (error) {
         console.error(`Warning: muxa cannot write log files in ${logDir}: ${formatError(error)}`);
         logDir = undefined;
@@ -200,6 +205,21 @@ async function main() {
       env.FORCE_COLOR = "1";
     }
 
+    const logLimits = resolveLogLimits(cwd, settings);
+    let logLimitsError: unknown;
+    const keepLogLimits = () => {
+      if (!logDir) return;
+      try {
+        enforceLogLimits(logFiles, logDirsInTotal(cwd, logDir), logLimits);
+        logLimitsError = undefined;
+      } catch (error) {
+        logLimitsError = error;
+      }
+    };
+    // Before dekit writes, when a rotation loses no line
+    keepLogLimits();
+    setInterval(keepLogLimits, LOG_LIMITS_INTERVAL);
+
     const proc = spawn(dekitBinaryPath(), ["mprocs", ...mprocsArgs], {
       stdio: "inherit",
       env,
@@ -211,6 +231,12 @@ async function main() {
     });
 
     proc.on("exit", (code) => {
+      // dekit's screen would hide the warning during the run
+      if (logLimitsError) {
+        console.error(
+          `Warning: muxa cannot keep the log files in ${logDir} under their size limits: ${formatError(logLimitsError)}`,
+        );
+      }
       process.exit(code || 0);
     });
 
