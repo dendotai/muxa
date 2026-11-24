@@ -83,10 +83,6 @@ bun run muxa:local      # Run muxa directly from TypeScript source (no build nee
 
 A merge from `dev` into `main` releases. [RELEASING.md](RELEASING.md) has the flow.
 
-## Known Issues
-
-1. **Interactive tests**: The interactive confirmation tests are currently skipped because they require proper TTY emulation. See TODO.md for more details.
-
 ## Code Style
 
 - We use ESLint and Prettier for code formatting
