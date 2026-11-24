@@ -22,66 +22,28 @@ muxa is built as a wrapper around [dekit](https://github.com/pvolok/dekit), the 
 
 ### Command Parser
 
-The parser handles multiple input formats:
-
-```typescript
-// Basic mode
-muxa 'cmd1' 'cmd2'
-
-// Advanced mode with flags
-muxa -c 'cmd1' name1 -c 'cmd2' name2
-
-// Workspace scripts
-muxa -s package script name
-```
-
-Key responsibilities:
-
-- Detect input mode (basic vs advanced)
-- Parse command flags and arguments
-- Validate argument combinations
-- Generate dekit configuration
+Reads the arguments of basic mode and of `-c`, `-s` and `-w` by position ([Options](/cli-reference#options)). muxa parses them itself, with no CLI framework, because a flag takes several arguments.
 
 ### Workspace Resolver
 
-Intelligently finds packages in monorepos:
-
-```typescript
-// Resolution order
-1. Exact package.json name match
-2. Relative path match
-3. Directory name (if unique)
-```
-
-Supports:
-
-- npm/yarn/bun workspaces
-- pnpm workspaces
-- Nested workspace structures
-- Scoped packages (@org/package)
+Finds the packages of npm, Yarn, pnpm and Bun workspaces ([Monorepo Support](/configuration#monorepo-support)), and the package a command names ([Package Resolution](/cli-reference#package-resolution)).
 
 ### Package Manager Detection
 
-Automatic detection strategy:
-
-```typescript
-1. Check lock files (bun.lockb, pnpm-lock.yaml, etc.)
-2. Read packageManager field
-3. Check workspace config files
-4. Default to npm
-```
+Picks the package manager that runs scripts ([Package Manager Detection](/configuration#package-manager-detection)).
 
 ### Command Builder
 
-Transforms user input into dekit commands:
+Turns the arguments into one dekit command:
 
-```typescript
-// User input
-muxa -s backend dev
+```bash
+# User input, with yarn.lock present
+muxa -s backend dev api -w mobile 'npx expo start'
 
-// Generated command
-dekit mprocs --names backend \
-  'sh -c "cd packages/backend && npm run dev"'
+# Generated command
+dekit mprocs --proc-list-title myapp --names api,mobile \
+  "sh -c 'cd /path/to/packages/backend && yarn run dev'" \
+  "sh -c 'cd /path/to/apps/mobile && npx expo start'"
 ```
 
 ## Technical Design
@@ -90,128 +52,35 @@ dekit mprocs --names backend \
 
 dekit provides:
 
-- **Terminal multiplexing** - Split terminal into panes
-- **Interactive support** - Preserves stdin/stdout
+- **Terminal multiplexing** - One terminal per process
+- **Interactive support** - Each process has its own pseudo-terminal
 - **Clean output** - No interleaved logs
-- **Process management** - Graceful shutdown
-
-### Shell Wrapping Strategy
-
-Commands are wrapped with `sh -c` when they contain:
-
-```typescript
-const needsShell = /[&|;><$`*?{}[\]()]/;
-```
-
-This ensures:
-
-- Shell features work correctly
-- Environment variables expand
-- Glob patterns resolve
-- Operators function properly
+- **Process management** - Start, stop and restart from the process list
 
 ### Process Execution Flow
 
-1. **Parse** - Analyze command-line arguments
-2. **Resolve** - Find workspace packages if needed
-3. **Build** - Generate dekit command
-4. **Execute** - Spawn dekit with built command
-5. **Monitor** - Pass through exit codes
-
-## Key Features Implementation
-
-### Workspace Commands
-
-```typescript
-// -s flag implementation
-1. Resolve package location
-2. Build cd command
-3. Append script execution
-4. Wrap in shell
-```
-
-### Process Naming
-
-```typescript
-// Automatic naming
-muxa -c 'npm run dev' -> [npm run dev]
-
-// Custom naming
-muxa -c 'npm run dev' frontend -> [frontend]
-```
-
-### Exit Code Handling
-
-```typescript
-// Pass through dekit exit code, which is 0 after a quit
-process.exit(dekitProcess.exitCode);
-```
+1. **Parse** - Read the command-line arguments
+2. **Resolve** - Find the workspace packages and the package manager
+3. **Build** - Generate the dekit command, with commands [wrapped in `sh -c`](/cli-reference#shell-wrapping) where needed
+4. **Check** - Validate Settings and tab names
+5. **Execute** - Start dekit, and exit with the code it returns
 
 ## Performance Considerations
 
-### Minimal Overhead
-
-- Direct execution via dekit
-- No polling or watching
-- Efficient process spawning
-- Native terminal performance
-
-### Memory Usage
-
-- Lightweight wrapper (~50KB)
-- dekit handles process management
-- No persistent state
-- Minimal dependencies
-
-## Error Handling
-
-### Validation Errors
-
-- Mixed argument modes
-- Missing required parameters
-- Invalid package identifiers
-- Ambiguous workspace names
-
-### Runtime Errors
-
-- Command execution failures
-- Missing scripts
-- Package resolution failures
-- dekit spawn errors
+muxa starts the dekit binary (Rust) directly, then waits for it to exit.
 
 ## Security Considerations
 
 ### Command Injection
 
-- Commands are passed directly to shell
-- No additional escaping/sanitization
-- Users responsible for command safety
+- Commands run as you wrote them, with your user's rights
+- muxa does not check what a command does
 - Same security model as direct shell usage
 
 ### File System Access
 
-- Only reads package.json files
-- No file modifications
-- Respects file permissions
-- Works within project boundaries
-
-## Debugging
-
-### Debug Mode
-
-Future versions may include:
-
-```bash
-muxa --debug -c 'npm run dev'
-# Shows resolved packages, generated commands, etc.
-```
-
-### Verbose Output
-
-```bash
-muxa --verbose workspaces
-# Detailed workspace detection info
-```
+- Reads `package.json` files, `pnpm-workspace.yaml`, and the names of lockfiles
+- Writes one file: the temporary config that [`mouseScrollSpeed`](/configuration#settings) needs
 
 ## Comparison with Alternatives
 

@@ -75,7 +75,7 @@ bun run muxa:local      # Run muxa directly from TypeScript source (no build nee
 6. Add tests for your changes
    - Write tests in the appropriate test directory under `packages/muxa/tests/`
    - Follow existing test patterns (unit tests in `tests/unit/`, integration tests in `tests/integration/`)
-   - Ensure all tests pass with `bun test`
+   - Ensure all tests pass with `bun run test`
 7. Commit your changes with a conventional prefix (`feat:`, `fix:`, `docs:`, …): the prefixes set the next version, and commitlint checks each commit
 8. Push your branch and create a pull request into `dev`
 
@@ -95,5 +95,4 @@ A merge from `dev` into `main` releases. [RELEASING.md](RELEASING.md) has the fl
 If you have questions or need help, feel free to:
 
 - Open an issue for bugs or feature requests
-- Start a discussion for general questions
 - Check existing issues and PRs for similar topics
