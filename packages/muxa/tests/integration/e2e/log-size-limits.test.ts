@@ -7,12 +7,14 @@ import {
   createRootPackageWorkspace,
   createTempWorkspace,
 } from "@tests/helpers/fixture-helpers";
+import { muxaPath, muxaRuntime } from "@tests/helpers/constants";
 import { runMuxa } from "@tests/helpers/muxa-runner";
 import { quit, runInTerminal } from "@tests/helpers/terminal-runner";
 
 // Each run starts dekit, and muxa checks the sizes once per second
 setDefaultTimeout(30000);
 
+const START_LINE = "=== muxa started 2026-01-31 09:30:00+01:00 ===\n".length;
 const KB = 1024;
 const MB = 1024 * KB;
 
@@ -31,7 +33,7 @@ function createProject(logs?: { maxSizePerProcess?: string; maxSizeTotal?: strin
 }
 
 /** A folder with no package.json, in a home folder of its own */
-function createHome(settings?: object) {
+function createHome(settings?: { logs: { maxSizeTotal: string } }) {
   const home = fs.realpathSync(createTempWorkspace());
   toDelete.push(home);
   const cwd = path.join(home, "work");
@@ -63,6 +65,13 @@ async function waitUntil(condition: () => boolean, what: string, timeout = 10000
   }
 }
 
+/** In a log file, where a pseudo-terminal ends a line with \r\n, and on macOS now and then with \r\r\n */
+const LINE = 101;
+
+/** A command that prints one number on each line */
+const numbers = (from: number, to: number) =>
+  `awk 'BEGIN { for (i = ${from}; i <= ${to}; i++) printf "%099d\\n", i }'`;
+
 const size = (file: string) => fs.statSync(file, { throwIfNoEntry: false })?.size;
 const read = (file: string) => fs.readFileSync(file, "latin1");
 
@@ -81,25 +90,29 @@ describe("rotation of a log file", () => {
   it("moves the output to .log.1 at half of maxSizePerProcess, and muxa logs joins both", async () => {
     const { cwd, dir } = createProject({ maxSizePerProcess: "200KB" });
     const file = path.join(dir, "web.log");
+    const until = (name: string) => `until [ -e ${name} ]; do sleep 0.1; done`;
     const run = runInTerminal(
       [
         "-c",
-        "seq -f %099.0f 1 1500; until [ -e go ]; do sleep 0.1; done; echo after",
+        `${numbers(1, 1000)}; ${until("more")}; ${numbers(1001, 1050)}; ${until("after")}; echo after`,
         "web",
         "-c",
-        "seq -f %099.0f 1 900",
+        numbers(1, 900),
         "api",
       ],
       { cwd },
     );
-    await waitUntil(() => (size(`${file}.1`) ?? 0) > 100 * KB && size(file) === 0, "web rotates");
-    fs.writeFileSync(path.join(cwd, "go"), "");
+    await waitUntil(() => (size(file) ?? 0) >= 1000 * LINE + START_LINE, "web writes");
+    // Two checks of the sizes
+    await Bun.sleep(2100);
+    expect(size(`${file}.1`)).toBeUndefined();
+    fs.writeFileSync(path.join(cwd, "more"), "");
+    await waitUntil(() => size(`${file}.1`) !== undefined && size(file) === 0, "web rotates");
+    fs.writeFileSync(path.join(cwd, "after"), "");
     await waitUntil(() => (size(file) ?? 0) > 0, "web writes on");
     expect(await quit(run)).toBe(0);
 
-    const lines = read(`${file}.1`).split("\r\n");
-    expect(lines).toHaveLength(1501);
-    expect(lines[1499]).toEndWith("01500");
+    expect(read(`${file}.1`)).toEndWith(`${"1050".padStart(99, "0")}\r\n`);
     expect(read(file)).toBe("after\r\n");
     expect(fs.readdirSync(dir).sort()).toEqual([
       "api.log",
@@ -109,9 +122,13 @@ describe("rotation of a log file", () => {
     ]);
 
     const { stdout } = await runMuxa(["logs", "web"], { cwd });
-    expect(stdout).toStartWith("=== muxa started ");
-    expect(stdout.split("\n")).toHaveLength(1503);
-    expect(stdout).toEndWith("01500\nafter\n");
+    const [startLine, ...lines] = stdout.split("\n");
+    expect(startLine).toStartWith("=== muxa started ");
+    expect(lines).toEqual([
+      ...Array.from({ length: 1050 }, (_, i) => String(i + 1).padStart(99, "0")),
+      "after",
+      "",
+    ]);
   });
 
   it("replaces an earlier .log.1", async () => {
@@ -163,28 +180,56 @@ describe("rotation of a log file", () => {
   it("loses few lines of a fast writer", async () => {
     const { cwd, dir } = createProject({ maxSizePerProcess: "2MB" });
     const file = path.join(dir, "web.log");
-    const run = runInTerminal(["-c", "seq -f %099.0f 1 100000000", "web"], { cwd });
-    const older = () => fs.statSync(`${file}.1`, { throwIfNoEntry: false })?.ino;
+    const run = runInTerminal(["-c", numbers(1, 100_000_000), "web"], { cwd });
+    // Each rotation brings another first line; a new file can get the inode of the old one
+    const older = () => (size(`${file}.1`) ? read(`${file}.1`).slice(0, 200) : "");
 
     const ROTATIONS = 5;
     const lost: number[] = [];
-    let rotated = 0;
-    for (let seen = older(); lost.length < ROTATIONS; seen = older()) {
-      await waitUntil(() => older() !== seen && older() !== undefined, "web rotates");
+    let last = 0;
+    for (let seen = ""; lost.length < ROTATIONS; seen = older()) {
+      await waitUntil(() => older() !== seen, "web rotates");
+      await waitUntil(() => (size(file) ?? Infinity) < 500 * KB, "web is empty", 1000);
+      await waitUntil(() => (size(file) ?? 0) > 10 * KB, "web writes on");
       // The last line before the rotation and the first one after it can be one line, cut in two
-      await waitUntil(() => (size(file) ?? 0) > 10 * KB && older() !== seen, "web writes on");
-      await Bun.sleep(100);
       const text = read(`${file}.1`).slice(-10 * KB) + read(file).slice(0, 10 * KB);
       const lines = (text.match(/^\d{99}(?=\r$)/gm) ?? []).map(Number);
       const gaps = lines.slice(1).map((line, i) => line - (lines[i] ?? 0) - 1);
       lost.push(gaps.reduce((sum, gap) => sum + gap, 0));
-      rotated = lines.at(-1) ?? 0;
+      last = lines.at(-1) ?? 0;
     }
     expect(await quit(run)).toBe(0);
 
-    console.log(`Lines lost in ${ROTATIONS} rotations, of ${rotated} lines: ${lost.join(", ")}`);
+    console.log(`Lines lost in ${ROTATIONS} rotations, of ${last} lines: ${lost.join(", ")}`);
     expect(Math.min(...lost)).toBeGreaterThanOrEqual(0);
-    expect(lost.reduce((sum, count) => sum + count, 0)).toBeLessThan(rotated / 100);
+    expect(lost.reduce((sum, count) => sum + count, 0)).toBeLessThan(last / 100);
+  });
+});
+
+describe("muxa logs beside a rotation", () => {
+  it("prints each line once to a slow reader", async () => {
+    const { cwd, dir } = createProject({ maxSizePerProcess: "8MB" });
+    const file = path.join(dir, "web.log");
+    // Under half of the limit, and more than a pipe holds
+    const COUNT = 40000;
+    const run = runInTerminal(
+      ["-c", `${numbers(1, COUNT)}; until [ -e go ]; do sleep 0.1; done; seq 1 60000`, "web"],
+      { cwd },
+    );
+    await waitUntil(() => (size(file) ?? 0) >= COUNT * LINE + START_LINE, "web writes");
+    const logs = Bun.spawn([muxaRuntime, muxaPath, "logs", "web"], { cwd, stdout: "pipe" });
+    const reader = logs.stdout.getReader();
+    const decoder = new TextDecoder();
+    let text = decoder.decode((await reader.read()).value);
+    fs.writeFileSync(path.join(cwd, "go"), "");
+    await waitUntil(() => size(`${file}.1`) !== undefined, "web rotates");
+    await waitUntil(() => (size(file) ?? Infinity) < 4 * MB, "web is empty");
+    for (let chunk; !(chunk = await reader.read()).done; ) text += decoder.decode(chunk.value);
+    expect(await quit(run)).toBe(0);
+
+    const lines = text.split("\n").slice(1, -1);
+    expect(lines.length).toBe(COUNT);
+    expect(lines.findIndex((line, i) => Number(line) !== i + 1)).toBe(-1);
   });
 });
 
@@ -269,23 +314,53 @@ describe("total size of the log files", () => {
     expect(size(path.join(logs, "another_folder", "web.log"))).toBe(0);
   });
 
-  it("counts no file that muxa did not write, and follows no link", async () => {
+  it("counts only log files, and follows no link", async () => {
     const { cwd, dir } = createProject({ maxSizeTotal: "100KB" });
     writeLog(path.join(dir, "notes.txt"), 200 * KB);
     writeLog(path.join(cwd, "mine.log"), 200 * KB);
     fs.symlinkSync(path.join(cwd, "mine.log"), path.join(dir, "link.log"));
     writeLog(path.join(dir, "old.log"), 50 * KB, 1);
-    await runProcesses(["web"], { cwd });
+    await runProcesses(["web", "link"], { cwd });
     expect(size(path.join(dir, "old.log"))).toBe(50 * KB);
     expect(size(path.join(dir, "notes.txt"))).toBe(200 * KB);
-    expect(size(path.join(cwd, "mine.log"))).toBe(200 * KB);
+    expect(size(path.join(cwd, "mine.log"))).toBeGreaterThan(200 * KB);
   });
+
+  it("frees only as much as needed beside a file and a folder that muxa cannot change", async () => {
+    const { cwd, logs, env } = createHome({ logs: { maxSizeTotal: "100KB" } });
+    const locked = path.join(logs, "locked_folder");
+    writeLog(path.join(logs, "another_folder", "locked.log"), 200 * KB, 3);
+    writeLog(path.join(logs, "another_folder", "old.log"), 60 * KB, 2);
+    writeLog(path.join(logs, "another_folder", "past.log"), 60 * KB, 1);
+    writeLog(path.join(locked, "web.log"), 200 * KB, 4);
+    fs.chmodSync(path.join(logs, "another_folder", "locked.log"), 0o444);
+    fs.chmodSync(locked, 0o000);
+    const run = await runProcesses(["web"], { cwd, env });
+    fs.chmodSync(locked, 0o755);
+    expect(size(path.join(logs, "another_folder", "old.log"))).toBe(0);
+    expect(size(path.join(logs, "another_folder", "past.log"))).toBe(60 * KB);
+    expect(run.output()).toContain("under their size limits: EACCES");
+  });
+
+  it.skipIf(process.platform !== "darwin")(
+    "counts the files of a process whose name differs in case as its own",
+    async () => {
+      const { cwd, dir } = createProject({ maxSizeTotal: "200KB" });
+      writeLog(path.join(dir, "Web.log"), 60 * KB);
+      writeLog(path.join(dir, "web.log.1"), 70 * KB);
+      writeLog(path.join(dir, "api.log"), 5 * KB);
+      writeLog(path.join(dir, "api.log.1"), 80 * KB);
+      await runProcesses(["web", "api"], { cwd });
+      expect(size(path.join(dir, "web.log.1"))).toBeUndefined();
+      expect(size(path.join(dir, "api.log.1"))).toBe(80 * KB);
+    },
+  );
 
   it("empties the log of a process of another run, which then writes on in it", async () => {
     const { cwd, dir } = createProject();
     const file = path.join(dir, "other.log");
     const other = runInTerminal(
-      ["-c", "seq -f %099.0f 1 450; until [ -e go ]; do sleep 0.1; done; echo after", "other"],
+      ["-c", `${numbers(1, 450)}; until [ -e go ]; do sleep 0.1; done; echo after`, "other"],
       { cwd },
     );
     await waitUntil(() => (size(file) ?? 0) > 450 * 100, "other writes");

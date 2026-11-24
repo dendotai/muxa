@@ -67,9 +67,12 @@ const LOG_SETTINGS: Parsers<Partial<LogLimits>> = {
 };
 
 function parseSize(value: unknown, place: Place): number {
-  const [, number, unit] = /^(\d+(?:\.\d+)?) ?(KB|MB|GB)$/i.exec(String(value)) ?? [];
-  const bytes = Math.floor(Number(number) * BYTES[unit?.toUpperCase() as keyof typeof BYTES]);
-  if (typeof value !== "string" || !(bytes >= 1)) {
+  const [, number, unit] =
+    (typeof value === "string" && /^(\d+(?:\.\d+)?) ?(KB|MB|GB)$/i.exec(value)) || [];
+  const bytes = unit
+    ? Math.floor(Number(number) * BYTES[unit.toUpperCase() as keyof typeof BYTES])
+    : 0;
+  if (bytes < 1) {
     throw new Error(
       `${label(place)} must be a size such as "100MB", in KB, MB, or GB, got ${JSON.stringify(value)}`,
     );

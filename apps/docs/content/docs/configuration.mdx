@@ -66,7 +66,7 @@ There, `maxSizePerProcess` is `"50MB"` by default, and `maxSizeTotal` is `"200MB
 
 Each process has two [log files](/usage#log-files): `web.log`, which gets the new output, and `web.log.1`, which holds the output before it. `muxa logs web` reads both.
 
-Once per second, muxa checks the sizes. When `web.log` reaches half of `maxSizePerProcess`, or half of `maxSizeTotal` if that is smaller, muxa copies it over `web.log.1` and then empties `web.log`. The two files stay under `maxSizePerProcess` together, apart from what a process writes within that second.
+Once per second, muxa checks the sizes. When `web.log` reaches half of `maxSizePerProcess`, or half of `maxSizeTotal` if that is smaller, muxa replaces `web.log.1` with a copy of it and then empties `web.log`. The two files together stay near `maxSizePerProcess`.
 
 When the log files together reach `maxSizeTotal`, muxa frees space in this order, until they are under it:
 
@@ -79,7 +79,7 @@ When the log files together reach `maxSizeTotal`, muxa frees space in this order
   rare: only a process that writes without a pause loses a few lines, and not at each rotation.
 </Callout>
 
-When muxa cannot keep the files under their limits, for example on a full disk, the processes run on, and muxa prints a warning after you quit.
+When muxa cannot keep the files under their limits, for example on a full disk, the processes run on. If the last check failed, muxa prints a warning after you quit.
 
 ## Package Manager Detection
 

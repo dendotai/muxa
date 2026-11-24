@@ -26,7 +26,7 @@ import {
 } from "./utils";
 import { discoverWorkspaces, formatWorkspaceList } from "./workspace";
 
-const LOG_LIMITS_INTERVAL = 1000;
+const LOG_LIMITS_INTERVAL_MS = 1000;
 
 // Main execution
 async function main() {
@@ -205,20 +205,22 @@ async function main() {
       env.FORCE_COLOR = "1";
     }
 
-    const logLimits = resolveLogLimits(cwd, settings);
     let logLimitsError: unknown;
-    const keepLogLimits = () => {
-      if (!logDir) return;
-      try {
-        enforceLogLimits(logFiles, logDirsInTotal(cwd, logDir), logLimits);
-        logLimitsError = undefined;
-      } catch (error) {
-        logLimitsError = error;
-      }
-    };
-    // Before dekit writes, when a rotation loses no line
-    keepLogLimits();
-    setInterval(keepLogLimits, LOG_LIMITS_INTERVAL);
+    if (logDir) {
+      const runLogDir = logDir;
+      const logLimits = resolveLogLimits(cwd, settings);
+      const keepLogLimits = () => {
+        try {
+          enforceLogLimits(logFiles, logDirsInTotal(cwd, runLogDir), logLimits);
+          logLimitsError = undefined;
+        } catch (error) {
+          logLimitsError = error;
+        }
+      };
+      // Before dekit writes, when a rotation loses no line
+      keepLogLimits();
+      setInterval(keepLogLimits, LOG_LIMITS_INTERVAL_MS);
+    }
 
     const proc = spawn(dekitBinaryPath(), ["mprocs", ...mprocsArgs], {
       stdio: "inherit",

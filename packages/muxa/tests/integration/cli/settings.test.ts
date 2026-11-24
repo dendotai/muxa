@@ -55,17 +55,17 @@ describe("CLI > Settings in package.json", () => {
 
 describe("CLI > Settings in settings.json", () => {
   it.each([
-    [".config", ""],
-    [".config", "relative/is-ignored"],
-    ["xdg", "xdg"],
-  ])("are read from %s in the home folder when XDG_CONFIG_HOME is '%s'", async (folder, xdg) => {
+    [".config", () => ""],
+    [".config", () => "relative/is-ignored"],
+    ["xdg", (home: string) => path.join(home, "xdg")],
+  ])("are read from %s in the home folder", async (folder, xdgConfigHome) => {
     const home = createTempWorkspace();
     fs.mkdirSync(path.join(home, folder, "muxa"), { recursive: true });
     fs.writeFileSync(
       path.join(home, folder, "muxa", "settings.json"),
       `{ "processListTitle": "Mine" }`,
     );
-    const env = { HOME: home, XDG_CONFIG_HOME: folder === "xdg" ? path.join(home, xdg) : xdg };
+    const env = { HOME: home, XDG_CONFIG_HOME: xdgConfigHome(home) };
     const start = (cwd: string) => runMuxa(["echo hi"], { cwd, env });
     expect((await start(createTempWorkspace())).stdout).toContain("'--proc-list-title' 'Mine'");
     expect((await start(createRootPackageWorkspace())).stdout).toContain(

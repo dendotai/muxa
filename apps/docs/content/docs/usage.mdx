@@ -186,7 +186,7 @@ At each start, muxa adds a line with the local date, time, and time zone to the 
 === muxa started 2026-01-31 09:30:00+01:00 ===
 ```
 
-The lines after the last start line belong to the current run, and those above it to earlier runs. A start clears no file; the [size limits](/configuration#log-size-limits) keep the files from filling the disk.
+The lines after the last start line belong to the current run, and those above it to earlier runs. muxa keeps the output of earlier runs until the files reach their [size limits](/configuration#log-size-limits).
 
 A `proc_log` in your own `mprocs.yaml` does not change where muxa writes these files.
 

@@ -17,10 +17,10 @@ A folder of the monorepo that `-s` and `-w` name.
 _Avoid_: app
 
 **Log file**:
-The file that holds the output of one process.
+A file that holds the output of one process: `<process>.log`, or `<process>.log.1` for the output before the last rotation.
 
 **Rotation**:
-The copy of a log file to `<process>.log.1`, after which muxa empties the log file.
+The copy of `<process>.log` to `<process>.log.1`, after which muxa empties `<process>.log`.
 
 **Start line**:
 The line `=== muxa started <date time> ===` that opens a run in a log file.

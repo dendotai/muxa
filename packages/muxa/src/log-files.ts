@@ -92,28 +92,23 @@ export function startLogFiles(cwd: string, logDir: string, names: ProcessNames[]
 }
 
 /**
- * The size of a log file and the offset of its last start line, if it has one. It reads from the end,
- * because a log file can be too large for memory.
+ * The size of an open log file and the offset of its last start line, if it has one. It reads from
+ * the end, because a log file can be too large for memory.
  */
-export function lastStartLineOffset(file: string): { size: number; offset?: number } {
+export function lastStartLineOffset(fd: number): { size: number; offset?: number } {
   const CHUNK = 64 * 1024;
   const OVERLAP = 128; // More than a start line, which can begin in one chunk and end in the next
-  const fd = fs.openSync(file, "r");
-  try {
-    const { size } = fs.fstatSync(fd);
-    for (let end = size; end > 0; end -= CHUNK) {
-      const start = Math.max(0, end - CHUNK - OVERLAP);
-      const bytes = Buffer.alloc(end - start);
-      const length = fs.readSync(fd, bytes, 0, bytes.length, start);
-      // In latin1 a byte is a character, so an index is an offset; the first line of the file gets a `\n` before it
-      const text = (start === 0 ? "\n" : "") + bytes.toString("latin1", 0, length);
-      const last = [...text.matchAll(START_LINE)].pop();
-      if (last) return { size, offset: start + last.index - (start === 0 ? 1 : 0) };
-    }
-    return { size };
-  } finally {
-    fs.closeSync(fd);
+  const { size } = fs.fstatSync(fd);
+  for (let end = size; end > 0; end -= CHUNK) {
+    const start = Math.max(0, end - CHUNK - OVERLAP);
+    const bytes = Buffer.alloc(end - start);
+    const length = fs.readSync(fd, bytes, 0, bytes.length, start);
+    // In latin1 a byte is a character, so an index is an offset; the first line of the file gets a `\n` before it
+    const text = (start === 0 ? "\n" : "") + bytes.toString("latin1", 0, length);
+    const last = [...text.matchAll(START_LINE)].pop();
+    if (last) return { size, offset: start + last.index - (start === 0 ? 1 : 0) };
   }
+  return { size };
 }
 
 /** The processes of the last run and of earlier runs with a log file in `dir`, or none when muxa cannot tell */

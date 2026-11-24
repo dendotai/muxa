@@ -33,17 +33,27 @@ const keepColors = (text: string) =>
 const ERASE_LINE = "\x1b[2K";
 
 interface FilePart {
-  file: string;
+  fd: number;
+  /** Whether a rotation can empty the file */
+  isCurrent: boolean;
   start: number;
   end: number;
+}
+
+/** The files stay open, so a rotation that replaces the `.1` file takes nothing from a slow reader */
+interface CurrentRun {
+  /** Oldest first */
+  parts: FilePart[];
+  /** Once a rotation moved the content of the log file, the new `.1` file that has it */
+  openRotated: () => number | undefined;
 }
 
 /**
  * Print the output of a process since its last start line.
  */
 export async function printLog(cwd: string, nameOrCommand: string): Promise<void> {
-  const parts = currentRun(resolveLogFile(cwd, nameOrCommand));
-  if (parts.every(({ start, end }) => start === end)) {
+  const run = currentRun(resolveLogFile(cwd, nameOrCommand));
+  if (run.parts.every(({ start, end }) => start === end)) {
     // On stderr, so a pipe gets only the output of the process
     console.error(
       `The log of '${nameOrCommand}' is empty. muxa empties logs to keep them under logs.maxSizeTotal.`,
@@ -58,7 +68,7 @@ export async function printLog(cwd: string, nameOrCommand: string): Promise<void
   });
 
   const format = out.isTTY ? keepColors : toPlainText;
-  for await (const lines of readLines(parts)) {
+  for (const lines of readLines(run)) {
     const text = lines.map((line) => `${format(lastState(line))}\n`).join("");
     if (text && !out.write(text)) await once(out, "drain");
   }
@@ -126,26 +136,64 @@ function listLogFiles(dir: string): string[] {
   return [...new Set(files.map((file) => file.replace(/\.1$/, "")))].sort();
 }
 
-/** The parts of the log files that hold the current run, oldest first */
-function currentRun(file: string): FilePart[] {
+/** The parts of the log files that hold the current run */
+function currentRun(file: string): CurrentRun {
+  const older = openIfExists(`${file}.1`);
+  const olderId = fileId(older);
+  // A new file cannot get the id of an open one
+  const isRotated = () => ![undefined, olderId].includes(fileId(`${file}.1`));
+  const current = openIfExists(file);
+
   const parts: FilePart[] = [];
-  for (const candidate of [file, `${file}.1`]) {
-    if (!fs.existsSync(candidate)) continue;
-    const { size, offset } = lastStartLineOffset(candidate);
-    parts.unshift({ file: candidate, start: offset ?? 0, end: size });
+  for (const fd of [current, older]) {
+    if (fd === undefined) continue;
+    const { size, offset } = lastStartLineOffset(fd);
+    parts.unshift({ fd, isCurrent: fd === current, start: offset ?? 0, end: size });
     if (offset !== undefined) break;
   }
-  return parts;
+  if (isRotated()) return currentRun(file);
+  return {
+    parts,
+    openRotated: () => (isRotated() ? openIfExists(`${file}.1`) : undefined),
+  };
 }
 
-/** The lines of `parts` as one text, in batches, without their line ends */
-async function* readLines(parts: FilePart[]): AsyncGenerator<string[]> {
+function openIfExists(file: string): number | undefined {
+  try {
+    return fs.openSync(file, "r");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
+function fileId(file: number | string | undefined): number | undefined {
+  if (file === undefined) return undefined;
+  return typeof file === "number"
+    ? fs.fstatSync(file).ino
+    : fs.statSync(file, { throwIfNoEntry: false })?.ino;
+}
+
+/** The lines of the parts as one text, in batches, without their line ends */
+function* readLines({ parts, openRotated }: CurrentRun): Generator<string[]> {
   const decoder = new StringDecoder("utf8");
+  const chunk = Buffer.alloc(64 * 1024);
   let rest = "";
-  for (const { file, start, end } of parts) {
-    if (start === end) continue;
-    for await (const chunk of fs.createReadStream(file, { start, end: end - 1 })) {
-      const lines = decoder.write(chunk).split("\n");
+  for (const { fd, isCurrent, start, end } of parts) {
+    let source = fd;
+    for (let offset = start; offset < end; ) {
+      const read = () =>
+        fs.readSync(source, chunk, 0, Math.min(chunk.length, end - offset), offset);
+      let length = read();
+      // After the read, because a rotation can come before it or during it
+      const rotated = isCurrent && source === fd ? openRotated() : undefined;
+      if (rotated !== undefined) {
+        source = rotated;
+        length = read();
+      }
+      if (length === 0) break;
+      offset += length;
+      const lines = decoder.write(chunk.subarray(0, length)).split("\n");
       lines[0] = rest + lines[0];
       rest = lines.pop() ?? "";
       yield lines;

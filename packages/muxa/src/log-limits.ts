@@ -5,18 +5,19 @@ import type { LogLimits } from "./settings";
 
 const CHUNK = 64 * 1024;
 
-interface LogPart {
+interface SizedFile {
   file: string;
-  /** The `<process>.log` file that this is, or that this is the `.1` file of */
-  current: string;
+  /** The same for the `.log` and the `.log.1` file of a process */
+  processKey: string;
+  isOlder: boolean;
   size: number;
   changedAt: number;
 }
 
 /**
  * Rotate each log file of this run that reached half of its limit, then free the space above
- * `maxSizeTotal` in `dirs`. An error on one file leaves the others in their limits, and the first
- * error is thrown at the end.
+ * `maxSizeTotal` in `dirs`. An error on one file or folder leaves the others in their limits, and the
+ * first error is thrown at the end.
  */
 export function enforceLogLimits(logFiles: string[], dirs: string[], limits: LogLimits): void {
   const errors: unknown[] = [];
@@ -32,21 +33,23 @@ export function enforceLogLimits(logFiles: string[], dirs: string[], limits: Log
   const half = Math.min(limits.maxSizePerProcess, limits.maxSizeTotal) / 2;
   for (const file of logFiles) {
     attempt(() => {
-      const { size = 0 } = fs.statSync(file, { throwIfNoEntry: false }) ?? {};
-      if (size >= half) rotate(file);
+      const stat = fs.lstatSync(file, { throwIfNoEntry: false });
+      if (stat?.isFile() && stat.size >= half) rotate(file);
     });
   }
 
-  const parts = dirs.flatMap(listParts);
-  let total = parts.reduce((sum, { size }) => sum + size, 0);
+  const files: SizedFile[] = [];
+  for (const dir of dirs) attempt(() => files.push(...listLogFiles(dir)));
+  let total = files.reduce((sum, { size }) => sum + size, 0);
   if (total >= limits.maxSizeTotal) {
-    for (const part of inFreeingOrder(parts, logFiles)) {
+    for (const { file, isOlder, size } of inFreeingOrder(files, logFiles)) {
       if (total < limits.maxSizeTotal) break;
+      // Also when it fails: a file that muxa cannot free must not cost the output of the others
+      total -= size;
       attempt(() => {
-        // dekit can hold a current log open, also in another run, and then writes on into a deleted file
-        if (part.file === part.current) fs.truncateSync(part.file);
-        else fs.rmSync(part.file, { force: true });
-        total -= part.size;
+        // dekit can hold a `.log` file open, also in another run, and then writes on into a deleted file
+        if (isOlder) fs.rmSync(file, { force: true });
+        else fs.truncateSync(file);
       });
     }
   }
@@ -57,56 +60,68 @@ export function enforceLogLimits(logFiles: string[], dirs: string[], limits: Log
 /** Move the content of a log file that dekit writes to its `.1` file (ADR 0002) */
 function rotate(file: string): void {
   const older = `${file}.1`;
-  // Before the copy, so the two files take no more than the limit, and a clone finds no file in its place
+  // Before the copy, so the files take no more than the limit
   fs.rmSync(older, { force: true });
-  let from: number | undefined;
+
+  // `muxa logs` takes a new `.1` file for one that holds the whole log file
+  const copy = `${older}.tmp`;
+  const from = fs.openSync(file, "r+");
   let to: number | undefined;
   try {
-    fs.copyFileSync(file, older, fs.constants.COPYFILE_FICLONE);
-    from = fs.openSync(file, "r+");
-    to = fs.openSync(older, "a");
-    const chunk = Buffer.alloc(CHUNK);
-    let offset = fs.fstatSync(to).size;
-    for (let length; (length = fs.readSync(from, chunk, 0, CHUNK, offset)) > 0; offset += length) {
-      fs.appendFileSync(to, chunk.subarray(0, length));
-    }
+    // Not `copyFileSync`, which never ends when another run empties the log file meanwhile
+    to = fs.openSync(copy, "w");
+    const offset = copyFrom(from, 0, to);
+    fs.renameSync(copy, older);
+    copyFrom(from, offset, to);
     // A line that dekit writes between the last read and here is lost
     fs.ftruncateSync(from);
   } catch (error) {
-    // A part of the copy would repeat lines of the log file
-    fs.rmSync(older, { force: true });
+    fs.rmSync(copy, { force: true });
     throw error;
   } finally {
-    if (from !== undefined) fs.closeSync(from);
+    fs.closeSync(from);
     if (to !== undefined) fs.closeSync(to);
   }
 }
 
-function listParts(dir: string): LogPart[] {
+/** Copy a file from `offset` to its end, and return the offset of the end */
+function copyFrom(from: number, offset: number, to: number): number {
+  const chunk = Buffer.alloc(CHUNK);
+  for (let length; (length = fs.readSync(from, chunk, 0, CHUNK, offset)) > 0; offset += length) {
+    fs.appendFileSync(to, chunk.subarray(0, length));
+  }
+  return offset;
+}
+
+function listLogFiles(dir: string): SizedFile[] {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (!entry.isFile() || !/\.log(\.1)?$/.test(entry.name)) return [];
+    const [, log, older] = /^(.*\.log)(\.1)?$/s.exec(entry.name) ?? [];
+    if (!entry.isFile() || log === undefined) return [];
     const file = path.join(dir, entry.name);
     const stat = fs.statSync(file, { throwIfNoEntry: false });
     if (!stat || stat.size === 0) return [];
-    const { size, mtimeMs } = stat;
-    return [{ file, current: file.replace(/\.1$/, ""), size, changedAt: mtimeMs }];
+    const processKey = fileKey(path.join(dir, log));
+    const { size, mtimeMs: changedAt } = stat;
+    return [{ file, processKey, isOlder: older !== undefined, size, changedAt }];
   });
 }
 
-/** The parts of processes that this run does not start come first, and its current logs last */
-function inFreeingOrder(parts: LogPart[], logFiles: string[]): LogPart[] {
+/** The files of processes that this run does not start come first, and its `.log` files last */
+function inFreeingOrder(files: SizedFile[], logFiles: string[]): SizedFile[] {
   const started = new Set(logFiles.map(fileKey));
-  const isStarted = ({ current }: LogPart) => started.has(fileKey(current));
-  const isCurrent = ({ file, current }: LogPart) => file === current;
-  const processSize = ({ current }: LogPart) =>
-    parts.reduce((sum, part) => (part.current === current ? sum + part.size : sum), 0);
+  const isStarted = ({ processKey }: SizedFile) => started.has(processKey);
+  const processSizes = new Map<string, number>();
+  for (const { processKey, size } of files) {
+    processSizes.set(processKey, (processSizes.get(processKey) ?? 0) + size);
+  }
+  const processSize = ({ processKey }: SizedFile) => processSizes.get(processKey) ?? 0;
 
   return [
-    ...parts.filter((part) => !isStarted(part)).sort((a, b) => a.changedAt - b.changedAt),
-    ...parts
-      .filter((part) => isStarted(part) && !isCurrent(part))
+    ...files.filter((file) => !isStarted(file)).sort((a, b) => a.changedAt - b.changedAt),
+    ...files
+      .filter((file) => isStarted(file) && file.isOlder)
       .sort((a, b) => processSize(b) - processSize(a)),
-    ...parts.filter((part) => isStarted(part) && isCurrent(part)).sort((a, b) => b.size - a.size),
+    ...files.filter((file) => isStarted(file) && !file.isOlder).sort((a, b) => b.size - a.size),
   ];
 }

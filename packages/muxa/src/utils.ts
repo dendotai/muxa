@@ -192,7 +192,7 @@ export function formatError(error: unknown): string {
   return String(error);
 }
 
-/** Whether a project owns the folder; otherwise its logs and its Settings are in the home folder */
+/** Whether a project owns the folder; otherwise its logs and its Settings are in the user's folders */
 export function hasPackageJson(dir: string): boolean {
   return fs.existsSync(path.join(dir, "package.json"));
 }
