@@ -1,7 +1,7 @@
 // Command transformation and building for muxa
 
 import * as path from "path";
-import { MAX_TAB_NAME_LENGTH } from "./log-files";
+import { MAX_TAB_NAME_LENGTH, type ProcessNames, separateLogFiles } from "./log-files";
 import { type PackageManagerInfo, validateScript } from "./package-manager";
 import type { ParsedCommand, ParseResult } from "./parser";
 import { type WorkspaceConfig, resolvePackage } from "./workspace";
@@ -124,18 +124,30 @@ function transformCommand(
 }
 
 /**
- * The tab name of each process, before dekit numbers duplicates
+ * The names of each process, before dekit numbers duplicates
  */
-export function buildTabNames(commands: TransformedCommand[], parsed: ParseResult): string[] {
+export function buildProcessNames(
+  commands: TransformedCommand[],
+  parsed: ParseResult,
+): ProcessNames[] {
+  const typed = commands.map((cmd) => cmd.name || cmd.command);
   const mprocsCommands = commands.map(toMprocsCommand);
   const named = parsed.mode === "advanced" && commands.some((cmd) => cmd.name !== "");
   const fits = mprocsCommands.every((command) => command.length <= MAX_TAB_NAME_LENGTH);
-  if (!named && fits) return mprocsCommands;
+  if (!named && fits) {
+    const unlisted = separateLogFiles(typed.map((name, i) => [name, mprocsCommands[i] ?? ""]));
+    if (unlisted.every(({ tabName }, i) => tabName === mprocsCommands[i])) return unlisted;
+  }
 
-  // A comma separates the names in --names
-  return commands.map((cmd) =>
-    (cmd.name || cmd.command.replaceAll(",", " ")).slice(0, MAX_TAB_NAME_LENGTH),
-  );
+  return separateLogFiles(typed.map((name) => [name, toListedName(name)]));
+}
+
+/**
+ * The tab names, without a suffix, that a process with this name or this command can have
+ */
+export function possibleTabNames(typed: string): string[] {
+  const command = { command: typed, name: "", needsShell: needsShellWrapping(typed) };
+  return [...new Set([typed, toMprocsCommand(command), toListedName(typed)])];
 }
 
 /**
@@ -162,12 +174,17 @@ export function buildMprocsArgs(
   const mprocsCommands = commands.map(toMprocsCommand);
 
   // dekit assigns --names by position; with no --names, it names each process by its command
-  const tabNames = buildTabNames(commands, parsed);
-  if (tabNames.some((name, i) => name !== mprocsCommands[i])) {
+  const tabNames = buildProcessNames(commands, parsed).map(({ tabName }) => tabName);
+  if (tabNames.some((tabName, i) => tabName !== mprocsCommands[i])) {
     args.push("--names", tabNames.join(","));
   }
 
   return [...args, ...mprocsCommands];
+}
+
+/** The name of a process in --names, where a comma separates the names */
+function toListedName(typed: string): string {
+  return typed.replaceAll(",", " ").slice(0, MAX_TAB_NAME_LENGTH);
 }
 
 function toMprocsCommand({ command, needsShell }: TransformedCommand): string {

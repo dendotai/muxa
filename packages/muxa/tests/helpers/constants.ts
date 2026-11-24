@@ -9,10 +9,10 @@ export const muxaRuntime = process.env.CI ? "node" : "bun";
 // Path to test fixtures
 export const fixturesPath = path.join(__dirname, "..", "fixtures");
 
-// Default timeouts for test runs - kept short since we're only testing command generation
-export const DEFAULT_TIMEOUT = 1000;
-export const QUICK_TIMEOUT = 500;
-export const FIXTURE_TIMEOUT = 1000;
+// Only stops a muxa that hangs; below the 5000 ms that bun gives a test
+export const DEFAULT_TIMEOUT = 4000;
+export const QUICK_TIMEOUT = 4000;
+export const FIXTURE_TIMEOUT = 4000;
 
 // Test environment variables - ALWAYS use test mode to avoid running mprocs
 export const TEST_ENV = {

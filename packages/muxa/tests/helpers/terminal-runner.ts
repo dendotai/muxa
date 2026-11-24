@@ -4,6 +4,8 @@ import { stripAnsi } from "./strip-ansi";
 export interface TerminalRun {
   /** Everything muxa drew so far, with escape sequences removed */
   output(): string;
+  /** The same with the escape sequences kept */
+  rawOutput(): string;
   /** Type keys as a user would; a line ends with "\r", as the Enter key sends it */
   type(keys: string): void;
   waitFor(pattern: RegExp, timeout?: number): Promise<void>;
@@ -40,6 +42,7 @@ export function runInTerminal(
 
   return {
     output,
+    rawOutput: () => raw,
     type(keys) {
       proc.terminal?.write(keys);
     },
