@@ -84,7 +84,7 @@ function transformCommand(
       command = `${packageManager.runCommand} ${cmd.script}`;
 
       // Default name for scripts
-      // Use literal "." for root package to match SPEC.md
+      // Use literal "." for root package (ADR 0005)
       const packageName = cmd.target === "." ? "." : info.dirName;
       name = cmd.name || `${packageName}:${cmd.script}`;
 

@@ -20,6 +20,29 @@ concurrently -n "api,web,db" "npm run dev --workspace=api" "npm run dev --worksp
 muxa -s api dev -s web dev -c "docker-compose up postgres" db
 ```
 
+### Command Breakdown
+
+```text
+muxa -s api dev -s web dev -c "docker-compose up postgres" db
+     ── ─── ─── ────────── ── ──────────────────────────── ──
+     │  │   │   │          │  │                            │
+     │  │   │   │          │  │                            └── tab name (optional)
+     │  │   │   │          │  └── command to run
+     │  │   │   │          └── flag: run a command
+     │  │   │   └── the same three parts, for the web package
+     │  │   └── script in its package.json
+     │  └── package
+     └── flag: run a package's script
+```
+
+| Process                              | Tab name  | Why                                      | The `concurrently` part         |
+| ------------------------------------ | --------- | ---------------------------------------- | ------------------------------- |
+| `-s api dev`                         | `api:dev` | the package's folder name and the script | `"npm run dev --workspace=api"` |
+| `-s web dev`                         | `web:dev` | the package's folder name and the script | `"npm run dev --workspace=web"` |
+| `-c "docker-compose up postgres" db` | `db`      | the name after the command               | `"docker-compose up postgres"`  |
+
+A name after the script (`-s api dev backend`) replaces the default one, and `-c` without a name uses the command. In `concurrently`, the names are a list of their own (`-n "api,web,db"`).
+
 ## Why muxa?
 
 When developing in a monorepo with multiple services, you need to run multiple processes simultaneously. While `concurrently` provides a simple CLI interface, it has output formatting issues and loses interactive features. `mprocs` handles output better but requires complex shell syntax or configuration files.
@@ -36,7 +59,7 @@ When developing in a monorepo with multiple services, you need to run multiple p
 
 ```sh
 # bun
-bun install -g @den-ai/muxa
+bun add -g @den-ai/muxa
 
 # pnpm
 pnpm add -g @den-ai/muxa
@@ -44,7 +67,7 @@ pnpm add -g @den-ai/muxa
 # npm
 npm install -g @den-ai/muxa
 
-# yarn
+# yarn 1
 yarn global add @den-ai/muxa
 ```
 
@@ -61,10 +84,10 @@ muxa 'npm run dev' 'npm run test:watch'
 # Advanced mode with -c flags
 muxa -c 'npm run dev' -c 'npm run test:watch'
 
-# With custom process names
+# With custom tab names
 muxa -c 'npm run dev' api -c 'npm run test:watch' tests
 
-# Process names are optional
+# Tab names are optional
 muxa -c 'npm run dev' api -c 'npm run test'
 muxa -c 'npm run dev' -c 'npm run test' tests
 ```
@@ -83,7 +106,8 @@ muxa -s backend dev api -s frontend start web
 # Using different package identifiers
 muxa -s @myapp/backend dev        # by package.json name
 muxa -s packages/backend dev      # by relative path
-muxa -s backend dev               # by directory name (if unique)
+muxa -s backend dev               # by folder name (if unique)
+muxa -s . dev                     # the folder you run muxa from
 
 # Mix with regular commands
 muxa -s backend dev -c 'echo "Starting servers..."'
@@ -106,12 +130,32 @@ muxa -c 'npm run build && npm test' -c 'echo "Done" || exit 1'
 
 ## Command Line Options
 
-- `-c, --command <command> [name]` - Run arbitrary command with optional name
-- `-s, --script <package> <script> [name]` - Run package.json script from workspace
-- `-w, --workspace <package> <command> [name]` - Run command in workspace directory
+- `-c, --command <command> [name]` - Run any command in the folder you run muxa from
+- `-s, --script <package> <script> [name]` - Run a package's `package.json` script
+- `-w, --workspace <package> <command> [name]` - Run any command in a package's folder
 - `-h, --help` - Display help
-- `--version` - Display version
-- `workspaces` - List all detected workspace packages
+- `-V, --version` - Display version
+- `workspaces`, `ws` - List the packages muxa finds
+
+`--help` and `--version` work only as the first argument. `-s` takes no script arguments; use `-w backend 'npm run test -- --watch'` for those.
+
+Without a name in the command, the tab name is the command (`-c` and basic mode), the package's folder and the script (`-s`: `backend:dev`, or `.:dev` for `.`), or the package's folder (`-w`). A name holds no comma and does not start with `-`. When two processes have one name, given in the command or taken from a package, muxa asks before it starts them.
+
+## Keys
+
+| Key                                 | Effect                                                          |
+| ----------------------------------- | --------------------------------------------------------------- |
+| `j`, `k`, `Down`, `Up`, or a click  | Select a process                                                |
+| `Ctrl+A`                            | Switch between the process list and the output, to type into it |
+| `Ctrl+C`                            | Send `Ctrl+C` to the selected process                           |
+| `s` `x` `r`                         | Start, stop, restart the selected process                       |
+| `Page Up`, `Page Down`, mouse wheel | Scroll the output                                               |
+| `z`                                 | Show only the output; `Ctrl+A` goes back                        |
+| `v`                                 | Copy mode                                                       |
+| `p`                                 | All commands                                                    |
+| `q`, then `x`                       | Quit: stop every process and exit                               |
+
+Every other process keeps running when one exits, and muxa stays open until you quit.
 
 ## Settings
 
@@ -128,6 +172,18 @@ Optional. Add a `muxa` key to the `package.json` in the folder you run muxa from
 
 - `mouseScrollSpeed` - Lines to scroll per mouse or touchpad scroll event, a whole number of 1 or more. dekit scrolls 5 by default.
 - `processListTitle` - Heading above the process list, a non-empty string. By default, the `name` in that `package.json`, or the folder name.
+
+## Environment Variables
+
+- `FORCE_COLOR` - muxa sets it to `1` for every process, unless you set a value
+- `MUXA_RUNNING` - muxa sets it to `1` for every process, and stops with an error when it is set, so a script that muxa runs cannot start muxa
+- `MUXA_DEBUG=1` - Print what muxa detected and the dekit command
+- `MUXA_TEST_MODE=true` - Print the dekit command, and start nothing
+
+## Exit Codes
+
+- `0` - You quit muxa, even when a process failed, or a signal stopped it
+- `1` - muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a bad tab name, a rejected duplicate name, muxa inside muxa, no terminal, or no dekit binary for the platform
 
 ## Important Usage Notes
 
@@ -162,13 +218,13 @@ muxa -c 'npm run dev' -c 'npm run test'
 
 ### Workspace Resolution
 
-When using `-s` or `-w`, `muxa` resolves packages in this order:
+`-s` and `-w` take a package by any of these:
 
-1. Exact package.json name match (`@myapp/backend`)
-2. Relative path match (`packages/backend`, `./packages/backend`)
-3. Directory name match (`backend` - only if unambiguous)
+- The `name` in its `package.json` (`@myapp/backend`)
+- Its relative path (`packages/backend`, `./packages/backend`)
+- Its folder name (`backend`), when only one package has it
 
-If a directory name matches multiple packages, you'll get an error with suggestions:
+If several packages have the folder name, muxa shows them all:
 
 ```text
 Error: Ambiguous package identifier 'backend'
@@ -178,15 +234,30 @@ Found multiple matches:
 Please use the full package name or path.
 ```
 
+muxa reads the workspaces (`package.json`, or `pnpm-workspace.yaml`) of the folder you run it from. It reads patterns such as `packages/*` and `tools/cli`, not `**` or `!`.
+
+### Package Manager Detection
+
+`-s` runs a script with the first match, in the folder you run muxa from:
+
+1. A lockfile: `bun.lockb` (not `bun.lock` yet), `yarn.lock`, `pnpm-lock.yaml`, then `package-lock.json`
+2. The `packageManager` field in `package.json`
+3. npm
+
+muxa uses npm when the detected package manager is not in your `PATH`.
+
 ### Shell Wrapping
 
-Commands are automatically wrapped with `sh -c` when they contain:
+muxa runs a command through `sh -c` when it contains:
 
-- Shell operators (`&&`, `||`, `|`, `;`, `>`, `<`)
-- Glob patterns (`*`, `?`, `[...]`)
-- Environment variables (`$VAR`)
+- Shell operators and redirections (`&`, `|`, `;`, `>`, `<`)
+- Glob patterns (`*`, `?`, `[`, `]`) or text in braces (`{a,b}`)
+- Variables (`$VAR`, `${VAR}`)
+- Subshells and command substitution (`(...)`, `$(...)`, `` `...` ``)
+- A `~` at the start of a word or after `:`
+- A backslash or a quote
 
-Workspace commands (`-s` and `-w`) are always wrapped to handle directory changes.
+Commands from `-s` and `-w` always run through `sh -c`, because muxa puts a `cd` to the package in front of them.
 
 ## Examples
 
@@ -248,8 +319,11 @@ muxa -c 'npm run lint && npm run build' -c 'npm test || exit 1'
 
 ## Requirements
 
-- Node.js >= 16.0.0
+- Node.js >= 16.0.0, or Bun through `bun run` or `bunx`
+- macOS, Linux, or Windows through WSL
 - dekit (automatically installed as dependency)
+
+Full documentation, with muxa's limitations: [docs.den.ai/muxa](https://docs.den.ai/muxa).
 
 ## Contributing
 

@@ -20,10 +20,10 @@ muxa 'npm run dev' 'npm run test:watch'
 
 This will:
 
-1. Start both commands in separate terminal panes
-2. Show live output from each command
-3. Allow you to switch between panes with keyboard shortcuts
-4. Automatically handle process cleanup on exit
+- Start both commands at once, each in its own terminal
+- Show the live output of the selected command
+- Let you switch between processes with the keyboard or the mouse
+- Stop every process when you quit
 
 ## Understanding Modes
 
@@ -81,10 +81,13 @@ muxa -s frontend dev -s backend dev -s shared build:watch
 
 Once muxa is running, you can:
 
-- **Switch panes**: Use arrow keys or click
-- **Scroll output**: Mouse wheel or keyboard
-- **Copy text**: Select with mouse
-- **Exit**: Press `Ctrl+C` or `q`
+- **Switch processes**: Press `j` and `k`, the arrow keys, or click
+- **Type into a process**: Press `Ctrl+A` to focus its output, and `Ctrl+A` again to go back
+- **Scroll output**: Use the mouse wheel, or `Page Up` and `Page Down`
+- **Copy text**: Press `v`
+- **Quit**: Press `q`, then `x`; `Ctrl+C` only goes to the selected process
+
+[All keys](/cli-reference#keys).
 
 All your tools' interactive features are preserved:
 

@@ -7,23 +7,55 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 # CLI Reference
 
-Complete reference for all muxa command-line options and features.
+The commands, flags, keys, environment variables and exit codes of muxa.
 
 ## Synopsis
 
 ```bash
-muxa [options] [commands...]
-muxa -c <command> [name] [-c <command> [name] ...]
+muxa <command> [<command> ...]
+muxa -c <command> [name] [-c ...]
 muxa -s <package> <script> [name] [-s ...]
 muxa -w <package> <command> [name] [-w ...]
 muxa workspaces
 ```
 
+`muxa` with no arguments prints the help.
+
+## Argument Modes
+
+<Callout type="warning">
+  muxa supports two modes that cannot be mixed in a single command. A flag after a basic command
+  stops with `Cannot mix basic and advanced arguments`, and an extra argument after a flag's parts
+  stops with `Unexpected argument`.
+</Callout>
+
+### Basic Mode
+
+Each argument is one command, with no flags and no tab names:
+
+```bash
+muxa 'npm run dev' 'npm run test' 'npm run lint:watch'
+```
+
+### Advanced Mode
+
+Each process is a flag (`-c`, `-s` or `-w`) and the arguments that belong to it. Unlike in most CLIs, a flag takes several arguments, separated by spaces:
+
+```bash
+muxa -s backend dev api -w mobile 'npx expo start' expo -c 'docker-compose up' db
+```
+
+| Flag | Package   | Script or command     | Tab name (optional) |
+| ---- | --------- | --------------------- | ------------------- |
+| `-s` | `backend` | `dev`                 | `api`               |
+| `-w` | `mobile`  | `'npx expo start'`    | `expo`              |
+| `-c` |           | `'docker-compose up'` | `db`                |
+
 ## Options
 
 ### `-c, --command <command> [name]`
 
-Run an arbitrary command with an optional process name.
+Run any command in the folder you run muxa from.
 
 ```bash
 # Without name
@@ -35,22 +67,33 @@ muxa -c 'npm run dev' frontend
 
 ### `-s, --script <package> <script> [name]`
 
-Run a package.json script from a specific workspace package.
+Run a `package.json` script of a workspace package. The package `.` is the folder you run muxa from.
 
 ```bash
 # Run 'dev' script from 'backend' package
 muxa -s backend dev
 
+# Run 'dev' script from the package.json in the folder you run muxa from
+muxa -s . dev
+
 # With custom name
 muxa -s backend dev api-server
 ```
 
-### `-w, --workspace <package> <command> [name]`
+muxa runs the script with the [detected package manager](/configuration#package-manager-detection), so `pre` and `post` scripts run where that manager runs them: npm, pnpm and Bun do, Yarn 2 and later does not.
 
-Run a command in a specific workspace directory.
+`-s` takes no script arguments. Use `-w` for a script with arguments:
 
 ```bash
-# Run command in workspace directory
+muxa -w frontend 'npm run build --ignore-scripts'
+```
+
+### `-w, --workspace <package> <command> [name]`
+
+Run any command in the folder of a workspace package.
+
+```bash
+# Run 'npx vite' in the folder of the 'frontend' package
 muxa -w frontend 'npx vite'
 
 # With name
@@ -59,23 +102,15 @@ muxa -w frontend 'npx vite' dev-server
 
 ### `-h, --help`
 
-Display help information.
+Display help information. Only as the first argument.
 
-```bash
-muxa --help
-```
+### `-V, --version`
 
-### `--version`
+Display the version number. Only as the first argument.
 
-Display the version number.
+### `workspaces`, `ws`
 
-```bash
-muxa --version
-```
-
-### `workspaces`
-
-List all detected workspace packages in the current monorepo.
+List the packages muxa finds in the folder you run it from, with that folder itself as `.`.
 
 ```bash
 muxa workspaces
@@ -83,70 +118,44 @@ muxa workspaces
 
 Output example:
 
-```
-Found 5 workspace packages:
-  @myapp/frontend (./packages/frontend)
-  @myapp/backend (./packages/backend)
-  @myapp/shared (./packages/shared)
-  @myapp/cli (./tools/cli)
-  @myapp/scripts (./tools/scripts)
-```
-
-## Argument Modes
-
-<Callout type="warning">
-  **Important**: muxa supports two modes that cannot be mixed in a single command.
-</Callout>
-
-### Basic Mode
-
-Commands as direct arguments (no flags):
-
-```bash
-muxa 'npm run dev' 'npm run test' 'npm run lint:watch'
+```text
+Found 4 workspaces (using npm workspaces):
+  myapp             .
+  @myapp/frontend   apps/frontend
+  @myapp/backend    packages/backend
+  @myapp/shared     packages/shared
 ```
 
-- Simple and concise
-- Good for quick commands
-- No process naming
-
-### Advanced Mode
-
-Using flags for more control:
-
-```bash
-muxa -c 'npm run dev' app -c 'npm run test' tests
-```
-
-- Process naming
-- Mix different command types
-- More flexibility
+With no `package.json` in the folder, it prints `No workspaces found in current directory`.
 
 ## Package Resolution
 
-When using `-s` or `-w`, packages are resolved in this order:
+`-s` and `-w` take a package by any of these:
 
-1. **Exact match** - Full package.json name
+- **Name** in its `package.json`
 
-   ```bash
-   muxa -s @myapp/backend dev
-   ```
+  ```bash
+  muxa -s @myapp/backend dev
+  ```
 
-2. **Path match** - Relative path from root
+- **Relative path**
 
-   ```bash
-   muxa -s packages/backend dev
-   muxa -s ./packages/backend dev
-   ```
+  ```bash
+  muxa -s packages/backend dev
+  muxa -s ./packages/backend dev
+  ```
 
-3. **Directory match** - Directory name (only if unique)
-   ```bash
-   muxa -s backend dev
-   ```
+- **Folder name**, when only one package has it
 
-If ambiguous, muxa will show all matches:
+  ```bash
+  muxa -s backend dev
+  ```
 
-```
+When one package's name is another package's folder name, muxa takes the folder name.
+
+If several packages have the folder name, muxa shows them all:
+
+```text
 Error: Ambiguous package identifier 'backend'
 Found multiple matches:
   - @myapp/backend (packages/backend)
@@ -154,121 +163,150 @@ Found multiple matches:
 Please use the full package name or path.
 ```
 
+Which packages muxa finds: [Monorepo Support](/configuration#monorepo-support).
+
+## Tab Names
+
+A process without a name in the command gets one:
+
+| Mode   | Example                           | Tab name      |
+| ------ | --------------------------------- | ------------- |
+| Basic  | `muxa 'npm run dev'`              | `npm run dev` |
+| `-c`   | `muxa -c 'npm run dev'`           | `npm run dev` |
+| `-s`   | `muxa -s @myapp/backend dev`      | `backend:dev` |
+| `-s .` | `muxa -s . build`                 | `.:build`     |
+| `-w`   | `muxa -w mobile 'npx expo start'` | `mobile`      |
+
+`-s` and `-w` use the package's folder name, however the command names the package.
+
+- A name cannot start with `-`.
+- A name cannot hold a comma: muxa stops with `Tab name 'web,mobile' contains comma. Commas are reserved as separators.`
+- A comma in a default name shows as a space when the command names another process.
+- When two processes have one name, given in the command or taken from a package, muxa asks `Continue with duplicate names? (y/N)`. `y` starts them with that name; `n` or Enter stops muxa.
+
 ## Shell Wrapping
 
-Commands are automatically wrapped with `sh -c` when they contain:
+muxa runs a command through `sh -c` when it contains:
 
-- Shell operators: `&&`, `||`, `|`, `;`, `>`, `<`
-- Glob patterns: `*`, `?`, `[...]`
-- Environment variables: `$VAR`, `${VAR}`
-- Subshells: `$(...)`, `` `...` ``
+- Shell operators and redirections: `&`, `|`, `;`, `>`, `<`
+- Glob patterns: `*`, `?`, `[`, `]`
+- Text in braces: `{a,b}`
+- Variables: `$VAR`, `${VAR}`
+- Subshells and command substitution: `(...)`, `$(...)`, `` `...` ``
+- A `~` at the start of a word or after `:`
+- A backslash or a quote
 
-Examples:
+Commands from `-s` and `-w` always run through `sh -c`, because muxa puts a `cd` to the package in front of them.
 
 ```bash
-# Automatically wrapped
+# Wrapped
 muxa -c 'npm run build && npm test'
 muxa -c 'echo $USER'
 muxa -c 'ls *.js'
 
-# Not wrapped (simple commands)
+# Passed to dekit as it is
 muxa -c 'npm run dev'
+muxa -c 'NODE_ENV=production npm run build'
 ```
 
 ## Environment Variables
 
-muxa respects and passes through environment variables:
+Every process inherits the environment muxa runs in, `NODE_ENV` included. Set a variable for one process inside its command:
 
 ```bash
-# Set for specific command
+# For one process
 muxa -c 'NODE_ENV=production npm run build' build
 
-# Inherit from shell
-export DEBUG=app:*
-muxa -c 'npm run dev' app
+# For every process
+DEBUG=app:* muxa -c 'npm run dev' app
 ```
 
-### FORCE_COLOR
-
-muxa automatically sets `FORCE_COLOR=1` to preserve colored output from tools like npm, webpack, etc.
+| Variable         | Set by | Effect                                                                                                                   |
+| ---------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `FORCE_COLOR`    | muxa   | `1` for every process, so tools keep their colors. A value you set is kept.                                              |
+| `MUXA_RUNNING`   | muxa   | `1` for every process. muxa stops with an error when it is set, so a script that muxa runs cannot start muxa.            |
+| `MUXA_DEBUG`     | you    | Any value: muxa prints what it detected and the dekit command, with `[muxa debug]` in front.                             |
+| `MUXA_TEST_MODE` | you    | `true`, and no other value: muxa prints the dekit command and some environment variables, and starts nothing. A dry run. |
 
 ## Process Management
 
-### Starting Processes
+### Start
 
-- Processes start in the order specified
-- Each process gets its own terminal pane
-- Output is immediately visible
+- All processes start at once. muxa has no start order; to start one later, wait inside its command: `muxa -c 'sleep 2 && npm start'`.
+- A process that fails does not stop the others.
+- Each process gets its own pseudo-terminal, so colors, prompts, QR codes and single-key shortcuts work.
 
-### Switching Between Processes
+### Keys
 
-- Use arrow keys to navigate between panes
-- Click on a pane to focus it
-- Scroll with mouse wheel or keyboard
+The keys act on the process list until you focus the output. While the output has focus, every key except `Ctrl+A` goes to the process.
 
-### Stopping Processes
+| Key                                        | Effect                                                        |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| `j`, `k`, `Down`, `Up`, or a click         | Select a process; a click on its output focuses the output    |
+| `Ctrl+A`                                   | Switch between the process list and the output                |
+| `Ctrl+C`                                   | Send `Ctrl+C` to the selected process                         |
+| `s` `x` `r`                                | Start, stop, restart the selected process                     |
+| `Page Up`, `Page Down`, `Ctrl+U`, `Ctrl+D` | Scroll the output; the mouse wheel scrolls it too             |
+| `z`                                        | Show only the output; `Ctrl+A` goes back                      |
+| `v`                                        | Copy mode: move, `v` again to start the selection, `c` copies |
+| `p`                                        | All commands                                                  |
+| `q`, then `x`                              | Quit: stop every process and exit                             |
+| `Q`                                        | Quit at once, without the menu                                |
 
-- **Ctrl+C**: Sends Ctrl+C to the focused process only
-- **q**, then **x**: Quit muxa (stops all processes)
-- Individual processes can exit on their own
+The quit menu also offers `Save and quit` and `Detach`. Both stop every process, because muxa ends with the screen.
+
+### Exit of a Process
+
+A process that exits shows `DOWN` and its exit code in the process list. Its output stays readable, the other processes keep running, and muxa stays open when every process is down.
+
+### Signals
+
+On `SIGINT`, `SIGTERM` or `SIGHUP` (a closed terminal), muxa stops every process and exits.
 
 ## Exit Codes
 
-- `0`: You quit muxa, even when a process failed
-- `1`: muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, or a rejected duplicate name
+- `0`: You quit muxa, even when a process failed, or a signal stopped it. Also `--help`, `--version` and `workspaces`, even when it finds none.
+- `1`: muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a bad tab name, a rejected duplicate name, muxa inside muxa, no terminal (`Stdin is not a tty`), or no dekit binary for the platform. Also `migrate` and `check`.
+
+## Errors
+
+muxa prints every error and question before dekit takes over the terminal. A package or a script that does not exist gets the list of those that do, and a missing script also the line of `scripts` in the `package.json`:
+
+```text
+Error: Package 'fronted' not found in workspace
+Available packages: @myapp/backend, @myapp/frontend, @myapp/shared, myapp
+```
+
+```text
+Error: Script 'test' not found in @myapp/backend (/path/to/packages/backend/package.json:8)
+Available scripts: build, dev, lint
+```
 
 ## Debugging
 
-### List Workspaces
-
-Debug workspace detection:
+See the dekit command muxa builds, without starting it:
 
 ```bash
-muxa workspaces
+MUXA_DEBUG=1 MUXA_TEST_MODE=true muxa -s frontend dev
 ```
 
-### Verbose Output
-
-See the generated dekit command:
-
-```bash
-# Dry run (coming in future version)
-muxa --dry-run -c 'npm run dev'
+```text
+[muxa debug] Found 16 workspace packages
+[muxa debug] Detected package manager: npm
+[muxa debug] Executing: dekit mprocs '--proc-list-title' 'myapp' '--names' 'frontend:dev' 'sh -c 'cd /path/to/apps/frontend && npm run dev''
+Would execute: dekit mprocs '--proc-list-title' 'myapp' '--names' 'frontend:dev' 'sh -c 'cd /path/to/apps/frontend && npm run dev''
+FORCE_COLOR=1
+...
 ```
+
+The number of workspace packages in this line counts each name and path a package answers to; `muxa workspaces` shows the packages.
+
+Fixes for common problems: [Troubleshooting](/configuration#troubleshooting).
 
 ## Limitations
 
-- Cannot mix basic and advanced modes
-- Process names must not start with hyphens
-- Commands are run with `sh -c`, not your default shell
-- Some terminal features may vary by platform
-
-## Examples
-
-### Development Setup
-
-```bash
-# Full stack development
-muxa -s frontend dev web \
-     -s backend dev api \
-     -c 'docker-compose up' services
-```
-
-### CI Pipeline
-
-```bash
-# Run checks in parallel
-muxa -c 'npm run lint' lint \
-     -c 'npm run type-check' types \
-     -c 'npm run test' tests
-```
-
-### Monorepo Build
-
-```bash
-# Build all packages
-muxa -s shared build \
-     -s core build \
-     -s cli build \
-     -s app build
-```
+- `-s` and `-w` fail for a package whose full path holds a space.
+- `-w` fails for a command that holds a single quote. Use double quotes inside it: `muxa -w frontend 'echo "hi"'`.
+- In basic mode, an option after the first argument (`muxa 'npm run dev' --help`) and an unknown option with one dash (`-x`) run as commands.
+- When input ends with no answer to the duplicate-name question, muxa starts nothing and exits 0.
+- `muxa migrate` and `muxa check` only print `Migration tool not yet implemented` ([issue #37](https://github.com/dendotai/muxa/issues/37)).

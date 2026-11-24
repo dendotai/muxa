@@ -8,7 +8,7 @@ export default function NotFound() {
         <p className="text-gray-600 mb-4">Page not found</p>
         <p className="text-sm text-gray-500">
           Looking for muxa docs? Visit{" "}
-          <Link href="/muxa" className="text-blue-600 hover:underline">
+          <Link href="/" className="text-blue-600 hover:underline">
             /muxa
           </Link>
         </p>

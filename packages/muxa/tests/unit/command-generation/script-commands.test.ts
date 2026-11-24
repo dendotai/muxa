@@ -84,7 +84,7 @@ describe("Command Generation > Script Commands (-s flag)", () => {
     const result = await getMuxaCommand(["-s", ".", "build"], tempDir);
     expect(result.error).toBeNull();
     expect(result.command).not.toBeNull();
-    // Should use .:build as the default name per SPEC.md
+    // Should use .:build as the default name (ADR 0005)
     expect(result.command).toContain("'--names' '.:build'");
     expect(result.command).toContain("npm run build");
   });

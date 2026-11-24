@@ -15,3 +15,7 @@ _Avoid_: app, tab, task
 **Package**:
 A folder of the monorepo that `-s` and `-w` name.
 _Avoid_: app
+
+**Tab name**:
+The name of a process in the process list.
+_Avoid_: process name

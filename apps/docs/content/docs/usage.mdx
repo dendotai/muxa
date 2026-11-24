@@ -4,7 +4,6 @@ description: Detailed examples and patterns for using muxa
 ---
 
 import { Tabs, Tab } from "fumadocs-ui/components/tabs";
-import { Callout } from "fumadocs-ui/components/callout";
 
 # Usage Examples
 
@@ -23,7 +22,7 @@ muxa 'npm run dev' 'npm run test:watch'
 # Advanced mode with flags
 muxa -c 'npm run dev' -c 'npm run test:watch'
 
-# With custom process names
+# With custom tab names
 muxa -c 'npm run dev' app -c 'npm run test:watch' tests
 ```
 
@@ -55,15 +54,14 @@ muxa -s backend dev -s frontend start
 muxa -s backend dev api -s frontend start web
 ```
 
-### Package Resolution
+### Package Identifiers
 
-muxa intelligently resolves package identifiers:
+Name a package by its name, its path, or its folder name ([how muxa resolves it](/cli-reference#package-resolution)):
 
-<Tabs items={["By Name", "By Path", "By Directory"]}>
+<Tabs items={["By Name", "By Path", "By Folder Name"]}>
   <Tab value="By Name">
 
     ```bash
-    # Using package.json name
     muxa -s @myapp/backend dev
     muxa -s @myapp/frontend start
     ```
@@ -72,16 +70,14 @@ muxa intelligently resolves package identifiers:
   <Tab value="By Path">
 
     ```bash
-    # Using relative path
     muxa -s packages/backend dev
     muxa -s ./apps/frontend start
     ```
 
   </Tab>
-  <Tab value="By Directory">
+  <Tab value="By Folder Name">
 
     ```bash
-    # Using directory name (if unique)
     muxa -s backend dev
     muxa -s frontend start
     ```
@@ -89,10 +85,46 @@ muxa intelligently resolves package identifiers:
   </Tab>
 </Tabs>
 
-<Callout type="info">
-  If a directory name matches multiple packages, muxa will show an error with all matches and ask
-  you to be more specific.
-</Callout>
+### Package Managers
+
+One muxa command runs the script with the [package manager your project uses](/configuration#package-manager-detection):
+
+<Tabs items={["npm", "Yarn", "pnpm", "Bun"]}>
+  <Tab value="npm">
+
+    ```bash
+    # package-lock.json, or no lockfile
+    muxa -s frontend dev   # npm run dev
+    ```
+
+  </Tab>
+  <Tab value="Yarn">
+
+    ```bash
+    # yarn.lock
+    muxa -s frontend dev   # yarn run dev
+    ```
+
+  </Tab>
+  <Tab value="pnpm">
+
+    ```bash
+    # pnpm-lock.yaml
+    muxa -s frontend dev   # pnpm run dev
+    ```
+
+  </Tab>
+  <Tab value="Bun">
+
+    ```bash
+    # bun.lockb
+    muxa -s frontend dev   # bun run dev
+    ```
+
+  </Tab>
+</Tabs>
+
+To run a process with another package manager, write it out: `muxa -w frontend 'yarn dev'`.
 
 ## Run Commands in Workspace Directories
 
@@ -128,11 +160,6 @@ muxa -c 'npm run dev | tee dev.log' dev
 ### Environment Variables
 
 ```bash
-# Set environment variables
-muxa -c 'NODE_ENV=production npm run build' build \
-     -c 'DEBUG=* npm run dev' dev
-
-# Use shell features
 muxa -c 'PORT=3000 npm run dev' api \
      -c 'PORT=3001 npm run dev' web
 ```
@@ -161,9 +188,8 @@ muxa -s services/auth start auth \
 ### Build Pipeline
 
 ```bash
-# Build multiple packages in order
-muxa -c 'npm run clean' clean \
-     -s shared build shared \
+# Build multiple packages in parallel
+muxa -s shared build shared \
      -s backend build backend \
      -s frontend build frontend
 ```
@@ -188,7 +214,7 @@ muxa -s frontend dev web \
 
 ## Advanced Patterns
 
-### Conditional Process Groups
+### Development and Production
 
 ```bash
 # Development mode
@@ -219,11 +245,9 @@ muxa -c 'npm run dev 2>&1 | tee api.log' api \
 
 ## Tips and Tricks
 
-1. **Process Naming**: Always name your processes for easier identification
-2. **Order Matters**: Processes start in the order specified
-3. **Clean Exit**: Use Ctrl+C to cleanly stop all processes
-4. **Workspace Detection**: Run `muxa workspaces` to see all detected packages
-5. **Shell Escaping**: Use single quotes for complex commands to avoid shell interpretation
+- **Tab names**: Name a process when its [default tab name](/cli-reference#tab-names) does not say enough
+- **Workspace Detection**: Run `muxa workspaces` to see all detected packages
+- **Quotes**: Put a command in single quotes, so your shell passes it to muxa unchanged
 
 ## Next Steps
 
