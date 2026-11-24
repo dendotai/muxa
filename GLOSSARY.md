@@ -25,6 +25,9 @@ The copy of `<process>.log` to `<process>.log.1`, after which muxa empties `<pro
 **Start line**:
 The line `=== muxa started <date time> ===` that opens a run in a log file.
 
+**Open run**:
+A run of muxa that has not quit.
+
 **Verb**:
 A first word that acts on one process: `logs`, `restart`, `stop`, `start`.
 

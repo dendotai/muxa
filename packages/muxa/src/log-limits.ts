@@ -20,6 +20,7 @@ interface SizedFile {
 }
 
 interface OpenRun {
+  /** The file name of the record; the one of the run that started first comes first */
   record: string;
   logFileKeys: string[];
 }
@@ -34,7 +35,7 @@ export class LogLimiter {
     private readonly logFiles: string[],
     private readonly limits: LogLimits,
   ) {
-    this.record = path.join(logDir, `run-${randomUUID()}.json`);
+    this.record = `run-${Date.now()}-${randomUUID()}.json`;
   }
 
   /**
@@ -52,12 +53,9 @@ export class LogLimiter {
       }
     };
 
-    attempt(() =>
-      fs.writeFileSync(
-        this.record,
-        JSON.stringify(this.logFiles.map((file) => path.basename(file))),
-      ),
-    );
+    // Without the folder, there are no log files to limit, and no place for the record
+    if (!fs.existsSync(this.logDir)) return;
+    attempt(() => this.writeRecord());
     // After a sleep of the computer, the records of the other open runs look expired until their next check
     const isLate = Date.now() - this.checkedAt > RUN_RECORD_EXPIRY_MS / 2;
     this.checkedAt = Date.now();
@@ -99,7 +97,15 @@ export class LogLimiter {
     if (errors.length > 0) throw errors[0];
   }
 
-  /** Of two open runs with one log file, one rotates it, because two copies would lose its content */
+  private writeRecord(): void {
+    const file = path.join(this.logDir, this.record);
+    const names = this.logFiles.map((logFile) => path.basename(logFile));
+    // Renamed, because another run that reads half a record takes this run for an ended one
+    fs.writeFileSync(`${file}.tmp`, JSON.stringify(names));
+    fs.renameSync(`${file}.tmp`, file);
+  }
+
+  /** Of two open runs with one log file, the first one rotates it: two rotations at one moment lose its content */
   private rotates(file: string, openRuns: OpenRun[]): boolean {
     const owners = openRuns.filter((run) => run.logFileKeys.includes(fileKey(file)));
     return owners.every(({ record }) => record >= this.record);
@@ -107,7 +113,11 @@ export class LogLimiter {
 
   /** The run no longer writes its log files */
   close(): void {
-    fs.rmSync(this.record, { force: true });
+    try {
+      fs.rmSync(path.join(this.logDir, this.record), { force: true });
+    } catch {
+      // A record that stays expires
+    }
   }
 }
 
@@ -115,19 +125,20 @@ function listOpenRuns(dir: string): OpenRun[] {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir).flatMap((name) => {
     if (!RUN_RECORD.test(name)) return [];
-    const record = path.join(dir, name);
-    const stat = fs.statSync(record, { throwIfNoEntry: false });
+    const file = path.join(dir, name);
+    const stat = fs.statSync(file, { throwIfNoEntry: false });
     if (!stat) return [];
     if (Date.now() - stat.mtimeMs > RUN_RECORD_EXPIRY_MS) {
-      fs.rmSync(record, { force: true });
+      fs.rmSync(file, { force: true });
       return [];
     }
     try {
-      const files: unknown = JSON.parse(fs.readFileSync(record, "utf-8"));
-      if (!Array.isArray(files)) return [];
-      return [{ record, logFileKeys: files.map((file) => fileKey(path.join(dir, String(file)))) }];
+      const names: unknown = JSON.parse(fs.readFileSync(file, "utf-8"));
+      if (!Array.isArray(names)) return [];
+      const logFileKeys = names.map((logFile) => fileKey(path.join(dir, String(logFile))));
+      return [{ record: name, logFileKeys }];
     } catch {
-      // The other run writes or deletes it now
+      // The other run has just deleted it
       return [];
     }
   });

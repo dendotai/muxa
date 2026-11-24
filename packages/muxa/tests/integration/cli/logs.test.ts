@@ -65,6 +65,12 @@ describe("CLI > muxa logs", () => {
     expect(result.stdout).toBe("1\n2\n");
   });
 
+  it("prints the log when the temporary folder is missing", async () => {
+    const cwd = projectWithLogs({ "web.log": "1\r\n" });
+    const result = await runMuxa(["logs", "web"], { cwd, env: { TMPDIR: "/nonexistent" } });
+    expect(result).toEqual({ code: 0, stderr: "", stdout: "1\n" });
+  });
+
   it("says when the log is empty", async () => {
     const cwd = projectWithLogs({ "web.log": "", "api.log": "", "api.log.1": "1\r\n" });
     expect(await runMuxa(["logs", "web"], { cwd })).toEqual({

@@ -153,11 +153,18 @@ function currentRun(file: string): FilePart[] {
  * output. The older file needs none: a rotation deletes it, and it stays readable while it is open.
  */
 function copyPart(fd: number, start: number): FilePart {
-  const file = path.join(os.tmpdir(), `muxa-${randomUUID()}.log`);
-  const copy = fs.openSync(file, "wx+", 0o600);
-  // An open file stays readable, and no way out of muxa leaves it behind
-  fs.unlinkSync(file);
-  return { fd: copy, start: 0, end: copyFrom(fd, start, copy) - start };
+  let copy: number | undefined;
+  try {
+    const file = path.join(os.tmpdir(), `muxa-${randomUUID()}.log`);
+    copy = fs.openSync(file, "wx+", 0o600);
+    // An open file stays readable, and no way out of muxa leaves it behind
+    fs.unlinkSync(file);
+    return { fd: copy, start: 0, end: copyFrom(fd, start, copy) - start };
+  } catch {
+    // With no room for a copy, only a rotation during the output can take lines from it
+    if (copy !== undefined) fs.closeSync(copy);
+    return { fd, start, end: fs.fstatSync(fd).size };
+  }
 }
 
 function openIfExists(file: string): number | undefined {
