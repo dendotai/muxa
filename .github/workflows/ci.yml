@@ -38,15 +38,6 @@ jobs:
       - name: Run tests with coverage
         run: bun run test
 
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: dendotai/muxa
-          directory: ./packages/muxa/coverage
-          fail_ci_if_error: true
-          verbose: true
-
       - name: Build project (verification only)
         run: bun run build
 

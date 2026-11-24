@@ -1,6 +1,28 @@
 // Utility functions for muxa
 
 import * as readline from "readline";
+import { loadLatinKeyMap } from "./keyboard-layout";
+
+export type KeyAnswer = "yes" | "no" | "default" | "interrupt" | "other";
+
+/**
+ * Reads one keypress of the confirmation prompt.
+ * `latinKeys` maps a character of a non-Latin layout to the Latin letter of the same key (`loadLatinKeyMap`).
+ */
+export function answerForKey(
+  char: string,
+  latinKeys: ReadonlyMap<string, string> | null,
+): KeyAnswer {
+  if (char === "\r" || char === "\n") return "default";
+  if (char === "\x03") return "interrupt";
+  const typed = char.toLowerCase();
+  const letter = typed === "y" || typed === "n" ? typed : latinKeys?.get(typed);
+  if (letter === "y") return "yes";
+  if (letter === "n") return "no";
+  return "other";
+}
+
+const isNonLatinLetter = (char: string) => /^\p{L}$/u.test(char) && !/^[a-z]$/i.test(char);
 
 /**
  * Show a confirmation prompt with single keypress support
@@ -23,7 +45,11 @@ export async function confirmPrompt(
   process.stdout.write(`${message} (${defaultStr}): `);
 
   return new Promise((resolve) => {
+    let settled = false;
+    let hinted = false;
+
     const cleanup = () => {
+      settled = true;
       if (process.stdin.isTTY) {
         process.stdin.removeListener("data", handleKeypress);
         process.stdin.setRawMode(false);
@@ -31,60 +57,69 @@ export async function confirmPrompt(
       rl.close();
     };
 
-    const handleKeypress = (chunk: Buffer) => {
-      const char = chunk.toString();
+    // Started with the prompt, so the lookup's cold start overlaps the user's reading time
+    const latinKeys = process.stdin.isTTY ? loadLatinKeyMap() : Promise.resolve(null);
 
-      // Handle various key inputs
-      if (char === "\r" || char === "\n") {
-        // Enter key - use default
+    const handleKey = async (char: string) => {
+      let answer = answerForKey(char, null);
+      if (answer === "other") {
+        answer = answerForKey(char, await latinKeys);
+      }
+      if (settled) return;
+
+      if (answer === "default") {
         process.stdout.write("\n");
         cleanup();
         resolve(defaultValue);
-      } else if (char === "y" || char === "Y" || char === "у" || char === "У") {
-        // Yes (including Cyrillic у)
+      } else if (answer === "yes") {
         process.stdout.write("y\n");
         cleanup();
         resolve(true);
-      } else if (char === "n" || char === "N" || char === "н" || char === "Н") {
-        // No (including Cyrillic н)
+      } else if (answer === "no") {
         process.stdout.write("n\n");
         cleanup();
         resolve(false);
-      } else if (char === "\x03") {
-        // Ctrl+C
+      } else if (answer === "interrupt") {
         process.stdout.write("\n");
         cleanup();
         process.exit(1);
+      } else if (!hinted && isNonLatinLetter(char)) {
+        hinted = true;
+        process.stdout.write(`\nPress y or n (switch to a Latin layout) (${defaultStr}): `);
       }
-      // Ignore other keys
+    };
+
+    // Keys typed while muxa is busy (the lookup's cold start blocks it) arrive in one chunk, so each is read in turn
+    let reading = Promise.resolve();
+    const handleKeypress = (chunk: Buffer) => {
+      reading = reading.then(async () => {
+        for (const char of chunk.toString()) {
+          if (settled) return;
+          await handleKey(char);
+        }
+      });
     };
 
     const handleLine = (line: string) => {
       const input = line.trim().toLowerCase();
 
-      if (input === "" || input === "\n" || input === "\r") {
-        // Enter key - use default
+      if (input === "") {
         cleanup();
         resolve(defaultValue);
-      } else if (input === "y" || input === "yes" || input === "у") {
-        // Yes
+      } else if (input === "y" || input === "yes") {
         cleanup();
         resolve(true);
-      } else if (input === "n" || input === "no" || input === "н") {
-        // No
+      } else if (input === "n" || input === "no") {
         cleanup();
         resolve(false);
       } else {
-        // Invalid input - re-prompt
         process.stdout.write(`Please enter y or n (${defaultStr}): `);
       }
     };
 
     if (process.stdin.isTTY) {
-      // TTY mode - handle single keypresses
       process.stdin.on("data", handleKeypress);
     } else {
-      // Non-TTY mode - handle full lines
       rl.on("line", handleLine);
     }
   });

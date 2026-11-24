@@ -520,7 +520,7 @@ Error: Cannot mix basic and advanced arguments
 - **Confirmation prompt**: Reusable utility for all (y/N) style prompts
   - Configurable default (N by default, shown as uppercase)
   - Single keypress mode: responds immediately to y/Y/n/N (no need to press <kbd>Enter</kbd>)
-  - Cyrillic keyboard support: н/Н = y/Y (yes), т/Т = n/N (no)
+  - Non-Latin layouts: on macOS a key answers as the Latin letter of the same key (н on Russian = y), read from the OS layout (ADR 0006)
   - <kbd>Enter</kbd> key selects the default option
   - Used for: duplicate tab names, migration confirmations, warnings before launch
 
