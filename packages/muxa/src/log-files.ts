@@ -111,6 +111,19 @@ export function lastStartLineOffset(fd: number): { size: number; offset?: number
   return { size };
 }
 
+/** Copy an open file from `offset` to its end, and return the offset of the end */
+export function copyFrom(from: number, offset: number, to: number): number {
+  const chunk = Buffer.alloc(64 * 1024);
+  for (
+    let length;
+    (length = fs.readSync(from, chunk, 0, chunk.length, offset)) > 0;
+    offset += length
+  ) {
+    fs.appendFileSync(to, chunk.subarray(0, length));
+  }
+  return offset;
+}
+
 /** The processes of the last run and of earlier runs with a log file in `dir`, or none when muxa cannot tell */
 export function readProcesses(dir: string): LoggedProcess[] {
   try {

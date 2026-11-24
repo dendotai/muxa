@@ -1,60 +1,136 @@
+import { randomUUID } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
-import { fileKey } from "./log-files";
+import { copyFrom, fileKey } from "./log-files";
 import type { LogLimits } from "./settings";
 
-const CHUNK = 64 * 1024;
+/** A file in the log folder, with the names of the log files of one open run; the run writes it at each check */
+const RUN_RECORD = /^run-.*\.json$/;
+
+const RUN_RECORD_EXPIRY_MS = 30_000;
 
 interface SizedFile {
   file: string;
   /** The same for the `.log` and the `.log.1` file of a process */
   processKey: string;
+  /** A `.log.1` file, or the copy for it that a killed muxa left */
   isOlder: boolean;
   size: number;
   changedAt: number;
 }
 
-/**
- * Rotate each log file of this run that reached half of its limit, then free the space above
- * `maxSizeTotal` in `dirs`. An error on one file or folder leaves the others in their limits, and the
- * first error is thrown at the end.
- */
-export function enforceLogLimits(logFiles: string[], dirs: string[], limits: LogLimits): void {
-  const errors: unknown[] = [];
-  const attempt = (change: () => void) => {
-    try {
-      change();
-    } catch (error) {
-      errors.push(error);
-    }
-  };
+interface OpenRun {
+  record: string;
+  logFileKeys: string[];
+}
 
-  // With a higher limit than the total, a file would be emptied before it is ever rotated
-  const half = Math.min(limits.maxSizePerProcess, limits.maxSizeTotal) / 2;
-  for (const file of logFiles) {
-    attempt(() => {
-      const stat = fs.lstatSync(file, { throwIfNoEntry: false });
-      if (stat?.isFile() && stat.size >= half) rotate(file);
-    });
+/** The check of the log sizes that a run does again and again, and the record that it is open */
+export class LogLimiter {
+  private readonly record: string;
+  private checkedAt = Date.now();
+
+  constructor(
+    private readonly logDir: string,
+    private readonly logFiles: string[],
+    private readonly limits: LogLimits,
+  ) {
+    this.record = path.join(logDir, `run-${randomUUID()}.json`);
   }
 
-  const files: SizedFile[] = [];
-  for (const dir of dirs) attempt(() => files.push(...listLogFiles(dir)));
-  let total = files.reduce((sum, { size }) => sum + size, 0);
-  if (total >= limits.maxSizeTotal) {
-    for (const { file, isOlder, size } of inFreeingOrder(files, logFiles)) {
-      if (total < limits.maxSizeTotal) break;
-      // Also when it fails: a file that muxa cannot free must not cost the output of the others
-      total -= size;
+  /**
+   * Rotate each log file of this run that reached half of its limit, then free the space above
+   * `maxSizeTotal` in `dirs`. An error on one file or folder leaves the others in their limits, and
+   * the first error is thrown at the end.
+   */
+  enforce(dirs: string[]): void {
+    const errors: unknown[] = [];
+    const attempt = (change: () => void) => {
+      try {
+        change();
+      } catch (error) {
+        errors.push(error);
+      }
+    };
+
+    attempt(() =>
+      fs.writeFileSync(
+        this.record,
+        JSON.stringify(this.logFiles.map((file) => path.basename(file))),
+      ),
+    );
+    // After a sleep of the computer, the records of the other open runs look expired until their next check
+    const isLate = Date.now() - this.checkedAt > RUN_RECORD_EXPIRY_MS / 2;
+    this.checkedAt = Date.now();
+    if (isLate) return;
+
+    const openRuns: OpenRun[] = [];
+    for (const dir of dirs) attempt(() => openRuns.push(...listOpenRuns(dir)));
+
+    // With a higher limit than the total, a file would be emptied before it is ever rotated
+    const half = Math.min(this.limits.maxSizePerProcess, this.limits.maxSizeTotal) / 2;
+    for (const file of this.logFiles) {
       attempt(() => {
-        // dekit can hold a `.log` file open, also in another run, and then writes on into a deleted file
-        if (isOlder) fs.rmSync(file, { force: true });
-        else fs.truncateSync(file);
+        const stat = fs.lstatSync(file, { throwIfNoEntry: false });
+        if (stat?.isFile() && stat.size >= half && this.rotates(file, openRuns)) rotate(file);
       });
     }
+
+    const files: SizedFile[] = [];
+    for (const dir of dirs) attempt(() => files.push(...listLogFiles(dir)));
+    let total = files.reduce((sum, { size }) => sum + size, 0);
+    const { maxSizeTotal } = this.limits;
+    if (total >= maxSizeTotal) {
+      const openKeys = [
+        ...this.logFiles.map(fileKey),
+        ...openRuns.flatMap((run) => run.logFileKeys),
+      ];
+      for (const { file, isOlder, size } of inFreeingOrder(files, openKeys)) {
+        if (total < maxSizeTotal) break;
+        // Also when it fails: a file that muxa cannot free must not cost the output of the others
+        total -= size;
+        attempt(() => {
+          // dekit can hold a `.log` file open after its muxa was killed, and then writes on into a deleted file
+          if (isOlder) fs.rmSync(file, { force: true });
+          else fs.truncateSync(file);
+        });
+      }
+    }
+
+    if (errors.length > 0) throw errors[0];
   }
 
-  if (errors.length > 0) throw errors[0];
+  /** Of two open runs with one log file, one rotates it, because two copies would lose its content */
+  private rotates(file: string, openRuns: OpenRun[]): boolean {
+    const owners = openRuns.filter((run) => run.logFileKeys.includes(fileKey(file)));
+    return owners.every(({ record }) => record >= this.record);
+  }
+
+  /** The run no longer writes its log files */
+  close(): void {
+    fs.rmSync(this.record, { force: true });
+  }
+}
+
+function listOpenRuns(dir: string): OpenRun[] {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).flatMap((name) => {
+    if (!RUN_RECORD.test(name)) return [];
+    const record = path.join(dir, name);
+    const stat = fs.statSync(record, { throwIfNoEntry: false });
+    if (!stat) return [];
+    if (Date.now() - stat.mtimeMs > RUN_RECORD_EXPIRY_MS) {
+      fs.rmSync(record, { force: true });
+      return [];
+    }
+    try {
+      const files: unknown = JSON.parse(fs.readFileSync(record, "utf-8"));
+      if (!Array.isArray(files)) return [];
+      return [{ record, logFileKeys: files.map((file) => fileKey(path.join(dir, String(file)))) }];
+    } catch {
+      // The other run writes or deletes it now
+      return [];
+    }
+  });
 }
 
 /** Move the content of a log file that dekit writes to its `.1` file (ADR 0002) */
@@ -84,19 +160,10 @@ function rotate(file: string): void {
   }
 }
 
-/** Copy a file from `offset` to its end, and return the offset of the end */
-function copyFrom(from: number, offset: number, to: number): number {
-  const chunk = Buffer.alloc(CHUNK);
-  for (let length; (length = fs.readSync(from, chunk, 0, CHUNK, offset)) > 0; offset += length) {
-    fs.appendFileSync(to, chunk.subarray(0, length));
-  }
-  return offset;
-}
-
 function listLogFiles(dir: string): SizedFile[] {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const [, log, older] = /^(.*\.log)(\.1)?$/s.exec(entry.name) ?? [];
+    const [, log, older] = /^(.*\.log)(\.1(?:\.tmp)?)?$/s.exec(entry.name) ?? [];
     if (!entry.isFile() || log === undefined) return [];
     const file = path.join(dir, entry.name);
     const stat = fs.statSync(file, { throwIfNoEntry: false });
@@ -107,10 +174,10 @@ function listLogFiles(dir: string): SizedFile[] {
   });
 }
 
-/** The files of processes that this run does not start come first, and its `.log` files last */
-function inFreeingOrder(files: SizedFile[], logFiles: string[]): SizedFile[] {
-  const started = new Set(logFiles.map(fileKey));
-  const isStarted = ({ processKey }: SizedFile) => started.has(processKey);
+/** The files of processes that no open run writes come first, and the `.log` files of the open runs last */
+function inFreeingOrder(files: SizedFile[], openKeys: string[]): SizedFile[] {
+  const open = new Set(openKeys);
+  const isOpen = ({ processKey }: SizedFile) => open.has(processKey);
   const processSizes = new Map<string, number>();
   for (const { processKey, size } of files) {
     processSizes.set(processKey, (processSizes.get(processKey) ?? 0) + size);
@@ -118,10 +185,10 @@ function inFreeingOrder(files: SizedFile[], logFiles: string[]): SizedFile[] {
   const processSize = ({ processKey }: SizedFile) => processSizes.get(processKey) ?? 0;
 
   return [
-    ...files.filter((file) => !isStarted(file)).sort((a, b) => a.changedAt - b.changedAt),
+    ...files.filter((file) => !isOpen(file)).sort((a, b) => a.changedAt - b.changedAt),
     ...files
-      .filter((file) => isStarted(file) && file.isOlder)
+      .filter((file) => isOpen(file) && file.isOlder)
       .sort((a, b) => processSize(b) - processSize(a)),
-    ...files.filter((file) => isStarted(file) && !file.isOlder).sort((a, b) => b.size - a.size),
+    ...files.filter((file) => isOpen(file) && !file.isOlder).sort((a, b) => b.size - a.size),
   ];
 }

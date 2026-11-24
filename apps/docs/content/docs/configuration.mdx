@@ -70,9 +70,9 @@ Once per second, muxa checks the sizes. When `web.log` reaches half of `maxSizeP
 
 When the log files together reach `maxSizeTotal`, muxa frees space in this order, until they are under it:
 
-1. The log files of processes that this run does not start, oldest first. A `.log.1` file is deleted. A `.log` file is emptied, because another running muxa can still write to it.
-2. The `.log.1` files of the processes of this run, the largest process first.
-3. The `.log` files of the processes of this run, emptied, the largest first.
+1. The log files of processes that no open muxa run started, oldest first. A `.log.1` file is deleted, and a `.log` file is emptied.
+2. The `.log.1` files of the processes of open runs, the largest process first.
+3. The `.log` files of the processes of open runs, emptied, the largest first.
 
 <Callout type="warn">
   A line that a process writes in the moment between the copy and the emptying is lost. This is

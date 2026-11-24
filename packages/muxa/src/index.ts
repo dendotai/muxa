@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { spawn } from "child_process";
+import * as path from "path";
 import { version as VERSION } from "../package.json";
 import { buildCommands, buildMprocsArgs, buildProcessNames } from "./command-builder";
 import { dekitBinaryPath } from "./dekit";
 import { logDirsInTotal, resolveLogDir, startLogFiles } from "./log-files";
-import { enforceLogLimits } from "./log-limits";
+import { LogLimiter } from "./log-limits";
 import { printLog } from "./logs";
 import { detectPackageManager } from "./package-manager";
 import { parseArguments, RESERVED_WORDS } from "./parser";
@@ -208,10 +209,15 @@ async function main() {
     let logLimitsError: unknown;
     if (logDir) {
       const runLogDir = logDir;
-      const logLimits = resolveLogLimits(cwd, settings);
+      const limiter = new LogLimiter(
+        path.resolve(cwd, runLogDir),
+        logFiles,
+        resolveLogLimits(cwd, settings),
+      );
+      process.on("exit", () => limiter.close());
       const keepLogLimits = () => {
         try {
-          enforceLogLimits(logFiles, logDirsInTotal(cwd, runLogDir), logLimits);
+          limiter.enforce(logDirsInTotal(cwd, runLogDir));
           logLimitsError = undefined;
         } catch (error) {
           logLimitsError = error;

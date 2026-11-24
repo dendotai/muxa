@@ -1,9 +1,12 @@
+import { randomUUID } from "crypto";
 import { once } from "events";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { StringDecoder } from "string_decoder";
 import { possibleTabNames } from "./command-builder";
 import {
+  copyFrom,
   fileKey,
   hasSuffix,
   lastStartLineOffset,
@@ -34,26 +37,16 @@ const ERASE_LINE = "\x1b[2K";
 
 interface FilePart {
   fd: number;
-  /** Whether a rotation can empty the file */
-  isCurrent: boolean;
   start: number;
   end: number;
-}
-
-/** The files stay open, so a rotation that replaces the `.1` file takes nothing from a slow reader */
-interface CurrentRun {
-  /** Oldest first */
-  parts: FilePart[];
-  /** Once a rotation moved the content of the log file, the new `.1` file that has it */
-  openRotated: () => number | undefined;
 }
 
 /**
  * Print the output of a process since its last start line.
  */
 export async function printLog(cwd: string, nameOrCommand: string): Promise<void> {
-  const run = currentRun(resolveLogFile(cwd, nameOrCommand));
-  if (run.parts.every(({ start, end }) => start === end)) {
+  const parts = currentRun(resolveLogFile(cwd, nameOrCommand));
+  if (parts.every(({ start, end }) => start === end)) {
     // On stderr, so a pipe gets only the output of the process
     console.error(
       `The log of '${nameOrCommand}' is empty. muxa empties logs to keep them under logs.maxSizeTotal.`,
@@ -68,7 +61,7 @@ export async function printLog(cwd: string, nameOrCommand: string): Promise<void
   });
 
   const format = out.isTTY ? keepColors : toPlainText;
-  for (const lines of readLines(run)) {
+  for (const lines of readLines(parts)) {
     const text = lines.map((line) => `${format(lastState(line))}\n`).join("");
     if (text && !out.write(text)) await once(out, "drain");
   }
@@ -136,26 +129,35 @@ function listLogFiles(dir: string): string[] {
   return [...new Set(files.map((file) => file.replace(/\.1$/, "")))].sort();
 }
 
-/** The parts of the log files that hold the current run */
-function currentRun(file: string): CurrentRun {
+/** The parts of the log files that hold the current run, oldest first */
+function currentRun(file: string): FilePart[] {
   const older = openIfExists(`${file}.1`);
   const olderId = fileId(older);
-  // A new file cannot get the id of an open one
-  const isRotated = () => ![undefined, olderId].includes(fileId(`${file}.1`));
   const current = openIfExists(file);
 
   const parts: FilePart[] = [];
   for (const fd of [current, older]) {
     if (fd === undefined) continue;
     const { size, offset } = lastStartLineOffset(fd);
-    parts.unshift({ fd, isCurrent: fd === current, start: offset ?? 0, end: size });
+    parts.unshift(
+      fd === current ? copyPart(fd, offset ?? 0) : { fd, start: offset ?? 0, end: size },
+    );
     if (offset !== undefined) break;
   }
-  if (isRotated()) return currentRun(file);
-  return {
-    parts,
-    openRotated: () => (isRotated() ? openIfExists(`${file}.1`) : undefined),
-  };
+  // A new file cannot get the id of an open one, so another id means a rotation came meanwhile
+  return [undefined, olderId].includes(fileId(`${file}.1`)) ? parts : currentRun(file);
+}
+
+/**
+ * A copy of the log file from `start`, because a rotation empties it while a slow reader takes the
+ * output. The older file needs none: a rotation deletes it, and it stays readable while it is open.
+ */
+function copyPart(fd: number, start: number): FilePart {
+  const file = path.join(os.tmpdir(), `muxa-${randomUUID()}.log`);
+  const copy = fs.openSync(file, "wx+", 0o600);
+  // An open file stays readable, and no way out of muxa leaves it behind
+  fs.unlinkSync(file);
+  return { fd: copy, start: 0, end: copyFrom(fd, start, copy) - start };
 }
 
 function openIfExists(file: string): number | undefined {
@@ -175,24 +177,14 @@ function fileId(file: number | string | undefined): number | undefined {
 }
 
 /** The lines of the parts as one text, in batches, without their line ends */
-function* readLines({ parts, openRotated }: CurrentRun): Generator<string[]> {
+function* readLines(parts: FilePart[]): Generator<string[]> {
   const decoder = new StringDecoder("utf8");
   const chunk = Buffer.alloc(64 * 1024);
   let rest = "";
-  for (const { fd, isCurrent, start, end } of parts) {
-    let source = fd;
-    for (let offset = start; offset < end; ) {
-      const read = () =>
-        fs.readSync(source, chunk, 0, Math.min(chunk.length, end - offset), offset);
-      let length = read();
-      // After the read, because a rotation can come before it or during it
-      const rotated = isCurrent && source === fd ? openRotated() : undefined;
-      if (rotated !== undefined) {
-        source = rotated;
-        length = read();
-      }
+  for (const { fd, start, end } of parts) {
+    for (let offset = start, length; offset < end; offset += length) {
+      length = fs.readSync(fd, chunk, 0, Math.min(chunk.length, end - offset), offset);
       if (length === 0) break;
-      offset += length;
       const lines = decoder.write(chunk.subarray(0, length)).split("\n");
       lines[0] = rest + lines[0];
       rest = lines.pop() ?? "";
