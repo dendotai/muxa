@@ -201,3 +201,9 @@ export function hasPackageJson(dir: string): boolean {
 export function xdgHome(value: string | undefined, defaultInHome: string): string {
   return value && path.isAbsolute(value) ? value : path.join(os.homedir(), defaultInHome);
 }
+
+export function ensureMuxaFolder(cwd: string): void {
+  fs.mkdirSync(path.join(cwd, ".muxa"), { recursive: true });
+  const gitignore = path.join(cwd, ".muxa", ".gitignore");
+  if (!fs.existsSync(gitignore)) fs.writeFileSync(gitignore, "*\n");
+}

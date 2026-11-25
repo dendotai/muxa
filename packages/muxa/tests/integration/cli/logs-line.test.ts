@@ -87,6 +87,17 @@ describe("The question about a muxa logs line in CLAUDE.md", () => {
     expect(fs.existsSync(path.join(cwd, ".muxa", "claude-md-line-declined"))).toBe(true);
   });
 
+  it("keeps an unreadable CLAUDE.md, warns, and starts", async () => {
+    const cwd = project({ "CLAUDE.md": "# Rules\n" });
+    fs.chmodSync(path.join(cwd, "CLAUDE.md"), 0o000);
+    const run = start(cwd);
+    expect(await run.exited()).toBe(0);
+    fs.chmodSync(path.join(cwd, "CLAUDE.md"), 0o644);
+    expect(run.output()).toContain("Warning: muxa cannot add the muxa logs line to CLAUDE.md");
+    expect(run.output()).toContain("Would execute: dekit mprocs");
+    expect(read(cwd, "CLAUDE.md")).toBe("# Rules\n");
+  });
+
   it("does not ask when CLAUDE.md mentions muxa logs", async () => {
     await startWithoutQuestion(project({ "CLAUDE.md": "Run `muxa logs web` for web.\n" }));
   });

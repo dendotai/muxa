@@ -120,7 +120,13 @@ async function main() {
       }
     }
 
-    await offerLogsLine(cwd);
+    try {
+      await offerLogsLine(cwd);
+    } catch (error) {
+      console.error(
+        `Warning: muxa cannot add the muxa logs line to CLAUDE.md: ${formatError(error)}`,
+      );
+    }
 
     let mprocsConfigFile: string | undefined;
     if (mprocsConfig) {

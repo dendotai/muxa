@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
-import { hasPackageJson, xdgHome } from "./utils";
+import { ensureMuxaFolder, hasPackageJson, xdgHome } from "./utils";
 
 const PROJECT_LOG_DIR = ".muxa/logs";
 
@@ -34,13 +34,6 @@ export function resolveLogDir(cwd: string): string {
 
 function homeLogDir(): string {
   return path.join(xdgHome(process.env.XDG_STATE_HOME, ".local/state"), "muxa", "logs");
-}
-
-/** Make the `.muxa` folder of a project in `cwd`, which git ignores whole */
-export function ensureMuxaFolder(cwd: string): void {
-  fs.mkdirSync(path.join(cwd, ".muxa"), { recursive: true });
-  const gitignore = path.join(cwd, ".muxa", ".gitignore");
-  if (!fs.existsSync(gitignore)) fs.writeFileSync(gitignore, "*\n");
 }
 
 /** The folders that share one `maxSizeTotal` with `logDir`, itself included */
