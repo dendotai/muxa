@@ -20,6 +20,7 @@ FORCE_COLOR=1
 
 - `getMuxaCommand` and `runMuxa` in `packages/muxa/tests/helpers/muxa-runner.ts` start muxa in test mode and return its output.
 - `runInTerminal` in `packages/muxa/tests/helpers/terminal-runner.ts` starts muxa in a pseudo-terminal with `MUXA_TEST_MODE` unset, so muxa starts the real dekit; use it for a test that needs a TTY or a keypress.
+- `followLogs` in `packages/muxa/tests/helpers/follow-runner.ts` starts `muxa logs … -f` with its output in a pipe, and can pause it with `SIGSTOP`, as a reader that stops reading does.
 
 ## Fixture monorepos
 

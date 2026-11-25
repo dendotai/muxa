@@ -200,6 +200,22 @@ export function fileKey(file: string): string {
   return process.platform === "darwin" ? file.toLowerCase() : file;
 }
 
+export function openIfExists(file: string): number | undefined {
+  try {
+    return fs.openSync(file, "r");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
+export function fileId(file: number | string | undefined): number | undefined {
+  if (file === undefined) return undefined;
+  return typeof file === "number"
+    ? fs.fstatSync(file).ino
+    : fs.statSync(file, { throwIfNoEntry: false })?.ino;
+}
+
 /** The log file of a process with this tab name and no other process beside it */
 export function logFileName(tabName: string): string {
   return logFileNames([tabName])[0] ?? "";

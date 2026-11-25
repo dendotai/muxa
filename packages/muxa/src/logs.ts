@@ -7,16 +7,27 @@ import { StringDecoder } from "string_decoder";
 import { possibleTabNames } from "./command-builder";
 import {
   copyFrom,
+  fileId,
   fileKey,
   hasSuffix,
   lastStartLineOffset,
   type LoggedProcess,
   logFileExists,
   logFileName,
+  openIfExists,
   readProcesses,
   resolveLogDir,
   withSuffix,
 } from "./log-files";
+import {
+  CHUNK,
+  type FilePart,
+  LOG_START,
+  newOutput,
+  positionAt,
+  type ReadPosition,
+  rotationEnd,
+} from "./log-follow";
 
 /**
  * The codes of a terminal (ECMA-48): a string such as a title, a control sequence, another escape
@@ -35,23 +46,22 @@ const keepColors = (text: string) =>
 
 const ERASE_LINE = "\x1b[2K";
 
-interface FilePart {
-  fd: number;
-  start: number;
-  end: number;
-}
+/** A line with no line end for this long can be a question, or the last words of a process */
+const UNFINISHED_LINE_MS = 2000;
 
 /**
- * Print the output of a process since its last start line.
+ * Print the output of a process since its last start line. With `follow`, it prints on until a
+ * signal stops muxa.
  */
-export async function printLog(cwd: string, nameOrCommand: string): Promise<void> {
-  const parts = currentRun(resolveLogFile(cwd, nameOrCommand));
+export async function printLog(cwd: string, nameOrCommand: string, follow = false): Promise<void> {
+  const file = resolveLogFile(cwd, nameOrCommand);
+  const { parts, position, older } = await currentRun(file);
   if (parts.every(({ start, end }) => start === end)) {
     // On stderr, so a pipe gets only the output of the process
     console.error(
       `The log of '${nameOrCommand}' is empty. muxa empties logs to keep them under logs.maxSizeTotal.`,
     );
-    return;
+    if (!follow) return;
   }
 
   const out = process.stdout;
@@ -60,10 +70,26 @@ export async function printLog(cwd: string, nameOrCommand: string): Promise<void
     process.exit(error.code === "EPIPE" ? 0 : 1);
   });
 
-  const format = out.isTTY ? keepColors : toPlainText;
-  for (const lines of readLines(parts)) {
-    const text = lines.map((line) => `${format(lastState(line))}\n`).join("");
+  const lines = new LineFormatter(out.isTTY ? keepColors : toPlainText);
+  const write = async (text: string) => {
     if (text && !out.write(text)) await once(out, "drain");
+  };
+  for (const bytes of readParts(parts)) await write(lines.add(bytes));
+  // An open file that is deleted keeps its space on the disk
+  for (const { fd } of parts) if (fd !== older) fs.closeSync(fd);
+  if (!follow) {
+    await write(lines.end());
+    return;
+  }
+
+  let showUnfinishedAt = Date.now() + UNFINISHED_LINE_MS;
+  for await (const bytes of newOutput(file, position, older)) {
+    await write(lines.add(bytes));
+    if (bytes.length > 0) showUnfinishedAt = Date.now() + UNFINISHED_LINE_MS;
+    else if (Date.now() >= showUnfinishedAt) {
+      await write(lines.unfinished());
+      showUnfinishedAt = Infinity;
+    }
   }
 }
 
@@ -129,23 +155,45 @@ function listLogFiles(dir: string): string[] {
   return [...new Set(files.map((file) => file.replace(/\.1$/, "")))].sort();
 }
 
-/** The parts of the log files that hold the current run, oldest first */
-function currentRun(file: string): FilePart[] {
+interface CurrentRun {
+  /** The parts of the log files that hold the run, oldest first */
+  parts: FilePart[];
+  /** The end of the last part */
+  position: ReadPosition;
+  /** The open `.log.1` file, which tells a later rotation from this one */
+  older: number | undefined;
+}
+
+async function currentRun(file: string): Promise<CurrentRun> {
+  await rotationEnd(file);
   const older = openIfExists(`${file}.1`);
   const olderId = fileId(older);
   const current = openIfExists(file);
 
   const parts: FilePart[] = [];
+  let position = LOG_START;
   for (const fd of [current, older]) {
     if (fd === undefined) continue;
     const { size, offset } = lastStartLineOffset(fd);
-    parts.unshift(
-      fd === current ? copyPart(fd, offset ?? 0) : { fd, start: offset ?? 0, end: size },
-    );
+    const start = offset ?? 0;
+    if (fd === current) {
+      const part = copyPart(fd, start);
+      parts.push(part);
+      position = positionAt(start + part.end - part.start, part);
+    } else {
+      parts.unshift({ fd, start, end: size });
+    }
     if (offset !== undefined) break;
   }
+  if (current !== undefined && !parts.some(({ fd }) => fd === current)) fs.closeSync(current);
   // A new file cannot get the id of an open one, so another id means a rotation came meanwhile
-  return [undefined, olderId].includes(fileId(`${file}.1`)) ? parts : currentRun(file);
+  if (![undefined, olderId].includes(fileId(`${file}.1`))) {
+    for (const fd of new Set([older, ...parts.map(({ fd }) => fd)])) {
+      if (fd !== undefined) fs.closeSync(fd);
+    }
+    return currentRun(file);
+  }
+  return { parts, position, older };
 }
 
 /**
@@ -167,39 +215,55 @@ function copyPart(fd: number, start: number): FilePart {
   }
 }
 
-function openIfExists(file: string): number | undefined {
-  try {
-    return fs.openSync(file, "r");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
-    throw error;
-  }
-}
-
-function fileId(file: number | string | undefined): number | undefined {
-  if (file === undefined) return undefined;
-  return typeof file === "number"
-    ? fs.fstatSync(file).ino
-    : fs.statSync(file, { throwIfNoEntry: false })?.ino;
-}
-
-/** The lines of the parts as one text, in batches, without their line ends */
-function* readLines(parts: FilePart[]): Generator<string[]> {
-  const decoder = new StringDecoder("utf8");
-  const chunk = Buffer.alloc(64 * 1024);
-  let rest = "";
+function* readParts(parts: FilePart[]): Generator<Buffer> {
+  const chunk = Buffer.alloc(CHUNK);
   for (const { fd, start, end } of parts) {
     for (let offset = start, length; offset < end; offset += length) {
       length = fs.readSync(fd, chunk, 0, Math.min(chunk.length, end - offset), offset);
       if (length === 0) break;
-      const lines = decoder.write(chunk.subarray(0, length)).split("\n");
-      lines[0] = rest + lines[0];
-      rest = lines.pop() ?? "";
-      yield lines;
+      yield chunk.subarray(0, length);
     }
   }
-  rest += decoder.end();
-  if (rest) yield [rest];
+}
+
+/** Makes the text to print from the bytes of a log file, line by line */
+class LineFormatter {
+  private readonly decoder = new StringDecoder("utf8");
+  private rest = "";
+  /** What `unfinished` gave of the line in `rest` */
+  private shown = "";
+
+  constructor(private readonly format: (text: string) => string) {}
+
+  /** The lines that end in `bytes` */
+  add(bytes: Buffer): string {
+    const lines = this.decoder.write(bytes).split("\n");
+    lines[0] = this.rest + lines[0];
+    this.rest = lines.pop() ?? "";
+    return lines.map((line) => `${this.notShown(line)}\n`).join("");
+  }
+
+  /** What is new in the line that has no end yet */
+  unfinished(): string {
+    const line = this.rest;
+    if (toPlainText(lastState(line)) === "") return "";
+    const text = this.notShown(line);
+    this.shown = this.format(lastState(line));
+    return text;
+  }
+
+  /** The line that never ended */
+  end(): string {
+    this.rest += this.decoder.end();
+    return this.rest && `${this.notShown(this.rest)}\n`;
+  }
+
+  private notShown(line: string): string {
+    const text = this.format(lastState(line));
+    const shown = this.shown;
+    this.shown = "";
+    return text.startsWith(shown) ? text.slice(shown.length) : `\n${text}`;
+  }
 }
 
 /** A progress line goes back to its start, or erases itself, before each new state */
