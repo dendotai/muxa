@@ -8,6 +8,7 @@ import {
   createTempWorkspace,
 } from "@tests/helpers/fixture-helpers";
 import { muxaPath, muxaRuntime } from "@tests/helpers/constants";
+import { followLogs } from "@tests/helpers/follow-runner";
 import { runMuxa } from "@tests/helpers/muxa-runner";
 import { quit, runInTerminal } from "@tests/helpers/terminal-runner";
 
@@ -282,6 +283,73 @@ describe("muxa logs beside a rotation", () => {
     const lines = text.split("\n").slice(1, -1);
     expect(lines.length).toBe(COUNT);
     expect(lines.findIndex((line, i) => Number(line) !== i + 1)).toBe(-1);
+  });
+});
+
+describe("muxa logs -f", () => {
+  it("prints each line once across rotations", async () => {
+    const { cwd, dir } = createProject({ maxSizePerProcess: "200KB" });
+    const file = path.join(dir, "web.log");
+    // Each part is over half of the limit, and the process writes nothing while a rotation empties the log file
+    const PART = 1200;
+    const PARTS = 4;
+    const parts = Array.from({ length: PARTS }, (_, i) => {
+      return `${until(`go${i}`)}; ${numbers(i * PART + 1, (i + 1) * PART)}`;
+    });
+    const muxa = runInTerminal(["-c", `${parts.join("; ")}; echo end`, "web"], { cwd });
+    await waitUntil(() => size(file) !== undefined, "muxa starts the log");
+    const run = followLogs(["web", "-f"], cwd);
+    for (let i = 0; i < PARTS; i++) {
+      fs.writeFileSync(path.join(cwd, `go${i}`), "");
+      await run.waitFor(`${String((i + 1) * PART).padStart(99, "0")}\n`, 10000);
+      await waitUntil(
+        () => size(`${file}.1`) !== undefined && (size(file) ?? 0) < 100 * KB,
+        "web rotates",
+      );
+    }
+    await run.waitFor("end\n");
+    expect(await quit(muxa)).toBe(0);
+    expect(run.running()).toBe(true);
+    await run.interrupt();
+
+    const [startLine, ...lines] = run.output().split("\n");
+    expect(startLine).toStartWith("=== muxa started ");
+    expect(lines).toEqual([
+      ...Array.from({ length: PARTS * PART }, (_, i) => String(i + 1).padStart(99, "0")),
+      "end",
+      "",
+    ]);
+  });
+
+  it("prints all that a fast writer leaves in the log files, once and in order", async () => {
+    const { cwd, dir } = createProject({ maxSizePerProcess: "2MB" });
+    const file = path.join(dir, "web.log");
+    const muxa = runInTerminal(["-c", numbers(1, 100_000_000), "web"], { cwd });
+    // A second name keeps a rotated file, and its inode from another one
+    const kept: string[] = [];
+    const inodes = new Set<number>();
+    const keep = setInterval(() => {
+      const inode = fs.statSync(`${file}.1`, { throwIfNoEntry: false })?.ino;
+      if (inode === undefined || inodes.has(inode)) return;
+      inodes.add(inode);
+      kept.push(path.join(cwd, `kept-${kept.length}`));
+      fs.linkSync(`${file}.1`, kept.at(-1) ?? "");
+    }, 20);
+    await waitUntil(() => kept.length > 0, "web rotates");
+    const run = followLogs(["web", "-f"], cwd);
+    await waitUntil(() => kept.length > 5, "web rotates");
+    // Until muxa has printed the last rotated file
+    await Bun.sleep(500);
+    await run.interrupt();
+    expect(await quit(muxa)).toBe(0);
+    clearInterval(keep);
+
+    const written = [...kept, file].map(read).join("").replaceAll("\r", "");
+    const output = run.output();
+    expect(output.length).toBeGreaterThan(
+      kept.slice(1).reduce((sum, name) => sum + (size(name) ?? 0), 0) * 0.9,
+    );
+    expect(written.includes(output.slice(0, output.lastIndexOf("\n") + 1))).toBe(true);
   });
 });
 

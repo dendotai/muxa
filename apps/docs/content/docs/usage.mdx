@@ -176,7 +176,7 @@ muxa logs web
 grep -i warning .muxa/logs/*.log
 ```
 
-[`muxa logs`](/cli-reference#logs-process) prints the output of one process since the last start, also after muxa quit.
+[`muxa logs`](/cli-reference#logs-process) prints the output of one process since the last start, also after muxa quit. `muxa logs web -f` prints each new line too.
 
 A file is named after the [tab name](/cli-reference#tab-names) of its process. Every character outside `A-Z`, `a-z`, `0-9`, `-`, `_` and `.` becomes `_`: `backend:dev` writes `.muxa/logs/backend_dev.log`. Different names that would give one file get a [suffix](/cli-reference#tab-names): `.web` beside `web` writes `web-oyv.log`. `processes.json`, in the same folder, holds the name and the file of each process, those of the last start first. A process of an earlier start stays in it until its file is gone, or a later process takes its name or its file.
 

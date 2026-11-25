@@ -22,6 +22,7 @@ export default [
         setTimeout: "readonly",
         clearTimeout: "readonly",
         setInterval: "readonly",
+        clearInterval: "readonly",
         NodeJS: "readonly",
         Bun: "readonly",
         TextDecoder: "readonly",

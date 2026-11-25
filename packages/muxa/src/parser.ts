@@ -8,6 +8,8 @@ const VERBS = ["logs", "restart", "stop", "start"] as const;
 export interface VerbCall {
   verb: (typeof VERBS)[number];
   process: string;
+  /** `logs` prints on as the process writes */
+  follow?: boolean;
 }
 
 /** A first argument that muxa does not run as a command */
@@ -267,15 +269,18 @@ function parseReserved(
   }
 }
 
-function parseVerb(verb: VerbCall["verb"], [target, extra]: string[]): VerbCall {
+function parseVerb(verb: VerbCall["verb"], args: string[]): VerbCall {
+  const isFollow = (arg: string) => verb === "logs" && (arg === "-f" || arg === "--follow");
+  const [target, extra] = args.filter((arg) => !isFollow(arg));
   if (!target) {
     throw new ParseError(
       `muxa ${verb} needs a process name. To run a program named ${verb}, use: muxa -c ${verb}`,
     );
   }
   if (target.startsWith("-")) throw new ParseError(`Unknown option '${target}'`);
+  if (extra?.startsWith("-")) throw new ParseError(`Unknown option '${extra}'`);
   if (extra !== undefined) throw new ParseError(`Unexpected argument: ${extra}`);
-  return { verb, process: target };
+  return { verb, process: target, follow: args.some(isFollow) || undefined };
 }
 
 function isKnownFlag(flag: string): boolean {

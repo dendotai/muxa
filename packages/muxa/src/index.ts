@@ -59,7 +59,7 @@ async function main() {
     }
 
     if (parsed.verbCall?.verb === "logs") {
-      await printLog(process.cwd(), parsed.verbCall.process);
+      await printLog(process.cwd(), parsed.verbCall.process, parsed.verbCall.follow);
       return;
     }
 
@@ -270,7 +270,7 @@ Usage:
   muxa -w <package> <command> [name] ...Run commands in workspace context
   muxa workspaces                       List all workspace packages
   muxa migrate [--dry-run] [--yes]      Migrate from concurrently
-  muxa logs <process>                   Print a process's output since the last start
+  muxa logs <process> [-f]              Print a process's output since the last start
 
 Examples:
   # Simple commands (like concurrently)
@@ -289,6 +289,7 @@ Options:
   -c, --command     Run arbitrary command
   -s, --script      Run package.json script in workspace
   -w, --workspace   Run command in workspace directory
+  -f, --follow      With logs: print new output until Ctrl-C
   -h, --help        Show help
   -V, --version     Show version
 
