@@ -7,6 +7,7 @@ import { dekitBinaryPath } from "./dekit";
 import { logDirsInTotal, resolveLogDir, startLogFiles } from "./log-files";
 import { LogLimiter } from "./log-limits";
 import { printLog } from "./logs";
+import { offerLogsLine } from "./logs-line";
 import { detectPackageManager } from "./package-manager";
 import { parseArguments, RESERVED_WORDS } from "./parser";
 import {
@@ -118,6 +119,8 @@ async function main() {
         process.exit(1);
       }
     }
+
+    await offerLogsLine(cwd);
 
     let mprocsConfigFile: string | undefined;
     if (mprocsConfig) {

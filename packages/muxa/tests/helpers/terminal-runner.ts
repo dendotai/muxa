@@ -28,7 +28,8 @@ export function runInTerminal(
 
   const proc = Bun.spawn([muxaRuntime, muxaPath, ...args], {
     cwd,
-    env: { ...parentEnv, ...env },
+    // A test of the CLAUDE.md question sets the variable to "", so the question shows
+    env: { ...parentEnv, MUXA_TEST_SKIP_LOGS_LINE_QUESTION: "1", ...env },
     terminal: {
       cols: 120,
       rows: 30,

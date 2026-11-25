@@ -36,6 +36,13 @@ function homeLogDir(): string {
   return path.join(xdgHome(process.env.XDG_STATE_HOME, ".local/state"), "muxa", "logs");
 }
 
+/** Make the `.muxa` folder of a project in `cwd`, which git ignores whole */
+export function ensureMuxaFolder(cwd: string): void {
+  fs.mkdirSync(path.join(cwd, ".muxa"), { recursive: true });
+  const gitignore = path.join(cwd, ".muxa", ".gitignore");
+  if (!fs.existsSync(gitignore)) fs.writeFileSync(gitignore, "*\n");
+}
+
 /** The folders that share one `maxSizeTotal` with `logDir`, itself included */
 export function logDirsInTotal(cwd: string, logDir: string): string[] {
   if (logDir === PROJECT_LOG_DIR) return [path.resolve(cwd, logDir)];
@@ -66,10 +73,7 @@ export function startLogFiles(cwd: string, logDir: string, names: ProcessNames[]
   const dir = path.resolve(cwd, logDir);
   fs.mkdirSync(dir, { recursive: true });
 
-  if (logDir === PROJECT_LOG_DIR) {
-    const gitignore = path.join(cwd, ".muxa", ".gitignore");
-    if (!fs.existsSync(gitignore)) fs.writeFileSync(gitignore, "*\n");
-  }
+  if (logDir === PROJECT_LOG_DIR) ensureMuxaFolder(cwd);
 
   const files = logFileNames(names.map(({ tabName }) => tabName));
   const processes = files.map((file, i): LoggedProcess => ({ name: names[i]?.typed ?? "", file }));
