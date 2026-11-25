@@ -19,7 +19,15 @@ import {
   resolveLogDir,
   withSuffix,
 } from "./log-files";
-import { newOutput, positionAt, type ReadPosition, rotationEnd, START } from "./log-follow";
+import {
+  CHUNK,
+  type FilePart,
+  LOG_START,
+  newOutput,
+  positionAt,
+  type ReadPosition,
+  rotationEnd,
+} from "./log-follow";
 
 /**
  * The codes of a terminal (ECMA-48): a string such as a title, a control sequence, another escape
@@ -40,12 +48,6 @@ const ERASE_LINE = "\x1b[2K";
 
 /** A line with no line end for this long can be a question, or the last words of a process */
 const UNFINISHED_LINE_MS = 2000;
-
-interface FilePart {
-  fd: number;
-  start: number;
-  end: number;
-}
 
 /**
  * Print the output of a process since its last start line. With `follow`, it prints on until a
@@ -80,13 +82,13 @@ export async function printLog(cwd: string, nameOrCommand: string, follow = fals
     return;
   }
 
-  let changedAt = Date.now();
+  let showUnfinishedAt = Date.now() + UNFINISHED_LINE_MS;
   for await (const bytes of newOutput(file, position, older)) {
     await write(lines.add(bytes));
-    if (bytes.length > 0) changedAt = Date.now();
-    else if (Date.now() - changedAt >= UNFINISHED_LINE_MS) {
+    if (bytes.length > 0) showUnfinishedAt = Date.now() + UNFINISHED_LINE_MS;
+    else if (Date.now() >= showUnfinishedAt) {
       await write(lines.unfinished());
-      changedAt = Infinity;
+      showUnfinishedAt = Infinity;
     }
   }
 }
@@ -158,6 +160,7 @@ interface CurrentRun {
   parts: FilePart[];
   /** The end of the last part */
   position: ReadPosition;
+  /** The open `.log.1` file, which tells a later rotation from this one */
   older: number | undefined;
 }
 
@@ -168,7 +171,7 @@ async function currentRun(file: string): Promise<CurrentRun> {
   const current = openIfExists(file);
 
   const parts: FilePart[] = [];
-  let position = START;
+  let position = LOG_START;
   for (const fd of [current, older]) {
     if (fd === undefined) continue;
     const { size, offset } = lastStartLineOffset(fd);
@@ -184,7 +187,12 @@ async function currentRun(file: string): Promise<CurrentRun> {
   }
   if (current !== undefined && !parts.some(({ fd }) => fd === current)) fs.closeSync(current);
   // A new file cannot get the id of an open one, so another id means a rotation came meanwhile
-  if (![undefined, olderId].includes(fileId(`${file}.1`))) return currentRun(file);
+  if (![undefined, olderId].includes(fileId(`${file}.1`))) {
+    for (const fd of new Set([older, ...parts.map(({ fd }) => fd)])) {
+      if (fd !== undefined) fs.closeSync(fd);
+    }
+    return currentRun(file);
+  }
   return { parts, position, older };
 }
 
@@ -208,7 +216,7 @@ function copyPart(fd: number, start: number): FilePart {
 }
 
 function* readParts(parts: FilePart[]): Generator<Buffer> {
-  const chunk = Buffer.alloc(64 * 1024);
+  const chunk = Buffer.alloc(CHUNK);
   for (const { fd, start, end } of parts) {
     for (let offset = start, length; offset < end; offset += length) {
       length = fs.readSync(fd, chunk, 0, Math.min(chunk.length, end - offset), offset);

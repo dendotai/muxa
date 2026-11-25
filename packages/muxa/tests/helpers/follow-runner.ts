@@ -13,6 +13,10 @@ export interface FollowRun {
   interrupt(): Promise<void>;
 }
 
+const running = new Set<{ kill(): void }>();
+// A test that fails before `interrupt` leaves no `muxa logs -f` behind
+process.on("exit", () => running.forEach((proc) => proc.kill()));
+
 /** Run `muxa logs` with these arguments and its output in a pipe, until `interrupt` */
 export function followLogs(args: string[], cwd: string): FollowRun {
   const proc = Bun.spawn([muxaRuntime, muxaPath, "logs", ...args], {
@@ -20,6 +24,8 @@ export function followLogs(args: string[], cwd: string): FollowRun {
     stdout: "pipe",
     stderr: "pipe",
   });
+  running.add(proc);
+  void proc.exited.then(() => running.delete(proc));
   let output = "";
   const ended = (async () => {
     const decoder = new TextDecoder();

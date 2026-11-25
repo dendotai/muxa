@@ -29,13 +29,17 @@ function project(files: Record<string, string>) {
   return { cwd, log, append: (text: string | Buffer) => fs.appendFileSync(log, text) };
 }
 
-/** As muxa rotates a log file, with this output of the process added during the copy */
-async function rotate(log: string, meanwhile = "", pause = 0) {
+/**
+ * As muxa rotates a log file, with this output of the process added during the copy, and `lost`
+ * added after it, which the rotation loses
+ */
+async function rotate(log: string, meanwhile = "", pause = 0, lost = "") {
   fs.rmSync(`${log}.1`, { force: true });
   fs.copyFileSync(log, `${log}.1.tmp`);
   fs.renameSync(`${log}.1.tmp`, `${log}.1`);
   fs.appendFileSync(log, meanwhile);
   fs.appendFileSync(`${log}.1`, meanwhile);
+  fs.appendFileSync(log, lost);
   await Bun.sleep(pause);
   fs.truncateSync(log);
 }
@@ -232,6 +236,16 @@ describe("CLI > muxa logs -f", () => {
       });
       const lines = Array.from({ length: COUNT - 1 }, (_, i) => `${i + 2}\n${i + 2} and a half\n`);
       expect(output).toBe(`${START_1}1\n${lines.join("")}last\n`);
+    });
+
+    it("a rotation that loses lines after muxa printed them", async () => {
+      const output = await follow(async (log, append) => {
+        append("2\r\n");
+        await rotate(log, "3\r\n", NEXT_LOOK_MS, "lost\r\n".repeat(50));
+        await Bun.sleep(NEXT_LOOK_MS);
+        append("4\r\n");
+      });
+      expect(output).toBe(`${START_1}1\n2\n3\n${"lost\n".repeat(50)}4\nlast\n`);
     });
 
     it("a rotation while muxa is stopped", async () => {
