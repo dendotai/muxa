@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import * as fs from "fs";
-import * as os from "os";
 import * as path from "path";
+import { hasPackageJson, xdgHome } from "./utils";
 
 const PROJECT_LOG_DIR = ".muxa/logs";
 
@@ -25,17 +25,24 @@ export const MAX_TAB_NAME_LENGTH = MAX_FILE_NAME_LENGTH;
  * package.json. Otherwise no project owns the folder, and its logs go to the user's state folder.
  */
 export function resolveLogDir(cwd: string): string {
-  if (fs.existsSync(path.join(cwd, "package.json"))) return PROJECT_LOG_DIR;
-
-  // The XDG spec has programs ignore a relative XDG_STATE_HOME
-  const xdgStateHome = process.env.XDG_STATE_HOME ?? "";
-  const stateHome = path.isAbsolute(xdgStateHome)
-    ? xdgStateHome
-    : path.join(os.homedir(), ".local", "state");
+  if (hasPackageJson(cwd)) return PROJECT_LOG_DIR;
 
   // A doubled `_` keeps `/a_b` apart from `/a/b`; dekit fills in `{name}` and the like in a log folder
   const folder = cwd.replaceAll("_", "__").replace(/[/\\:{}]/g, "_");
-  return path.join(stateHome, "muxa", "logs", lastBytes(folder.replace(/^_/, "") || "_"));
+  return path.join(homeLogDir(), lastBytes(folder.replace(/^_/, "") || "_"));
+}
+
+function homeLogDir(): string {
+  return path.join(xdgHome(process.env.XDG_STATE_HOME, ".local/state"), "muxa", "logs");
+}
+
+/** The folders that share one `maxSizeTotal` with `logDir`, itself included */
+export function logDirsInTotal(cwd: string, logDir: string): string[] {
+  if (logDir === PROJECT_LOG_DIR) return [path.resolve(cwd, logDir)];
+  return fs
+    .readdirSync(homeLogDir(), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(homeLogDir(), entry.name));
 }
 
 /** A process with its name as the user typed it, or its command */
@@ -52,9 +59,10 @@ export interface ProcessNames {
 
 /**
  * Start a run in the log file of each process: a start line, after the output of earlier runs.
- * `logDir` is from `resolveLogDir`, and `names` are in the order dekit gets them.
+ * `logDir` is from `resolveLogDir`, and `names` are in the order dekit gets them. Returns the paths
+ * of the log files.
  */
-export function startLogFiles(cwd: string, logDir: string, names: ProcessNames[]): void {
+export function startLogFiles(cwd: string, logDir: string, names: ProcessNames[]): string[] {
   const dir = path.resolve(cwd, logDir);
   fs.mkdirSync(dir, { recursive: true });
 
@@ -80,31 +88,40 @@ export function startLogFiles(cwd: string, logDir: string, names: ProcessNames[]
   } finally {
     for (const fd of opened) fs.closeSync(fd);
   }
+  return files.map((file) => path.join(dir, file));
 }
 
 /**
- * The size of a log file and the offset of its last start line, if it has one. It reads from the end,
- * because a log file can be too large for memory.
+ * The size of an open log file and the offset of its last start line, if it has one. It reads from
+ * the end, because a log file can be too large for memory.
  */
-export function lastStartLineOffset(file: string): { size: number; offset?: number } {
+export function lastStartLineOffset(fd: number): { size: number; offset?: number } {
   const CHUNK = 64 * 1024;
   const OVERLAP = 128; // More than a start line, which can begin in one chunk and end in the next
-  const fd = fs.openSync(file, "r");
-  try {
-    const { size } = fs.fstatSync(fd);
-    for (let end = size; end > 0; end -= CHUNK) {
-      const start = Math.max(0, end - CHUNK - OVERLAP);
-      const bytes = Buffer.alloc(end - start);
-      const length = fs.readSync(fd, bytes, 0, bytes.length, start);
-      // In latin1 a byte is a character, so an index is an offset; the first line of the file gets a `\n` before it
-      const text = (start === 0 ? "\n" : "") + bytes.toString("latin1", 0, length);
-      const last = [...text.matchAll(START_LINE)].pop();
-      if (last) return { size, offset: start + last.index - (start === 0 ? 1 : 0) };
-    }
-    return { size };
-  } finally {
-    fs.closeSync(fd);
+  const { size } = fs.fstatSync(fd);
+  for (let end = size; end > 0; end -= CHUNK) {
+    const start = Math.max(0, end - CHUNK - OVERLAP);
+    const bytes = Buffer.alloc(end - start);
+    const length = fs.readSync(fd, bytes, 0, bytes.length, start);
+    // In latin1 a byte is a character, so an index is an offset; the first line of the file gets a `\n` before it
+    const text = (start === 0 ? "\n" : "") + bytes.toString("latin1", 0, length);
+    const last = [...text.matchAll(START_LINE)].pop();
+    if (last) return { size, offset: start + last.index - (start === 0 ? 1 : 0) };
   }
+  return { size };
+}
+
+/** Copy an open file from `offset` to its end, and return the offset of the end */
+export function copyFrom(from: number, offset: number, to: number): number {
+  const chunk = Buffer.alloc(64 * 1024);
+  for (
+    let length;
+    (length = fs.readSync(from, chunk, 0, chunk.length, offset)) > 0;
+    offset += length
+  ) {
+    fs.appendFileSync(to, chunk.subarray(0, length));
+  }
+  return offset;
 }
 
 /** The processes of the last run and of earlier runs with a log file in `dir`, or none when muxa cannot tell */

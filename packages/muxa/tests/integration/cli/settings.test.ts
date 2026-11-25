@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import * as fs from "fs";
-import { createRootPackageWorkspace } from "@tests/helpers/fixture-helpers";
+import * as path from "path";
+import { createRootPackageWorkspace, createTempWorkspace } from "@tests/helpers/fixture-helpers";
 import { runMuxa } from "@tests/helpers/muxa-runner";
 
 describe("CLI > Settings in package.json", () => {
@@ -41,5 +42,34 @@ describe("CLI > Settings in package.json", () => {
     expect(result.code).toBe(1);
     expect(result.stderr).toContain(`Unknown key 'mouseScrolSpeed'`);
     expect(result.stdout).not.toContain("Would execute");
+  });
+
+  it("stops before mprocs on an unknown key under logs", async () => {
+    const cwd = createRootPackageWorkspace({ muxa: { logs: { maxSize: "1MB" } } });
+    const result = await runMuxa(["echo hi"], { cwd });
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("Unknown key 'maxSize' in package.json 'muxa.logs'");
+    expect(result.stdout).not.toContain("Would execute");
+  });
+});
+
+describe("CLI > Settings in settings.json", () => {
+  it.each([
+    [".config", () => ""],
+    [".config", () => "relative/is-ignored"],
+    ["xdg", (home: string) => path.join(home, "xdg")],
+  ])("are read from %s in the home folder", async (folder, xdgConfigHome) => {
+    const home = createTempWorkspace();
+    fs.mkdirSync(path.join(home, folder, "muxa"), { recursive: true });
+    fs.writeFileSync(
+      path.join(home, folder, "muxa", "settings.json"),
+      `{ "processListTitle": "Mine" }`,
+    );
+    const env = { HOME: home, XDG_CONFIG_HOME: xdgConfigHome(home) };
+    const start = (cwd: string) => runMuxa(["echo hi"], { cwd, env });
+    expect((await start(createTempWorkspace())).stdout).toContain("'--proc-list-title' 'Mine'");
+    expect((await start(createRootPackageWorkspace())).stdout).toContain(
+      "'--proc-list-title' 'root'",
+    );
   });
 });

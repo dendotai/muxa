@@ -1,9 +1,12 @@
+import { randomUUID } from "crypto";
 import { once } from "events";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { StringDecoder } from "string_decoder";
 import { possibleTabNames } from "./command-builder";
 import {
+  copyFrom,
   fileKey,
   hasSuffix,
   lastStartLineOffset,
@@ -33,7 +36,7 @@ const keepColors = (text: string) =>
 const ERASE_LINE = "\x1b[2K";
 
 interface FilePart {
-  file: string;
+  fd: number;
   start: number;
   end: number;
 }
@@ -43,6 +46,13 @@ interface FilePart {
  */
 export async function printLog(cwd: string, nameOrCommand: string): Promise<void> {
   const parts = currentRun(resolveLogFile(cwd, nameOrCommand));
+  if (parts.every(({ start, end }) => start === end)) {
+    // On stderr, so a pipe gets only the output of the process
+    console.error(
+      `The log of '${nameOrCommand}' is empty. muxa empties logs to keep them under logs.maxSizeTotal.`,
+    );
+    return;
+  }
 
   const out = process.stdout;
   // A reader that has enough, such as `head`, closes the pipe
@@ -51,7 +61,7 @@ export async function printLog(cwd: string, nameOrCommand: string): Promise<void
   });
 
   const format = out.isTTY ? keepColors : toPlainText;
-  for await (const lines of readLines(parts)) {
+  for (const lines of readLines(parts)) {
     const text = lines.map((line) => `${format(lastState(line))}\n`).join("");
     if (text && !out.write(text)) await once(out, "drain");
   }
@@ -121,24 +131,68 @@ function listLogFiles(dir: string): string[] {
 
 /** The parts of the log files that hold the current run, oldest first */
 function currentRun(file: string): FilePart[] {
+  const older = openIfExists(`${file}.1`);
+  const olderId = fileId(older);
+  const current = openIfExists(file);
+
   const parts: FilePart[] = [];
-  for (const candidate of [file, `${file}.1`]) {
-    if (!fs.existsSync(candidate)) continue;
-    const { size, offset } = lastStartLineOffset(candidate);
-    parts.unshift({ file: candidate, start: offset ?? 0, end: size });
+  for (const fd of [current, older]) {
+    if (fd === undefined) continue;
+    const { size, offset } = lastStartLineOffset(fd);
+    parts.unshift(
+      fd === current ? copyPart(fd, offset ?? 0) : { fd, start: offset ?? 0, end: size },
+    );
     if (offset !== undefined) break;
   }
-  return parts;
+  // A new file cannot get the id of an open one, so another id means a rotation came meanwhile
+  return [undefined, olderId].includes(fileId(`${file}.1`)) ? parts : currentRun(file);
 }
 
-/** The lines of `parts` as one text, in batches, without their line ends */
-async function* readLines(parts: FilePart[]): AsyncGenerator<string[]> {
+/**
+ * A copy of the log file from `start`, because a rotation empties it while a slow reader takes the
+ * output. The older file needs none: a rotation deletes it, and it stays readable while it is open.
+ */
+function copyPart(fd: number, start: number): FilePart {
+  let copy: number | undefined;
+  try {
+    const file = path.join(os.tmpdir(), `muxa-${randomUUID()}.log`);
+    copy = fs.openSync(file, "wx+", 0o600);
+    // An open file stays readable, and no way out of muxa leaves it behind
+    fs.unlinkSync(file);
+    return { fd: copy, start: 0, end: copyFrom(fd, start, copy) - start };
+  } catch {
+    // With no room for a copy, only a rotation during the output can take lines from it
+    if (copy !== undefined) fs.closeSync(copy);
+    return { fd, start, end: fs.fstatSync(fd).size };
+  }
+}
+
+function openIfExists(file: string): number | undefined {
+  try {
+    return fs.openSync(file, "r");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
+function fileId(file: number | string | undefined): number | undefined {
+  if (file === undefined) return undefined;
+  return typeof file === "number"
+    ? fs.fstatSync(file).ino
+    : fs.statSync(file, { throwIfNoEntry: false })?.ino;
+}
+
+/** The lines of the parts as one text, in batches, without their line ends */
+function* readLines(parts: FilePart[]): Generator<string[]> {
   const decoder = new StringDecoder("utf8");
+  const chunk = Buffer.alloc(64 * 1024);
   let rest = "";
-  for (const { file, start, end } of parts) {
-    if (start === end) continue;
-    for await (const chunk of fs.createReadStream(file, { start, end: end - 1 })) {
-      const lines = decoder.write(chunk).split("\n");
+  for (const { fd, start, end } of parts) {
+    for (let offset = start, length; offset < end; offset += length) {
+      length = fs.readSync(fd, chunk, 0, Math.min(chunk.length, end - offset), offset);
+      if (length === 0) break;
+      const lines = decoder.write(chunk.subarray(0, length)).split("\n");
       lines[0] = rest + lines[0];
       rest = lines.pop() ?? "";
       yield lines;

@@ -147,6 +147,7 @@ muxa logs web | grep -i warning
 - In a terminal, the output keeps its colors. Anywhere else it is plain text. The log file and the screen of muxa keep every code.
 - A line that rewrites itself, such as a progress bar, shows only its last state.
 - A process that the last start did not run prints the output of its own last run.
+- When muxa emptied the log to keep the files under their [size limits](/configuration#log-size-limits), and nothing new is in it, `muxa logs` says so on stderr and exits with 0.
 - When two processes have one name, `muxa logs` stops with an error. The second one also answers to the name with the number that the process list shows: `muxa logs 'web (2)'`.
 - It works in a process that muxa runs, so an agent started with `muxa -c 'npm run dev' web -c claude agent` can read `web`. A process from `-s` or `-w` runs in its package's folder: go to the folder of the muxa command first.
 

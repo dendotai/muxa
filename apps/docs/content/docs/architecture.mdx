@@ -70,7 +70,7 @@ dekit provides:
 
 ## Performance Considerations
 
-muxa starts the dekit binary (Rust) directly, then waits for it to exit.
+muxa starts the dekit binary (Rust) directly, then checks the [sizes of the log files](/configuration#log-size-limits) once per second until it exits.
 
 ## Security Considerations
 
@@ -82,8 +82,8 @@ muxa starts the dekit binary (Rust) directly, then waits for it to exit.
 
 ### File System Access
 
-- Reads `package.json` files, `pnpm-workspace.yaml`, and the names of lockfiles
-- Writes one file: the temporary config that [`mouseScrollSpeed`](/configuration#settings) needs
+- Reads `package.json` files, `pnpm-workspace.yaml`, the names of lockfiles, and `~/.config/muxa/settings.json`
+- Writes the [log files](/usage#log-files), with a `processes.json`, a `run-<id>.json` per open run, and a `.gitignore` beside them, the temporary copy that [`muxa logs`](/cli-reference#logs-process) prints, and the temporary config that [`mouseScrollSpeed`](/configuration#settings) needs
 
 ## Comparison with Alternatives
 

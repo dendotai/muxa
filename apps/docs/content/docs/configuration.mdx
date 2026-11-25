@@ -20,25 +20,66 @@ muxa requires no configuration files. It automatically:
 
 ## Settings
 
-Settings are optional values under the `muxa` key of the `package.json` in the folder you run muxa from; muxa does not look in parent folders. Your commands stay self-contained: Settings change how muxa shows processes, never what runs.
+Settings are optional values under the `muxa` key of the `package.json` in the folder you run muxa from; muxa does not look in parent folders. Your commands stay self-contained: Settings change how muxa shows processes and how much of their output it keeps, never what runs.
 
 ```json
 {
   "muxa": {
     "mouseScrollSpeed": 1,
-    "processListTitle": "Dev"
+    "processListTitle": "Dev",
+    "logs": {
+      "maxSizePerProcess": "100MB",
+      "maxSizeTotal": "500MB"
+    }
   }
 }
 ```
 
-| Key                | Value                     | Default                                    | Effect                                              |
-| ------------------ | ------------------------- | ------------------------------------------ | --------------------------------------------------- |
-| `mouseScrollSpeed` | Whole number of 1 or more | 5                                          | Lines to scroll per mouse or touchpad scroll event. |
-| `processListTitle` | Non-empty string          | `name` in `package.json`, else folder name | Heading above the process list.                     |
+| Key                      | Value                     | Default                                    | Effect                                                        |
+| ------------------------ | ------------------------- | ------------------------------------------ | ------------------------------------------------------------- |
+| `mouseScrollSpeed`       | Whole number of 1 or more | 5                                          | Lines to scroll per mouse or touchpad scroll event.           |
+| `processListTitle`       | Non-empty string          | `name` in `package.json`, else folder name | Heading above the process list.                               |
+| `logs.maxSizePerProcess` | Size                      | `"100MB"`                                  | [Limit](#log-size-limits) for the log files of one process.   |
+| `logs.maxSizeTotal`      | Size                      | `"500MB"`                                  | [Limit](#log-size-limits) for the log files of all processes. |
+
+A size is a number with `KB`, `MB`, or `GB`, where 1 MB is 1024 KB.
 
 An unknown key or a bad value stops muxa before any process starts, with an error that names the key; for an unknown key, it also lists the known ones.
 
 muxa passes `mouseScrollSpeed` to dekit in a temporary config file, deleted when muxa exits; after a `SIGKILL`, it stays in the system temp directory. dekit then ignores a `mprocs.yaml` in the same folder, which it reads otherwise. Your global mprocs config (`~/.config/mprocs/mprocs.yaml`) still applies for anything Settings do not set, such as the width of the process list.
+
+### Folders With No `package.json`
+
+For a run in a folder with no `package.json`, muxa reads the same keys from `~/.config/muxa/settings.json` (or `$XDG_CONFIG_HOME/muxa/settings.json`), with no `muxa` key around them:
+
+```json
+{
+  "logs": {
+    "maxSizeTotal": "1GB"
+  }
+}
+```
+
+There, `maxSizePerProcess` is `"50MB"` by default, and `maxSizeTotal` is `"200MB"` for all such folders together. A folder with a `package.json` never reads this file.
+
+### Log Size Limits
+
+Each process has two [log files](/usage#log-files): `web.log`, which gets the new output, and `web.log.1`, which holds the output before it. `muxa logs web` reads both.
+
+Once per second, muxa checks the sizes. When `web.log` reaches half of `maxSizePerProcess`, or half of `maxSizeTotal` if that is smaller, muxa replaces `web.log.1` with a copy of it and then empties `web.log`. The two files together stay near `maxSizePerProcess`.
+
+When the log files together reach `maxSizeTotal`, muxa frees space in this order, until they are under it:
+
+1. The log files of processes that no open muxa run started, oldest first. A `.log.1` file is deleted, and a `.log` file is emptied.
+2. The `.log.1` files of the processes of open runs, the largest process first.
+3. The `.log` files of the processes of open runs, emptied, the largest first.
+
+<Callout type="warn">
+  A line that a process writes in the moment between the copy and the emptying is lost. This is
+  rare: only a process that writes without a pause loses a few lines, and not at each rotation.
+</Callout>
+
+When muxa cannot keep the files under their limits, for example on a full disk, the processes run on. If the last check failed, muxa prints a warning after you quit.
 
 ## Package Manager Detection
 
