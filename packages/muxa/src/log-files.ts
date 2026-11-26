@@ -68,7 +68,7 @@ export function startLogFiles(cwd: string, logDir: string, names: ProcessNames[]
 
   if (logDir === PROJECT_LOG_DIR) ensureMuxaFolder(cwd);
 
-  const files = logFileNames(names.map(({ tabName }) => tabName));
+  const files = logFilesOf(names);
   const processes = files.map((file, i): LoggedProcess => ({ name: names[i]?.typed ?? "", file }));
   const earlier = readProcesses(dir).filter(
     (old) =>
@@ -211,6 +211,11 @@ export function fileId(file: number | string | undefined): number | undefined {
   return typeof file === "number"
     ? fs.fstatSync(file).ino
     : fs.statSync(file, { throwIfNoEntry: false })?.ino;
+}
+
+/** The log file name of each process, in the order dekit gets them */
+export function logFilesOf(names: ProcessNames[]): string[] {
+  return logFileNames(names.map(({ tabName }) => tabName));
 }
 
 /** The log file of a process with this tab name and no other process beside it */
