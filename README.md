@@ -158,6 +158,18 @@ Without a name in the command, the tab name is the command (`-c` and basic mode)
 
 Every other process keeps running when one exits, and muxa stays open until you quit.
 
+## Logs for Agents
+
+muxa writes each process's output to `.muxa/logs/<process>.log`, the screen's hidden processes and scrolled-off lines included. An agent such as Claude Code reads it there, or with `muxa logs <process>`.
+
+To tell your agent, add this line to your `CLAUDE.md`:
+
+```text
+For a process's output under muxa, run `muxa logs <process>`.
+```
+
+muxa offers to add it once at start, when neither `CLAUDE.md` nor `AGENTS.md` mentions `muxa logs`. After `n`, it does not ask again.
+
 ## Settings
 
 Optional. Add a `muxa` key to the `package.json` in the folder you run muxa from:

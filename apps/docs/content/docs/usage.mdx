@@ -196,6 +196,22 @@ In a folder with no `package.json`, the files go to `~/.local/state/muxa/logs/<f
 
 When muxa cannot write the files, it asks whether to continue without them. With no terminal on its input, it prints a warning and starts.
 
+### Logs for Agents
+
+An agent such as Claude Code reads a process's output with `muxa logs <process>` or from `.muxa/logs/`. When neither `CLAUDE.md` nor `AGENTS.md` beside the `package.json` mentions `muxa logs`, muxa asks once at start:
+
+```text
+Add a line about `muxa logs` to CLAUDE.md? (y/N):
+```
+
+`y` adds this line to the end of `CLAUDE.md`, and makes the file when there is none:
+
+```text
+For a process's output under muxa, run `muxa logs <process>`.
+```
+
+`n` or <kbd>Enter</kbd> leaves `CLAUDE.md` as it is, and muxa stores the answer in `.muxa/claude-md-line-declined` and does not ask again. Delete that file to be asked again. With no terminal on its input, or in a folder with no `package.json`, muxa does not ask.
+
 ## Real-World Examples
 
 ### Full-Stack Development

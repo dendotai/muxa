@@ -7,6 +7,7 @@ import { dekitBinaryPath } from "./dekit";
 import { logDirsInTotal, resolveLogDir, startLogFiles } from "./log-files";
 import { LogLimiter } from "./log-limits";
 import { printLog } from "./logs";
+import { offerLogsLine } from "./logs-line";
 import { detectPackageManager } from "./package-manager";
 import { parseArguments, RESERVED_WORDS } from "./parser";
 import {
@@ -117,6 +118,14 @@ async function main() {
       if (!shouldContinue) {
         process.exit(1);
       }
+    }
+
+    try {
+      await offerLogsLine(cwd);
+    } catch (error) {
+      console.error(
+        `Warning: muxa cannot add the muxa logs line to CLAUDE.md: ${formatError(error)}`,
+      );
     }
 
     let mprocsConfigFile: string | undefined;

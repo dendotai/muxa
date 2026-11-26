@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
-import { hasPackageJson, xdgHome } from "./utils";
+import { ensureMuxaFolder, hasPackageJson, xdgHome } from "./utils";
 
 const PROJECT_LOG_DIR = ".muxa/logs";
 
@@ -66,10 +66,7 @@ export function startLogFiles(cwd: string, logDir: string, names: ProcessNames[]
   const dir = path.resolve(cwd, logDir);
   fs.mkdirSync(dir, { recursive: true });
 
-  if (logDir === PROJECT_LOG_DIR) {
-    const gitignore = path.join(cwd, ".muxa", ".gitignore");
-    if (!fs.existsSync(gitignore)) fs.writeFileSync(gitignore, "*\n");
-  }
+  if (logDir === PROJECT_LOG_DIR) ensureMuxaFolder(cwd);
 
   const files = logFileNames(names.map(({ tabName }) => tabName));
   const processes = files.map((file, i): LoggedProcess => ({ name: names[i]?.typed ?? "", file }));
