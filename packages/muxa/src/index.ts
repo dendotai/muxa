@@ -10,6 +10,7 @@ import { printLog } from "./logs";
 import { offerLogsLine } from "./logs-line";
 import { detectPackageManager } from "./package-manager";
 import { parseArguments, RESERVED_WORDS } from "./parser";
+import { checkOpenRuns } from "./second-start";
 import {
   readSettings,
   removeTempMprocsConfig,
@@ -120,6 +121,12 @@ async function main() {
       }
     }
 
+    const processNames = buildProcessNames(commands, parsed);
+    let logDir: string | undefined = resolveLogDir(cwd);
+    if (!(await checkOpenRuns(path.resolve(cwd, logDir), processNames))) {
+      process.exit(1);
+    }
+
     try {
       await offerLogsLine(cwd);
     } catch (error) {
@@ -137,12 +144,11 @@ async function main() {
 
     const testMode = process.env.MUXA_TEST_MODE === "true";
 
-    let logDir: string | undefined = resolveLogDir(cwd);
     let logFiles: string[] = [];
     // Test mode starts nothing, so its run gets no start line
     if (!testMode) {
       try {
-        logFiles = startLogFiles(cwd, logDir, buildProcessNames(commands, parsed));
+        logFiles = startLogFiles(cwd, logDir, processNames);
       } catch (error) {
         console.error(`Warning: muxa cannot write log files in ${logDir}: ${formatError(error)}`);
         logDir = undefined;

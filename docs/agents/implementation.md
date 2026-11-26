@@ -15,7 +15,7 @@ muxa's runtime dependencies are `@dekit/cli` and `koffi`, which reads the macOS 
     - On macOS, a key typed on a non-Latin layout answers as the Latin letter of the same key: `н` (the Y key on Russian) is yes. `loadLatinKeyMap` in `packages/muxa/src/keyboard-layout.ts` reads the map through `koffi` when the prompt shows; `MUXA_TEST_KEYBOARD_LAYOUT` names an installed input source to read in its place, for tests (`com.apple.keylayout.Russian`).
     - Elsewhere, or when the lookup fails, the first non-Latin letter prints `Press y or n (switch to a Latin layout)`, and the prompt waits.
   - With no TTY, it reads a line, in any case: `y` or `yes` for yes, `n` or `no` for no; any other line asks again.
-  - `checkDuplicateNames` calls it when two processes have one name, `packages/muxa/src/index.ts` when muxa cannot write the log files, and `offerLogsLine` in `packages/muxa/src/logs-line.ts` for the `muxa logs` line in `CLAUDE.md`.
+  - `checkDuplicateNames` calls it when two processes have one name, `checkOpenRuns` in `packages/muxa/src/second-start.ts` when another open run has a process of the same name, `packages/muxa/src/index.ts` when muxa cannot write the log files, and `offerLogsLine` in `packages/muxa/src/logs-line.ts` for the `muxa logs` line in `CLAUDE.md`.
 
 ## Shell wrapping
 

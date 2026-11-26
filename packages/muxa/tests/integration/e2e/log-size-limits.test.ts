@@ -7,7 +7,8 @@ import {
   createRootPackageWorkspace,
   createTempWorkspace,
 } from "@tests/helpers/fixture-helpers";
-import { muxaPath, muxaRuntime } from "@tests/helpers/constants";
+import { LATIN_KEYBOARD_LAYOUT, muxaPath, muxaRuntime } from "@tests/helpers/constants";
+import { endedPid } from "@tests/helpers/ended-pid";
 import { followLogs } from "@tests/helpers/follow-runner";
 import { runMuxa } from "@tests/helpers/muxa-runner";
 import { quit, runInTerminal } from "@tests/helpers/terminal-runner";
@@ -58,11 +59,10 @@ function writeLog(file: string, size: number, age = 0) {
   fs.utimesSync(file, changed, changed);
 }
 
-/** The record of an open run that writes this log file, from this many minutes ago */
-function writeRecord(record: string, logFile: string, age = 0, rotationSize = 100 * KB) {
-  fs.writeFileSync(record, JSON.stringify({ files: [logFile], rotationSize }));
-  const changed = Date.now() / 1000 - 60 * age;
-  fs.utimesSync(record, changed, changed);
+/** The record of a run that writes this log file, open while its muxa, by default this test, runs */
+function writeRecord(record: string, logFile: string, rotationSize = 100 * KB, pid = process.pid) {
+  const content = { pid, startedAt: Date.now(), files: [logFile], rotationSize };
+  fs.writeFileSync(record, JSON.stringify(content));
 }
 
 async function waitUntil(condition: () => boolean, what: string, timeout = 10000) {
@@ -86,12 +86,28 @@ const until = (name: string) => `until [ -e ${name} ]; do sleep 0.1; done`;
 const size = (file: string) => fs.statSync(file, { throwIfNoEntry: false })?.size;
 const read = (file: string) => fs.readFileSync(file, "latin1");
 
-/** Start a process with each name, wait until muxa checked the sizes, and quit */
-async function runProcesses(names: string[], options: Parameters<typeof runInTerminal>[1]) {
+/**
+ * Start a process with each name, wait until muxa checked the sizes, and quit. With `besideOpenRun`,
+ * it answers yes to the question about a process that another open run has.
+ */
+async function runProcesses(
+  names: string[],
+  {
+    besideOpenRun = false,
+    ...options
+  }: Parameters<typeof runInTerminal>[1] & { besideOpenRun?: boolean },
+) {
   const run = runInTerminal(
     names.flatMap((name) => ["-c", "true", name]),
-    options,
+    {
+      ...options,
+      env: { MUXA_TEST_KEYBOARD_LAYOUT: LATIN_KEYBOARD_LAYOUT, ...options.env },
+    },
   );
+  if (besideOpenRun) {
+    await run.waitFor(/Continue\? \(y\/N\)/);
+    run.type("y");
+  }
   await run.waitFor(new RegExp(`(DOWN \\(0\\)[^]*){${names.length}}`));
   expect(await quit(run)).toBe(0);
   return run;
@@ -106,7 +122,7 @@ describe("rotation of a log file", () => {
       const { cwd, dir } = createProject({ maxSizePerProcess: "200KB" });
       writeRecord(path.join(dir, first), "web.log");
       writeLog(path.join(dir, "web.log"), 100 * KB);
-      await runProcesses(["web"], { cwd });
+      await runProcesses(["web"], { cwd, besideOpenRun: true });
       expect(size(path.join(dir, "web.log.1")) !== undefined).toBe(rotates);
       expect(fs.readdirSync(dir).filter((name) => name.startsWith("run-"))).toEqual([first]);
     }
@@ -116,7 +132,7 @@ describe("rotation of a log file", () => {
     const { cwd, dir } = createProject();
     writeRecord(path.join(dir, "run-9999999999999-other.json"), "web.log");
     writeLog(path.join(dir, "web.log"), 100 * KB);
-    await runProcesses(["web"], { cwd });
+    await runProcesses(["web"], { cwd, besideOpenRun: true });
     expect(size(path.join(dir, "web.log.1"))).toBeGreaterThan(100 * KB);
   });
 
@@ -497,7 +513,12 @@ describe("total size of the log files", () => {
 
   it("empties the log of another run when its muxa no longer runs", async () => {
     const { cwd, dir } = createProject({ maxSizeTotal: "100KB" });
-    writeRecord(path.join(dir, "run-0000000000001-killed.json"), "other.log", 1);
+    writeRecord(
+      path.join(dir, "run-0000000000001-killed.json"),
+      "other.log",
+      100 * KB,
+      await endedPid(),
+    );
     writeLog(path.join(dir, "other.log"), 60 * KB);
     writeLog(path.join(dir, "web.log.1"), 20 * KB);
     // The total comes over the limit only after the first check
@@ -508,9 +529,12 @@ describe("total size of the log files", () => {
     expect(fs.readdirSync(dir).filter((name) => name.startsWith("run-"))).toEqual([]);
   });
 
-  it("takes no other run for an ended one at its first check, as after a sleep of the computer", async () => {
+  it("takes another run for open while its muxa runs, however old its record, as after a sleep of the computer", async () => {
     const { cwd, dir } = createProject({ maxSizeTotal: "100KB" });
-    writeRecord(path.join(dir, "run-0000000000001-asleep.json"), "other.log", 1);
+    const record = path.join(dir, "run-0000000000001-asleep.json");
+    writeRecord(record, "other.log");
+    const old = Date.now() / 1000 - 3600;
+    fs.utimesSync(record, old, old);
     writeLog(path.join(dir, "other.log"), 60 * KB);
     writeLog(path.join(dir, "web.log"), 10 * KB);
     writeLog(path.join(dir, "web.log.1"), 45 * KB);
