@@ -262,7 +262,8 @@ async function main() {
         fs.mkdirSync(root, { recursive: true });
         if (runnerRuns(dekit, root)) runDekit(dekitCommands.stop);
       } catch (error) {
-        console.error(`Warning: ${formatError(error)}`);
+        // A quit choice can finish stopping the runner between the check and the stop
+        if (runnerRuns(dekit, root)) console.error(`Warning: ${formatError(error)}`);
       }
       // After the stop, so muxad writes no later check; dekit's screen would hide the warning during the run
       const error = readLogLimitsError(root) ?? logLimitsError;
