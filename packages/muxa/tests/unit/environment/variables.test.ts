@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { runMuxaQuick, getMuxaCommand } from "@tests/helpers/muxa-runner";
+import { getMuxaCommand, getMuxaProcesses, runMuxaQuick } from "@tests/helpers/muxa-runner";
 
 describe("Environment Variables", () => {
   let originalEnv: typeof process.env;
@@ -61,21 +61,18 @@ describe("Environment Variables", () => {
 
   describe("Inline environment variables", () => {
     it("should handle inline environment variables in commands", async () => {
-      const result = await getMuxaCommand(["-c", "FOO=bar echo $FOO"]);
-      expect(result.command).toContain("FOO=bar");
+      const result = await getMuxaProcesses(["-c", "FOO=bar echo $FOO"]);
+      expect(result.processes).toMatchObject([{ command: "FOO=bar echo $FOO" }]);
     });
 
     it("should handle multiple inline environment variables", async () => {
-      const result = await getMuxaCommand(["-c", "FOO=bar BAZ=qux echo $FOO $BAZ"]);
-      expect(result.command).toContain("FOO=bar BAZ=qux");
+      const result = await getMuxaProcesses(["-c", "FOO=bar BAZ=qux echo $FOO $BAZ"]);
+      expect(result.processes).toMatchObject([{ command: "FOO=bar BAZ=qux echo $FOO $BAZ" }]);
     });
 
     it("should handle environment variables with spaces in values", async () => {
-      const result = await getMuxaCommand(["-c", "MESSAGE='hello world' echo $MESSAGE"]);
-      // The command is wrapped in sh -c and quotes are escaped
-      expect(result.command).toContain("MESSAGE=");
-      expect(result.command).toContain("hello world");
-      expect(result.command).toContain("echo $MESSAGE");
+      const result = await getMuxaProcesses(["-c", "MESSAGE='hello world' echo $MESSAGE"]);
+      expect(result.processes).toMatchObject([{ command: "MESSAGE='hello world' echo $MESSAGE" }]);
     });
   });
 
@@ -89,8 +86,8 @@ describe("Environment Variables", () => {
     it("should handle environment variable expansion in commands", async () => {
       process.env.TEST_VAR = "test_value";
 
-      const result = await getMuxaCommand(["-c", "echo prefix_${TEST_VAR}_suffix"]);
-      expect(result.command).toContain("$");
+      const result = await getMuxaProcesses(["-c", "echo prefix_${TEST_VAR}_suffix"]);
+      expect(result.processes).toMatchObject([{ command: "echo prefix_${TEST_VAR}_suffix" }]);
     });
 
     it("should handle environment variables in npm scripts", async () => {
@@ -109,8 +106,8 @@ describe("Environment Variables", () => {
     it("should handle undefined environment variables", async () => {
       delete process.env.UNDEFINED_VAR;
 
-      const result = await getMuxaCommand(["-c", "echo ${UNDEFINED_VAR:-default}"]);
-      expect(result.command).toContain("${UNDEFINED_VAR:-default}");
+      const result = await getMuxaProcesses(["-c", "echo ${UNDEFINED_VAR:-default}"]);
+      expect(result.processes).toMatchObject([{ command: "echo ${UNDEFINED_VAR:-default}" }]);
     });
   });
 
@@ -123,8 +120,8 @@ describe("Environment Variables", () => {
     });
 
     it("should handle escaped environment variables", async () => {
-      const result = await getMuxaCommand(["-c", "echo \\$HOME"]);
-      expect(result.command).toContain("\\$HOME");
+      const result = await getMuxaProcesses(["-c", "echo \\$HOME"]);
+      expect(result.processes).toMatchObject([{ command: "echo \\$HOME" }]);
     });
   });
 

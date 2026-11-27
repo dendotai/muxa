@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { runMuxa } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxa } from "@tests/helpers/muxa-runner";
 import { createMonorepoFixture, cleanupFixture } from "@tests/helpers/fixture-helpers";
 
 describe("Script Restrictions", () => {
@@ -91,7 +91,7 @@ describe("Script Restrictions", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: dekit mprocs");
+      expect(processesOf(result.stdout)).not.toEqual([]);
     });
   });
 
@@ -186,7 +186,7 @@ describe("Script Restrictions", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: dekit mprocs");
+      expect(processesOf(result.stdout)).not.toEqual([]);
     });
 
     it("should allow mixing -s with -w", async () => {
@@ -196,7 +196,7 @@ describe("Script Restrictions", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: dekit mprocs");
+      expect(processesOf(result.stdout)).not.toEqual([]);
     });
 
     it("should validate each -s independently", async () => {
@@ -231,7 +231,7 @@ describe("Script Restrictions", () => {
       cleanupFixture(npmFixture);
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("npm run dev");
+      expect(processesOf(result.stdout).map(({ command }) => command)).toContain("npm run dev");
     });
 
     it("should handle bun run correctly", async () => {
@@ -254,7 +254,7 @@ describe("Script Restrictions", () => {
       cleanupFixture(bunFixture);
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("bun run dev");
+      expect(processesOf(result.stdout).map(({ command }) => command)).toContain("bun run dev");
     });
   });
 
@@ -266,7 +266,9 @@ describe("Script Restrictions", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("backend");
+      expect(processesOf(result.stdout)).toMatchObject([
+        { command: "npm run dev", folder: expect.stringMatching(/\/backend$/) },
+      ]);
     });
 
     it("should handle nested workspace paths", async () => {
@@ -277,7 +279,9 @@ describe("Script Restrictions", () => {
 
       // Should work if shared package exists
       if (result.code === 0) {
-        expect(result.stdout).toContain("shared");
+        expect(processesOf(result.stdout)).toMatchObject([
+          { folder: expect.stringMatching(/\/shared$/) },
+        ]);
       } else {
         expect(result.stderr).toContain("shared");
       }

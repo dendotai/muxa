@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import * as path from "path";
 import * as fs from "fs";
-import { runMuxaQuick } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxaQuick } from "@tests/helpers/muxa-runner";
 import { createTempWorkspace, cleanupFixture } from "@tests/helpers/fixture-helpers";
 
 describe("Muxa CLI Integration > Error Cases", () => {
@@ -40,19 +40,25 @@ describe("Muxa CLI Integration > Simple Commands", () => {
   it("should run basic commands", async () => {
     const result = await runMuxaQuick(["echo hello", "echo world"]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toMatch(/Would execute: dekit mprocs .*'echo hello' 'echo world'/);
+    expect(processesOf(result.stdout).map(({ command }) => command)).toEqual([
+      "echo hello",
+      "echo world",
+    ]);
   });
 
   it("should run -c commands", async () => {
     const result = await runMuxaQuick(["-c", "echo hello", "-c", "echo world"]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toMatch(/Would execute: dekit mprocs .*'echo hello' 'echo world'/);
+    expect(processesOf(result.stdout).map(({ command }) => command)).toEqual([
+      "echo hello",
+      "echo world",
+    ]);
   });
 
   it("should run -c commands with names", async () => {
     const result = await runMuxaQuick(["-c", "echo hello", "first", "-c", "echo world", "second"]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("'--names' 'first,second'");
+    expect(processesOf(result.stdout).map(({ name }) => name)).toEqual(["first", "second"]);
   });
 });
 
@@ -93,7 +99,7 @@ describe("Muxa CLI Integration > Workspace Errors", () => {
 
     const result = await runMuxaQuick(["-c", "echo hello"], tempDir);
     expect(result.code).toBe(0);
-    expect(result.stdout).toMatch(/Would execute: dekit mprocs .*'echo hello'/);
+    expect(processesOf(result.stdout)).toMatchObject([{ command: "echo hello" }]);
 
     cleanupFixture(tempDir);
   });

@@ -4,7 +4,7 @@ import * as path from "path";
 import { version as VERSION } from "../package.json";
 import { buildCommands, buildMprocsArgs, buildProcessNames } from "./command-builder";
 import { dekitBinaryPath } from "./dekit";
-import { logDirsInTotal, resolveLogDir, startLogFiles } from "./log-files";
+import { logDirsInTotal, logFilesOf, resolveLogDir, startLogFiles } from "./log-files";
 import { LogLimiter } from "./log-limits";
 import { printLog } from "./logs";
 import { offerLogsLine } from "./logs-line";
@@ -180,6 +180,17 @@ async function main() {
       }
 
       console.log(`Would execute: dekit mprocs ${mprocsArgs.map((arg) => `'${arg}'`).join(" ")}`);
+      // Tests read each process from these lines, so they do not depend on how muxa starts dekit
+      const logFileNames = logFilesOf(processNames);
+      commands.forEach(({ command, folder }, i) => {
+        const printed = {
+          name: processNames[i]?.typed ?? "",
+          command,
+          folder: folder ?? cwd,
+          log: logDir ? path.resolve(cwd, logDir, logFileNames[i] ?? "") : null,
+        };
+        console.log(`Process: ${JSON.stringify(printed)}`);
+      });
       if (mprocsConfig) {
         console.log(`mprocs config: ${JSON.stringify(mprocsConfig)}`);
       }

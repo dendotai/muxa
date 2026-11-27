@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { runMuxa } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxa } from "@tests/helpers/muxa-runner";
 import { createMonorepoFixture, cleanupFixture } from "@tests/helpers/fixture-helpers";
 import { spawn } from "child_process";
 import { muxaPath, muxaRuntime } from "@tests/helpers/constants";
@@ -40,7 +40,10 @@ describe("E2E: Command Generation and Validation", () => {
   it("keeps each tab name on its own process when an unnamed -c comes before an -s", async () => {
     const result = await runMuxa(["-c", "echo hi", "-s", "frontend", "start"], { cwd: fixtureDir });
 
-    expect(result.stdout).toContain("'--names' 'echo hi,frontend:start'");
+    expect(processesOf(result.stdout).map(({ name }) => name)).toEqual([
+      "echo hi",
+      "frontend:start",
+    ]);
   });
 
   describe("Command validation", () => {
@@ -98,9 +101,11 @@ describe("E2E: Command Generation and Validation", () => {
       );
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: dekit mprocs");
-      expect(result.stdout).toContain("--names");
-      expect(result.stdout).toContain("backend:dev,test:coverage,frontend:build");
+      expect(processesOf(result.stdout).map(({ name }) => name)).toEqual([
+        "backend:dev",
+        "test:coverage",
+        "frontend:build",
+      ]);
     });
   });
 

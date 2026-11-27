@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
-import { getMuxaCommand } from "@tests/helpers/muxa-runner";
+import { getMuxaProcesses } from "@tests/helpers/muxa-runner";
 import { createTempWorkspace, cleanupFixture } from "@tests/helpers/fixture-helpers";
 
 describe("Command Generation > Workspace Commands (-w flag)", () => {
@@ -31,10 +31,14 @@ describe("Command Generation > Workspace Commands (-w flag)", () => {
       JSON.stringify({ name: "@test/backend" }, null, 2),
     );
 
-    const result = await getMuxaCommand(["-w", "backend", "npm run dev"], tempDir);
-    expect(result.command).toContain("'--names' 'backend'");
-    expect(result.command).toContain("'sh -c 'cd");
-    expect(result.command).toContain("/packages/backend && npm run dev''");
+    const result = await getMuxaProcesses(["-w", "backend", "npm run dev"], tempDir);
+    expect(result.processes).toMatchObject([
+      {
+        name: "backend",
+        command: "npm run dev",
+        folder: path.join(fs.realpathSync(tempDir), "packages", "backend"),
+      },
+    ]);
   });
 
   it("should handle multiple workspace commands", async () => {
@@ -56,14 +60,16 @@ describe("Command Generation > Workspace Commands (-w flag)", () => {
       JSON.stringify({ name: "@test/frontend" }, null, 2),
     );
 
-    const result = await getMuxaCommand(
+    const result = await getMuxaProcesses(
       ["-w", "backend", "npm run dev", "-w", "frontend", "npm start"],
       tempDir,
     );
 
-    expect(result.command).toContain("'--names' 'backend,frontend'");
-    expect(result.command).toContain("/packages/backend && npm run dev''");
-    expect(result.command).toContain("/packages/frontend && npm start''");
+    const root = fs.realpathSync(tempDir);
+    expect(result.processes).toMatchObject([
+      { name: "backend", command: "npm run dev", folder: path.join(root, "packages", "backend") },
+      { name: "frontend", command: "npm start", folder: path.join(root, "packages", "frontend") },
+    ]);
   });
 
   it("should use custom names for workspaces", async () => {
@@ -78,9 +84,14 @@ describe("Command Generation > Workspace Commands (-w flag)", () => {
       JSON.stringify({ name: "@test/backend" }, null, 2),
     );
 
-    const result = await getMuxaCommand(["-w", "backend", "npm run dev", "api"], tempDir);
-    expect(result.command).toContain("'--names' 'api'");
-    expect(result.command).toContain("/packages/backend && npm run dev''");
+    const result = await getMuxaProcesses(["-w", "backend", "npm run dev", "api"], tempDir);
+    expect(result.processes).toMatchObject([
+      {
+        name: "api",
+        command: "npm run dev",
+        folder: path.join(fs.realpathSync(tempDir), "packages", "backend"),
+      },
+    ]);
   });
 
   it("should escape quotes in workspace commands", async () => {
@@ -95,9 +106,7 @@ describe("Command Generation > Workspace Commands (-w flag)", () => {
       JSON.stringify({ name: "@test/backend" }, null, 2),
     );
 
-    const result = await getMuxaCommand(["-w", "backend", "echo 'hello world'"], tempDir);
-    expect(result.command).toContain("'--names' 'backend'");
-    expect(result.command).toContain("echo");
-    expect(result.command).toContain("hello world");
+    const result = await getMuxaProcesses(["-w", "backend", "echo 'hello world'"], tempDir);
+    expect(result.processes).toMatchObject([{ name: "backend", command: "echo 'hello world'" }]);
   });
 });

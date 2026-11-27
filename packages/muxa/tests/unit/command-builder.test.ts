@@ -40,9 +40,8 @@ describe("buildCommands", () => {
       expect(result).toHaveLength(1);
       expect(result[0]!.name).toBe("backend:dev");
       expect(result[0]!.needsShell).toBe(true);
-      expect(result[0]!.command).toContain("cd");
-      expect(result[0]!.command).toContain("backend");
-      expect(result[0]!.command).toContain("npm run dev");
+      expect(result[0]!.command).toBe("npm run dev");
+      expect(result[0]!.folder).toEndWith("/packages/backend");
     });
 
     it("should work with scoped packages", () => {
@@ -59,7 +58,7 @@ describe("buildCommands", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]!.name).toBe("auth:build");
-      expect(result[0]!.command).toContain("libs/auth");
+      expect(result[0]!.folder).toEndWith("/libs/auth");
     });
   });
 
@@ -140,9 +139,8 @@ describe("buildCommands", () => {
       expect(result).toHaveLength(1);
       expect(result[0]!.name).toBe("api:dev");
       expect(result[0]!.needsShell).toBe(true);
-      expect(result[0]!.command).toContain("cd");
-      expect(result[0]!.command).toContain("packages/api");
-      expect(result[0]!.command).toContain("npm run dev");
+      expect(result[0]!.command).toBe("npm run dev");
+      expect(result[0]!.folder).toEndWith("/packages/api");
     });
 
     it("should handle root package scripts with '.'", () => {
@@ -166,8 +164,8 @@ describe("buildCommands", () => {
 
       const result = buildCommands(parsed, workspace, packageManager);
       expect(result[0]!.name).toBe(".:build");
-      expect(result[0]!.command).toContain("cd");
-      expect(result[0]!.command).toContain("npm run build");
+      expect(result[0]!.command).toBe("npm run build");
+      expect(result[0]!.folder).toBe(workspace.root);
     });
 
     it("should throw error for invalid script", () => {
@@ -229,9 +227,8 @@ describe("buildCommands", () => {
       expect(result).toHaveLength(1);
       expect(result[0]!.name).toBe("list");
       expect(result[0]!.needsShell).toBe(true);
-      expect(result[0]!.command).toContain("cd");
-      expect(result[0]!.command).toContain("packages/web");
-      expect(result[0]!.command).toContain("ls -la");
+      expect(result[0]!.command).toBe("ls -la");
+      expect(result[0]!.folder).toEndWith("/packages/web");
     });
 
     it("should use directory name as default name", () => {
@@ -358,6 +355,16 @@ describe("buildCommands", () => {
 });
 
 describe("buildMprocsArgs", () => {
+  it("runs a command with a folder inside that folder", () => {
+    const commands = [
+      { command: "npm run dev", name: "web", folder: "/repo/packages/web", needsShell: true },
+    ];
+
+    const args = buildMprocsArgs(commands, { mode: "advanced", commands: [] });
+
+    expect(args.at(-1)).toBe("sh -c 'cd /repo/packages/web && npm run dev'");
+  });
+
   it("should build args for simple commands", () => {
     const commands = [{ command: "echo hello", name: "test", needsShell: false }];
     const parsed: ParseResult = {

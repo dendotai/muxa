@@ -7,8 +7,10 @@ import type { ParsedCommand, ParseResult } from "./parser";
 import { type WorkspaceConfig, resolvePackage } from "./workspace";
 
 export interface TransformedCommand {
-  /** The final command to execute */
+  /** The command as it runs inside `folder` */
   command: string;
+  /** The package folder that `-s` or `-w` names; with none, the process runs in the current folder */
+  folder?: string;
   /** The display name for the process */
   name: string;
   /** Whether the command needs shell wrapping */
@@ -58,6 +60,7 @@ function transformCommand(
 ): TransformedCommand {
   let command: string;
   let name: string;
+  let folder: string | undefined;
   let needsShell = false;
 
   switch (cmd.type) {
@@ -81,8 +84,8 @@ function transformCommand(
       // Validate script exists
       validateScript(cmd.script, packagePath, info.name);
 
-      // Build the command
       command = `${packageManager.runCommand} ${cmd.script}`;
+      folder = packagePath;
 
       // Default name for scripts
       // Use literal "." for root package (ADR 0005)
@@ -91,10 +94,6 @@ function transformCommand(
 
       // Scripts always need shell wrapping for cd
       needsShell = true;
-
-      // Add cd to package directory
-      const escapedCommand = escapeShellCommand(command);
-      command = `cd ${packagePath} && ${escapedCommand}`;
       break;
     }
 
@@ -109,18 +108,15 @@ function transformCommand(
 
       command = cmd.command;
       name = cmd.name || info.dirName;
+      folder = packagePath;
 
       // Workspace commands always need shell wrapping for cd
       needsShell = true;
-
-      // Add cd to package directory
-      const escapedCommand = escapeShellCommand(command);
-      command = `cd ${packagePath} && ${escapedCommand}`;
       break;
     }
   }
 
-  return { command, name, needsShell };
+  return { command, name, folder, needsShell };
 }
 
 /**
@@ -187,8 +183,9 @@ function toListedName(typed: string): string {
   return typed.replaceAll(",", " ").slice(0, MAX_TAB_NAME_LENGTH);
 }
 
-function toMprocsCommand({ command, needsShell }: TransformedCommand): string {
-  return needsShell ? `sh -c '${escapeShellCommand(command)}'` : command;
+function toMprocsCommand({ command, folder, needsShell }: TransformedCommand): string {
+  const inFolder = folder ? `cd ${folder} && ${escapeShellCommand(command)}` : command;
+  return needsShell ? `sh -c '${escapeShellCommand(inFolder)}'` : inFolder;
 }
 
 /**

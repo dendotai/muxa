@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { runMuxaInFixture } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxaInFixture } from "@tests/helpers/muxa-runner";
 
 describe("Fixture Tests > ambiguous-names", () => {
   it("should error on ambiguous directory name", async () => {
@@ -18,7 +18,9 @@ describe("Fixture Tests > ambiguous-names", () => {
       "npm run dev",
     ]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("tools/backend");
+    expect(processesOf(result.stdout).map(({ folder }) => folder)).toContainEqual(
+      expect.stringMatching(/\/tools\/backend$/),
+    );
   });
 
   it("should resolve by path", async () => {
@@ -28,6 +30,8 @@ describe("Fixture Tests > ambiguous-names", () => {
       "npm run dev",
     ]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("services/backend");
+    expect(processesOf(result.stdout).map(({ folder }) => folder)).toContainEqual(
+      expect.stringMatching(/\/services\/backend$/),
+    );
   });
 });

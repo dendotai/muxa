@@ -1,11 +1,13 @@
 import { describe, it, expect } from "bun:test";
-import { runMuxaInFixture } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxaInFixture } from "@tests/helpers/muxa-runner";
 
 describe("Fixture Tests > yarn-workspace", () => {
   it("should handle yarn workspace format", async () => {
     const result = await runMuxaInFixture("yarn-workspace", ["-w", "core", "npm run build"]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("packages/core");
+    expect(processesOf(result.stdout).map(({ folder }) => folder)).toContainEqual(
+      expect.stringMatching(/\/packages\/core$/),
+    );
   });
 
   it("should resolve multiple packages", async () => {
@@ -18,7 +20,11 @@ describe("Fixture Tests > yarn-workspace", () => {
       "npm run test",
     ]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("packages/core");
-    expect(result.stdout).toContain("packages/utils");
+    expect(processesOf(result.stdout).map(({ folder }) => folder)).toContainEqual(
+      expect.stringMatching(/\/packages\/core$/),
+    );
+    expect(processesOf(result.stdout).map(({ folder }) => folder)).toContainEqual(
+      expect.stringMatching(/\/packages\/utils$/),
+    );
   });
 });

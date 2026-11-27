@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { runMuxa } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxa } from "@tests/helpers/muxa-runner";
 import { createMonorepoFixture, cleanupFixture } from "@tests/helpers/fixture-helpers";
 
 describe("Shell Execution", () => {
@@ -61,8 +61,7 @@ describe("Shell Execution", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: dekit mprocs");
-      expect(result.stdout).toContain("hello world");
+      expect(processesOf(result.stdout)).toMatchObject([{ command: `echo "hello world"` }]);
     });
   });
 
@@ -79,7 +78,7 @@ describe("Shell Execution", () => {
           });
 
           expect(result.code).toBe(0);
-          expect(result.stdout).toContain("date");
+          expect(processesOf(result.stdout)).toMatchObject([{ command: "echo $(date +%Y)" }]);
         });
 
         it("should support tilde expansion", async () => {
@@ -89,7 +88,7 @@ describe("Shell Execution", () => {
           });
 
           expect(result.code).toBe(0);
-          expect(result.stdout).toContain("~/test");
+          expect(processesOf(result.stdout)).toMatchObject([{ command: "echo ~/test" }]);
         });
 
         it("should handle environment variable expansion", async () => {
@@ -99,7 +98,7 @@ describe("Shell Execution", () => {
           });
 
           expect(result.code).toBe(0);
-          expect(result.stdout).toContain("$HOME");
+          expect(processesOf(result.stdout)).toMatchObject([{ command: "echo $HOME" }]);
         });
       });
     });
@@ -116,7 +115,7 @@ describe("Shell Execution", () => {
           });
 
           expect(result.code).toBe(0);
-          expect(result.stdout).toContain("%USERPROFILE%");
+          expect(processesOf(result.stdout)).toMatchObject([{ command: "echo %USERPROFILE%" }]);
         });
       });
     });
@@ -141,7 +140,7 @@ describe("Shell Execution", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("test; rm -rf /");
+      expect(processesOf(result.stdout)).toMatchObject([{ command: "echo 'test; rm -rf /'" }]);
     });
   });
 
@@ -153,8 +152,7 @@ describe("Shell Execution", () => {
       });
 
       expect(result.code).toBe(0);
-      // Scripts are already wrapped with cd && npm run
-      expect(result.stdout).toContain("npm run dev");
+      expect(processesOf(result.stdout)).toMatchObject([{ command: "npm run dev" }]);
     });
 
     it("should handle missing sh gracefully", async () => {
@@ -176,7 +174,11 @@ describe("Shell Execution", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: dekit mprocs");
+      expect(processesOf(result.stdout).map(({ command }) => command)).toEqual([
+        "echo test",
+        "npm install",
+        "node script.js",
+      ]);
     });
 
     it("should normalize command paths", async () => {
@@ -186,7 +188,7 @@ describe("Shell Execution", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("./scripts/test.sh");
+      expect(processesOf(result.stdout)).toMatchObject([{ command: "./scripts/test.sh" }]);
     });
   });
 
@@ -209,7 +211,7 @@ describe("Shell Execution", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("aaaa");
+      expect(processesOf(result.stdout)).toMatchObject([{ command: longCommand }]);
     });
 
     it("should handle Unicode in commands", async () => {
@@ -219,7 +221,7 @@ describe("Shell Execution", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("你好世界");
+      expect(processesOf(result.stdout)).toMatchObject([{ command: "echo '你好世界'" }]);
     });
   });
 });

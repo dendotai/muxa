@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
 import { createRootPackageWorkspace, createTempWorkspace } from "@tests/helpers/fixture-helpers";
-import { runMuxa } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxa } from "@tests/helpers/muxa-runner";
 
 describe("CLI > Settings in package.json", () => {
   it("passes mouseScrollSpeed to mprocs in a temporary config, then deletes it", async () => {
@@ -41,7 +41,7 @@ describe("CLI > Settings in package.json", () => {
     const result = await runMuxa(["echo hi"], { cwd });
     expect(result.code).toBe(1);
     expect(result.stderr).toContain(`Unknown key 'mouseScrolSpeed'`);
-    expect(result.stdout).not.toContain("Would execute");
+    expect(processesOf(result.stdout)).toEqual([]);
   });
 
   it("stops before mprocs on an unknown key under logs", async () => {
@@ -49,7 +49,7 @@ describe("CLI > Settings in package.json", () => {
     const result = await runMuxa(["echo hi"], { cwd });
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("Unknown key 'maxSize' in package.json 'muxa.logs'");
-    expect(result.stdout).not.toContain("Would execute");
+    expect(processesOf(result.stdout)).toEqual([]);
   });
 });
 

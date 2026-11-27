@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { runMuxa } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxa } from "@tests/helpers/muxa-runner";
 import { mockPlatform } from "@tests/helpers/constants";
 import * as path from "path";
 
@@ -126,13 +126,13 @@ describe("Windows Paths", () => {
       const result = await runMuxa(["-c", "echo %PATH%"]);
 
       // On Windows, should use appropriate shell wrapping
-      expect(result.stdout).toContain("Would execute: dekit mprocs");
+      expect(processesOf(result.stdout)).not.toEqual([]);
     });
 
     it("should handle environment variables Windows-style", async () => {
       const result = await runMuxa(["-c", "echo %USERPROFILE%"]);
 
-      expect(result.stdout).toContain("Would execute: dekit mprocs");
+      expect(processesOf(result.stdout)).not.toEqual([]);
       // Command should preserve Windows env var syntax
     });
 
@@ -142,7 +142,7 @@ describe("Windows Paths", () => {
       });
 
       // This would need PowerShell detection
-      expect(result.stdout).toContain("Would execute: dekit mprocs");
+      expect(processesOf(result.stdout)).not.toEqual([]);
     });
   });
 

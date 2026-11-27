@@ -2,6 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { spawn } from "child_process";
 import { StdinSimulator } from "@tests/helpers/stdin-simulator";
 import { muxaPath, muxaRuntime, fixturesPath } from "@tests/helpers/constants";
+import { processesOf } from "@tests/helpers/muxa-runner";
 import { runInTerminal } from "@tests/helpers/terminal-runner";
 import * as path from "path";
 
@@ -35,7 +36,7 @@ describe("Duplicate process names in a terminal", () => {
 
     run.type("y");
     expect(await run.exited()).toBe(0);
-    expect(run.output()).toContain("Would execute: dekit mprocs");
+    expect(processesOf(run.output())).not.toEqual([]);
   });
 
   it("lists every duplicated name", async () => {
@@ -71,7 +72,7 @@ describe("Duplicate process names in a terminal", () => {
       await run.waitFor(/Continue with duplicate names/);
       run.type(key);
       expect(await run.exited()).toBe(1);
-      expect(run.output()).not.toContain("Would execute");
+      expect(processesOf(run.output())).toEqual([]);
     });
   }
 
@@ -119,7 +120,7 @@ describe("Duplicate process names in a terminal", () => {
       await run.waitFor(/Continue with duplicate names/);
       run.type("т");
       expect(await run.exited()).toBe(1);
-      expect(run.output()).not.toContain("Would execute");
+      expect(processesOf(run.output())).toEqual([]);
     });
   });
 });
