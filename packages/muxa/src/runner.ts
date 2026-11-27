@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import type { TransformedCommand } from "./command-builder";
 import { homeFolderName, logFilesOf, type ProcessNames } from "./log-files";
+import { MUXAD_ENV } from "./muxad";
 import { ensureMuxaFolder, hasPackageJson, xdgHome } from "./utils";
 
 /** A task of dekit.yaml, with the keys muxa writes */
@@ -14,10 +15,30 @@ export interface DekitTask {
   log?: { file: string; mode: "append" };
 }
 
+/** A command of dekit's hooks, as `dekit help config/hooks` lists them */
+export type DekitHookCommand =
+  | { command: "batch"; commands: DekitHookCommand[] }
+  | { command: "remove"; target: string }
+  | {
+      command: "add";
+      target: string;
+      spec: { cmd: string[]; cwd: string; env: Record<string, string> };
+    };
+
 export interface DekitConfig {
   defaults: { env: Record<string, string>; mouse_scroll_speed?: number };
   tasks: Record<string, DekitTask>;
+  on_init?: DekitHookCommand;
 }
+
+/** How dekit starts muxad: muxa's own program, in the runner root */
+export interface MuxadStart {
+  cmd: string[];
+  cwd: string;
+}
+
+/** In a space of its own, which dekit's screen and a plain `dekit ls` leave out */
+export const MUXAD_TASK = "@muxa/muxad";
 
 /**
  * The folder of the runner for the processes of `cwd` (ADR 0010). dekit names the runner on its
@@ -38,7 +59,7 @@ function folderName(title: string): string {
 
 /**
  * The dekit.yaml of the processes. `logDir` is absolute, or undefined when muxa writes no log files;
- * `names` are in the order of `commands`.
+ * `names` are in the order of `commands`. With `muxad`, the runner adds muxad when it loads.
  */
 export function buildDekitConfig(
   commands: TransformedCommand[],
@@ -48,7 +69,14 @@ export function buildDekitConfig(
     logDir,
     env,
     mouseScrollSpeed,
-  }: { cwd: string; logDir?: string; env: Record<string, string>; mouseScrollSpeed?: number },
+    muxad,
+  }: {
+    cwd: string;
+    logDir?: string;
+    env: Record<string, string>;
+    mouseScrollSpeed?: number;
+    muxad?: MuxadStart;
+  },
 ): DekitConfig {
   const files = logFilesOf(names);
   const tasks = Object.fromEntries(
@@ -71,6 +99,20 @@ export function buildDekitConfig(
       ...(mouseScrollSpeed === undefined ? {} : { mouse_scroll_speed: mouseScrollSpeed }),
     },
     tasks,
+    ...(muxad && {
+      // A config task path cannot hold `@`, and `dekit down` keeps the added task for the next load
+      on_init: {
+        command: "batch",
+        commands: [
+          { command: "remove", target: MUXAD_TASK },
+          {
+            command: "add",
+            target: MUXAD_TASK,
+            spec: { cmd: muxad.cmd, cwd: muxad.cwd, env: { [MUXAD_ENV]: "1" } },
+          },
+        ],
+      },
+    }),
   };
 }
 
@@ -82,7 +124,14 @@ export function toYaml(config: DekitConfig): string {
   const lines: string[] = [];
   const write = (value: unknown, indent: string) => {
     for (const [key, child] of Object.entries(value as object)) {
-      if (Array.isArray(child)) {
+      if (Array.isArray(child) && child.every((item) => typeof item === "object")) {
+        lines.push(`${indent}${JSON.stringify(key)}:`);
+        for (const item of child) {
+          const first = lines.length;
+          write(item, `${indent}    `);
+          lines[first] = `${indent}  - ${lines[first]?.trimStart()}`;
+        }
+      } else if (Array.isArray(child)) {
         lines.push(
           `${indent}${JSON.stringify(key)}: [${child.map((item) => JSON.stringify(item)).join(", ")}]`,
         );
