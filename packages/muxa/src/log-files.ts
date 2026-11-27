@@ -26,10 +26,14 @@ export const MAX_TAB_NAME_LENGTH = MAX_FILE_NAME_LENGTH;
  */
 export function resolveLogDir(cwd: string): string {
   if (hasPackageJson(cwd)) return PROJECT_LOG_DIR;
+  return path.join(homeLogDir(), homeFolderName(cwd));
+}
 
-  // A doubled `_` keeps `/a_b` apart from `/a/b`; dekit fills in `{name}` and the like in a log folder
+/** The name of the folder that holds what muxa keeps in the user's home for `cwd` */
+export function homeFolderName(cwd: string): string {
+  // A doubled `_` keeps `/a_b` apart from `/a/b`; dekit fills in `{name}` and the like in a log path
   const folder = cwd.replaceAll("_", "__").replace(/[/\\:{}]/g, "_");
-  return path.join(homeLogDir(), lastBytes(folder.replace(/^_/, "") || "_"));
+  return lastBytes(folder.replace(/^_/, "") || "_");
 }
 
 function homeLogDir(): string {

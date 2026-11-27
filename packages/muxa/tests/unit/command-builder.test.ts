@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, beforeEach } from "bun:test";
-import { buildCommands, buildMprocsArgs } from "@/command-builder";
+import { buildCommands } from "@/command-builder";
 import type { ParseResult, ParsedCommand } from "@/parser";
 import { discoverWorkspaces } from "@/workspace";
 import { detectPackageManager, type PackageManager } from "@/package-manager";
@@ -39,7 +39,7 @@ describe("buildCommands", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]!.name).toBe("backend:dev");
-      expect(result[0]!.needsShell).toBe(true);
+      expect(result[0]!.needsShell).toBe(false);
       expect(result[0]!.command).toBe("npm run dev");
       expect(result[0]!.folder).toEndWith("/packages/backend");
     });
@@ -138,7 +138,7 @@ describe("buildCommands", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]!.name).toBe("api:dev");
-      expect(result[0]!.needsShell).toBe(true);
+      expect(result[0]!.needsShell).toBe(false);
       expect(result[0]!.command).toBe("npm run dev");
       expect(result[0]!.folder).toEndWith("/packages/api");
     });
@@ -226,7 +226,7 @@ describe("buildCommands", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]!.name).toBe("list");
-      expect(result[0]!.needsShell).toBe(true);
+      expect(result[0]!.needsShell).toBe(false);
       expect(result[0]!.command).toBe("ls -la");
       expect(result[0]!.folder).toEndWith("/packages/web");
     });
@@ -351,136 +351,5 @@ describe("buildCommands", () => {
       expect(result[1]!.name).toBe("api:dev");
       expect(result[2]!.name).toBe("web");
     });
-  });
-});
-
-describe("buildMprocsArgs", () => {
-  it("runs a command with a folder inside that folder", () => {
-    const commands = [
-      { command: "npm run dev", name: "web", folder: "/repo/packages/web", needsShell: true },
-    ];
-
-    const args = buildMprocsArgs(commands, { mode: "advanced", commands: [] });
-
-    expect(args.at(-1)).toBe("sh -c 'cd /repo/packages/web && npm run dev'");
-  });
-
-  it("should build args for simple commands", () => {
-    const commands = [{ command: "echo hello", name: "test", needsShell: false }];
-    const parsed: ParseResult = {
-      mode: "advanced",
-      commands: [],
-    };
-
-    const args = buildMprocsArgs(commands, parsed);
-
-    expect(args).toContain("--names");
-    expect(args).toContain("test");
-    expect(args).toContain("echo hello");
-  });
-
-  it("should wrap shell commands", () => {
-    const commands = [{ command: "echo hello && echo world", name: "test", needsShell: true }];
-    const parsed: ParseResult = {
-      mode: "advanced",
-      commands: [],
-    };
-
-    const args = buildMprocsArgs(commands, parsed);
-
-    expect(args.some((arg) => arg.startsWith("sh -c"))).toBe(true);
-    expect(args.some((arg) => arg.includes("echo hello && echo world"))).toBe(true);
-  });
-
-  it("should handle multiple commands with names", () => {
-    const commands = [
-      { command: "echo one", name: "first", needsShell: false },
-      { command: "echo two", name: "second", needsShell: false },
-    ];
-    const parsed: ParseResult = {
-      mode: "advanced",
-      commands: [],
-    };
-
-    const args = buildMprocsArgs(commands, parsed);
-
-    expect(args).toContain("--names");
-    expect(args).toContain("first,second");
-    expect(args).toContain("echo one");
-    expect(args).toContain("echo two");
-  });
-
-  it("should not add names in basic mode", () => {
-    const commands = [{ command: "echo hello", name: "test", needsShell: false }];
-    const parsed: ParseResult = {
-      mode: "basic",
-      commands: [],
-    };
-
-    const args = buildMprocsArgs(commands, parsed);
-
-    expect(args).not.toContain("--names");
-    expect(args).toContain("echo hello");
-  });
-
-  it("names an unnamed process after its command, so each later name stays on its own process", () => {
-    const commands = [
-      { command: "echo one", name: "", needsShell: false },
-      { command: "echo two", name: "second", needsShell: false },
-    ];
-    const parsed: ParseResult = {
-      mode: "advanced",
-      commands: [],
-    };
-
-    const args = buildMprocsArgs(commands, parsed);
-
-    expect(args[args.indexOf("--names") + 1]).toBe("echo one,second");
-  });
-
-  it("replaces commas in a command used as a name, because --names splits on commas", () => {
-    const commands = [
-      { command: "echo a,b", name: "", needsShell: false },
-      { command: "echo two", name: "second", needsShell: false },
-    ];
-    const parsed: ParseResult = {
-      mode: "advanced",
-      commands: [],
-    };
-
-    const args = buildMprocsArgs(commands, parsed);
-
-    expect(args[args.indexOf("--names") + 1]).toBe("echo a b,second");
-  });
-
-  it("passes no names when no process has one", () => {
-    const commands = [
-      { command: "echo one", name: "", needsShell: false },
-      { command: "echo two", name: "", needsShell: false },
-    ];
-    const parsed: ParseResult = {
-      mode: "advanced",
-      commands: [],
-    };
-
-    const args = buildMprocsArgs(commands, parsed);
-
-    expect(args).not.toContain("--names");
-  });
-
-  it("should handle special characters in shell commands", () => {
-    const commands = [{ command: "echo 'hello world'", name: "test", needsShell: true }];
-    const parsed: ParseResult = {
-      mode: "advanced",
-      commands: [],
-    };
-
-    const args = buildMprocsArgs(commands, parsed);
-
-    const shellCmd = args.find((arg) => arg.startsWith("sh -c"));
-    expect(shellCmd).toBeDefined();
-    // The shell command should contain the echo command, even if escaped
-    expect(shellCmd).toContain("echo");
-    expect(shellCmd).toContain("hello world");
   });
 });

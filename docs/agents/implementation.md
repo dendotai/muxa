@@ -19,23 +19,31 @@ The dekit canary packages, `@den-ai/dekit-canary-<os>-<cpu>`, are `optionalDepen
   - With no TTY, it reads a line, in any case: `y` or `yes` for yes, `n` or `no` for no; any other line asks again.
   - `checkDuplicateNames` calls it when two processes have one name, `checkOpenRuns` in `packages/muxa/src/second-start.ts` when another open run has a process of the same name, `packages/muxa/src/index.ts` when muxa cannot write the log files, and `offerLogsLine` in `packages/muxa/src/logs-line.ts` for the `muxa logs` line in `CLAUDE.md`.
 
+## Runner root and tasks
+
+At each start, `packages/muxa/src/index.ts` writes `dekit.yaml` in the runner root and runs `dekit -C <root> up`, `reload --yes`, and `attach`; after the screen closes, it runs `runner stop` when the runner still runs (ADR 0010).
+
+- **Root**: `runnerRoot` in `packages/muxa/src/runner.ts` returns `.muxa/<title>/`, where `<title>` is the process list title with each character a folder name cannot hold turned into `_` (`@acme/web` becomes `@acme_web`). A folder with no `package.json` has its root at `~/.local/state/muxa/runners/<folder path>/<title>/`; `homeFolderName` in `packages/muxa/src/log-files.ts` writes the folder path the same way for the runners and for the home log folder.
+- **Old title**: before the start, muxa stops a runner that runs in another root beside this one (`otherRoots`), since a change of the title moves the root.
+- **Tasks**: `buildDekitConfig` writes one task per process. Its path is the log file's name without `.log`, its `label` the name as typed, its `cwd` the package folder of `-s` and `-w` or the current folder, and its `log` the full path of the log file in `append` mode. `defaults.env` sets `MUXA_RUNNING`, and `FORCE_COLOR` when it is not set; `defaults.mouse_scroll_speed` comes from `mouseScrollSpeed`.
+- **YAML**: `toYaml` writes each key and string as a JSON string, which YAML reads as a double-quoted scalar, so muxa needs no YAML package.
+
 ## Shell wrapping
 
-`transformCommand` in `packages/muxa/src/command-builder.ts` decides whether a command is wrapped; `buildMprocsArgs` then passes it to dekit either as it is or as `sh -c '…'`, with each `'` in the command written as `'\''`.
+dekit runs a task's `cmd` without a shell, and refuses a string `cmd` with a shell's syntax in it. `needsShellWrapping` in `packages/muxa/src/command-builder.ts` decides whether a command runs as `["sh", "-c", "<command>"]`; any other command is dekit's string form, which dekit splits into words.
 
-A command is wrapped when:
+A command is wrapped when `needsShellWrapping` finds any of:
 
-- it comes from `-s` or `-w`, which turn it into `cd <package path> && <command>`: `muxa -s backend dev` with `yarn.lock` becomes `sh -c 'cd /path/to/backend && yarn run dev'`
-- it comes from `-c` or basic mode and `needsShellWrapping` finds any of:
-  - an operator or redirection: `&`, `|`, `;`, `<`, `>`
-  - a glob: `*`, `?`, `[`, `]`
-  - text in braces: `{a,b}`, `{x}`
-  - a variable: `$VAR`, `${VAR}`
-  - command substitution or a subshell: `` `cmd` ``, `$(cmd)`, `(cmd)`
-  - a `~` at the start of a word or after `:`
-  - a backslash
-  - a quote, `'` or `"`
+- an operator or redirection: `&`, `|`, `;`, `<`, `>`
+- a glob: `*`, `?`, `[`, `]`
+- text in braces: `{a,b}`, `{x}`
+- a variable: `$VAR`, `${VAR}`
+- command substitution or a subshell: `` `cmd` ``, `$(cmd)`, `(cmd)`
+- a `~` at the start of a word or after `:`
+- a backslash
+- a quote, `'` or `"`
+- a variable set before the command: `NODE_ENV=production npm start`
+- a `#` at the start of a word, or a line break
+- a shell keyword (`if`, `!`, `for`) or a builtin (`cd`, `exit`, `export`) as the first word
 
-Any other command is passed as it is: `muxa -c 'npm test'` passes `npm test` to dekit unchanged.
-
-A command from `-s` or `-w` that holds a `'` is escaped twice: once when muxa prepends the `cd`, and once more when it wraps the result in `sh -c`.
+The rules are the same for `-c`, basic mode, `-s`, and `-w`: `muxa -s backend dev` with `yarn.lock` runs `yarn run dev` with `cwd` set to the package folder, and `muxa -c 'npm test'` runs `npm test`.

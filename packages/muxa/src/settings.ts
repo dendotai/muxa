@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import * as os from "os";
 import * as path from "path";
 import { formatError, hasPackageJson, xdgHome } from "./utils";
 
@@ -13,10 +12,6 @@ export interface Settings {
 export interface LogLimits {
   maxSizePerProcess: number;
   maxSizeTotal: number;
-}
-
-export interface MprocsConfig {
-  mouse_scroll_speed: number;
 }
 
 const BYTES = { KB: 1024, MB: 1024 ** 2, GB: 1024 ** 3 };
@@ -146,25 +141,4 @@ export function resolveProcessListTitle(dir: string, settings: Settings): string
   const name = readPackageJson(dir)?.name;
   if (typeof name === "string" && name.trim() !== "") return name;
   return path.basename(path.resolve(dir));
-}
-
-export function toMprocsConfig(settings: Settings): MprocsConfig | null {
-  if (settings.mouseScrollSpeed === undefined) return null;
-  return { mouse_scroll_speed: settings.mouseScrollSpeed };
-}
-
-/**
- * Write the config to a new temporary file and return its path. dekit reads it at startup;
- * the caller deletes it with `removeTempMprocsConfig` when dekit exits.
- */
-export function writeTempMprocsConfig(config: MprocsConfig): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muxa-"));
-  // dekit picks the parser from the extension and accepts .json
-  const file = path.join(dir, "mprocs.json");
-  fs.writeFileSync(file, JSON.stringify(config));
-  return file;
-}
-
-export function removeTempMprocsConfig(file: string): void {
-  fs.rmSync(path.dirname(file), { recursive: true, force: true });
 }

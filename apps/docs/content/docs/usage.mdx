@@ -188,8 +188,6 @@ At each start, muxa adds a line with the local date, time, and time zone to the 
 
 The lines after the last start line belong to the current run, and those above it to earlier runs. muxa keeps the output of earlier runs until the files reach their [size limits](/configuration#log-size-limits).
 
-A `proc_log` in your own `mprocs.yaml` does not change where muxa writes these files.
-
 `.muxa/.gitignore` keeps the folder out of git; your own `.gitignore` stays as it is.
 
 In a folder with no `package.json`, the files go to `~/.local/state/muxa/logs/<folder path>/` (or `$XDG_STATE_HOME/muxa/logs/<folder path>/`), where each `/` of the folder path is `_` and each `_` is `__`. A run in `/Users/me/Downloads` writes to `~/.local/state/muxa/logs/Users_me_Downloads/`.

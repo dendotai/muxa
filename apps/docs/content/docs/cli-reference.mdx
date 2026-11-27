@@ -218,15 +218,13 @@ A process without a name in the command gets one:
 `-s` and `-w` use the package's folder name, however the command names the package.
 
 - A name cannot start with `-`.
-- A name cannot hold a comma: muxa stops with `Tab name 'web,mobile' contains comma. Commas are reserved as separators.`
-- A comma in a default name shows as a space when the command names another process, or when muxa shortens a name or adds a suffix.
-- A name over 200 characters is shortened to 200, because it also names the process's [log file](/usage#log-files).
+- A name over 200 characters shows in full, and its [log file](/usage#log-files) takes its first 200 characters.
 - When two processes have one name, given in the command or taken from a package, muxa asks `Continue with duplicate names? (y/N)`. `y` starts them with that name; `n` or Enter stops muxa.
-- When different names would give one [log file](/usage#log-files), muxa adds a short suffix to all but one of them: `.web` beside `web` shows as `.web-oyv`. Such names differ only in characters that become `_` (`a b`, `a/b`), in dots at the ends (`.web`, `web`), in a `.log` ending (`web.log`, `web`), or, on macOS, in case (`Web`, `web`). The suffix comes from the name, so it is the same at each start. The name that equals its file name (`web`, in `web.log`) keeps it, or else the first one.
+- When different names would give one [log file](/usage#log-files), muxa adds a short suffix to the log file of all but one of them: `.web` beside `web` writes `web-oyv.log`, and the process list still shows `.web`. Such names differ only in characters that become `_` (`a b`, `a/b`), in dots at the ends (`.web`, `web`), in a `.log` ending (`web.log`, `web`), or, on macOS, in case (`Web`, `web`). The suffix comes from the name, so it is the same at each start. The name that equals its file name (`web`, in `web.log`) keeps it, or else the first one.
 
 ## Shell Wrapping
 
-muxa runs a command through `sh -c` when it contains:
+dekit runs a command without a shell. muxa runs a command through `sh -c` when it contains:
 
 - Shell operators and redirections: `&`, `|`, `;`, `>`, `<`
 - Glob patterns: `*`, `?`, `[`, `]`
@@ -235,18 +233,21 @@ muxa runs a command through `sh -c` when it contains:
 - Subshells and command substitution: `(...)`, `$(...)`, `` `...` ``
 - A `~` at the start of a word or after `:`
 - A backslash or a quote
+- A variable set before the command: `NODE_ENV=production npm run build`
+- A `#` at the start of a word, or a line break
+- A shell keyword or builtin as its first word: `if`, `cd`, `exit`, `export`
 
-Commands from `-s` and `-w` always run through `sh -c`, because muxa puts a `cd` to the package in front of them.
+Commands from `-s` and `-w` follow the same rules; they run in the package folder.
 
 ```bash
-# Wrapped
+# Run through sh -c
 muxa -c 'npm run build && npm test'
 muxa -c 'echo $USER'
-muxa -c 'ls *.js'
-
-# Passed to dekit as it is
-muxa -c 'npm run dev'
 muxa -c 'NODE_ENV=production npm run build'
+
+# Run without a shell
+muxa -c 'npm run dev'
+muxa -s backend dev
 ```
 
 ## Environment Variables
@@ -325,7 +326,7 @@ Available scripts: build, dev, lint
 
 ## Debugging
 
-See the dekit command muxa builds, without starting it:
+See the `dekit.yaml` and the dekit commands muxa builds, without starting them:
 
 ```bash
 MUXA_DEBUG=1 MUXA_TEST_MODE=true muxa -s frontend dev
@@ -334,8 +335,25 @@ MUXA_DEBUG=1 MUXA_TEST_MODE=true muxa -s frontend dev
 ```text
 [muxa debug] Found 16 workspace packages
 [muxa debug] Detected package manager: npm
-[muxa debug] Executing: dekit mprocs '--proc-list-title' 'myapp' '--log-dir' '.muxa/logs' '--log-file' '/path/to/.muxa/logs/{name}.log' '--log-mode' 'append' '--names' 'frontend:dev' 'sh -c 'cd /path/to/apps/frontend && npm run dev''
-Would execute: dekit mprocs '--proc-list-title' 'myapp' '--log-dir' '.muxa/logs' '--log-file' '/path/to/.muxa/logs/{name}.log' '--log-mode' 'append' '--names' 'frontend:dev' 'sh -c 'cd /path/to/apps/frontend && npm run dev''
+[muxa debug] Executing: dekit '-C' '/path/to/.muxa/myapp' 'up'
+Would write /path/to/.muxa/myapp/dekit.yaml:
+"defaults":
+  "env":
+    "MUXA_RUNNING": "1"
+    "FORCE_COLOR": "1"
+"tasks":
+  "frontend_dev":
+    "label": "frontend:dev"
+    "cmd": "npm run dev"
+    "cwd": "/path/to/apps/frontend"
+    "autostart": true
+    "log":
+      "file": "/path/to/.muxa/logs/frontend_dev.log"
+      "mode": "append"
+Would execute: dekit '-C' '/path/to/.muxa/myapp' 'up'
+Would execute: dekit '-C' '/path/to/.muxa/myapp' 'reload' '--yes'
+Would execute: dekit '-C' '/path/to/.muxa/myapp' 'attach'
+Would execute: dekit '-C' '/path/to/.muxa/myapp' 'runner' 'stop'
 FORCE_COLOR=1
 ...
 ```
@@ -346,8 +364,6 @@ Fixes for common problems: [Troubleshooting](/configuration#troubleshooting).
 
 ## Limitations
 
-- `-s` and `-w` fail for a package whose full path holds a space.
-- `-w` fails for a command that holds a single quote. Use double quotes inside it: `muxa -w frontend 'echo "hi"'`.
 - In basic mode, an option after the first argument (`muxa 'npm run dev' --help`) and an unknown option with one dash (`-x`) run as commands.
 - When input ends with no answer to the duplicate-name question, muxa starts nothing and exits 0.
 - `muxa migrate` and `muxa check` only print `Migration tool not yet implemented` ([issue #37](https://github.com/dendotai/muxa/issues/37)).

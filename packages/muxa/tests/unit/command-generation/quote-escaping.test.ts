@@ -1,5 +1,11 @@
-import { getMuxaCommand } from "@tests/helpers/muxa-runner";
+import { getMuxaCommand as getTaskCommand, getMuxaProcesses } from "@tests/helpers/muxa-runner";
 import { describe, expect, it } from "bun:test";
+
+/** The command of the first process as one line: `sh -c <command>` when muxa runs it in a shell */
+async function getMuxaCommand(args: string[]) {
+  const result = await getTaskCommand(args);
+  return { ...result, command: [result.command ?? []].flat().join(" ") };
+}
 
 describe("Command Generation > Quote Escaping", () => {
   describe("Single quotes", () => {
@@ -105,9 +111,8 @@ describe("Command Generation > Quote Escaping", () => {
     });
 
     it("should handle quotes in tab names", async () => {
-      const result = await getMuxaCommand(["-c", "echo test", "tab's name"]);
-      expect(result.command).toContain("echo test");
-      expect(result.command).toContain("tab's name");
+      const result = await getMuxaProcesses(["-c", "echo test", "tab's name"]);
+      expect(result.processes).toMatchObject([{ name: "tab's name", command: "echo test" }]);
     });
 
     it("should handle complex shell commands", async () => {

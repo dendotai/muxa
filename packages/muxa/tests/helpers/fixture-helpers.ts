@@ -1,6 +1,8 @@
+import { spawnSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { dekitBinaryPath } from "@/dekit";
 import type { PackageManager } from "@/package-manager";
 
 interface PackageExtras {
@@ -74,7 +76,20 @@ export function createNpmWorkspace(rootDir: string, packages: string[]): void {
 // Safely clean up a fixture directory
 export function cleanupFixture(dir: string): void {
   if (fs.existsSync(dir)) {
+    stopRunnersIn(fs.realpathSync(dir));
     fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/** A runner outlives a muxa that a test killed, and the deletion of its root */
+function stopRunnersIn(dir: string): void {
+  const dekit = dekitBinaryPath();
+  const list = spawnSync(dekit, ["runner", "list"], { encoding: "utf8" }).stdout ?? "";
+  for (const [, root] of list.matchAll(/^\[running\] .*? root=(\S+)/gm)) {
+    if (root === dir || root!.startsWith(`${dir}${path.sep}`)) {
+      fs.mkdirSync(root!, { recursive: true });
+      spawnSync(dekit, ["-C", root!, "runner", "stop"]);
+    }
   }
 }
 

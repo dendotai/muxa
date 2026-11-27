@@ -17,7 +17,7 @@ export const FIXTURE_TIMEOUT = 4000;
 // A Latin layout for a prompt in a pseudo-terminal (macOS only), so a run does not depend on the layout in use
 export const LATIN_KEYBOARD_LAYOUT = "com.apple.keylayout.ABC";
 
-// Test environment variables - ALWAYS use test mode to avoid running mprocs
+// Test environment variables - ALWAYS use test mode, which starts no dekit
 export const TEST_ENV = {
   MUXA_TEST_MODE: "true",
 };

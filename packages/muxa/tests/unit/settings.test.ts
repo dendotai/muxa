@@ -2,13 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
 import { createRootPackageWorkspace, createTempWorkspace } from "@tests/helpers/fixture-helpers";
-import {
-  readSettings,
-  removeTempMprocsConfig,
-  resolveProcessListTitle,
-  toMprocsConfig,
-  writeTempMprocsConfig,
-} from "@/settings";
+import { readSettings, resolveProcessListTitle } from "@/settings";
 
 function workspaceWithRawPackageJson(content: string): string {
   const dir = createTempWorkspace("muxa-settings");
@@ -184,26 +178,5 @@ describe("resolveProcessListTitle", () => {
   it("uses the folder name when there is no package.json", () => {
     const dir = createTempWorkspace("muxa-settings");
     expect(resolveProcessListTitle(dir, {})).toBe(path.basename(dir));
-  });
-});
-
-describe("toMprocsConfig", () => {
-  it("maps mouseScrollSpeed to the mprocs key", () => {
-    expect(toMprocsConfig({ mouseScrollSpeed: 2 })).toEqual({ mouse_scroll_speed: 2 });
-  });
-
-  it("returns null when Settings set nothing", () => {
-    expect(toMprocsConfig({})).toBeNull();
-  });
-});
-
-describe("temporary mprocs config", () => {
-  it("writes the config as JSON, then removes its folder", () => {
-    const file = writeTempMprocsConfig({ mouse_scroll_speed: 1 });
-    expect(path.basename(file)).toBe("mprocs.json");
-    expect(JSON.parse(fs.readFileSync(file, "utf-8"))).toEqual({ mouse_scroll_speed: 1 });
-
-    removeTempMprocsConfig(file);
-    expect(fs.existsSync(path.dirname(file))).toBe(false);
   });
 });

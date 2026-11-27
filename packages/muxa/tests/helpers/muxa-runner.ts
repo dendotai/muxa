@@ -8,6 +8,7 @@ import {
   FIXTURE_TIMEOUT,
   TEST_ENV,
 } from "./constants";
+import type { DekitConfig, DekitTask } from "@/runner";
 import { trackProcess } from "./process-cleanup";
 
 export interface MuxaResult {
@@ -17,12 +18,12 @@ export interface MuxaResult {
 }
 
 export interface MuxaCommandResult {
-  command: string | null;
+  /** The `cmd` of the first task in dekit.yaml: an argument list when muxa runs it in a shell */
+  command: string | string[] | null;
   error: string | null;
 }
 
-// Run muxa in test mode and capture the generated command
-// ALWAYS runs in test mode - never executes mprocs
+// Run muxa in test mode and capture the command of its first process
 export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaCommandResult> {
   return new Promise((resolve) => {
     // Don't override env, just add what we need
@@ -69,14 +70,7 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
         clearTimeout(timeoutHandle);
 
         if (code === 0) {
-          // Leave out the arguments muxa adds to every run, so command-generation tests check only what their own arguments produce
-          const match = stdout.match(
-            /Would execute: dekit mprocs (?:'--proc-list-title' '[^']*' )?(?:'--log-dir' '[^']*' '--log-file' '[^']*' '--log-mode' '[^']*' )?(.+)/,
-          );
-          resolve({
-            command: match && match[1] ? match[1] : null,
-            error: null,
-          });
+          resolve({ command: dekitTasksOf(stdout)?.[0]?.cmd ?? null, error: null });
         } else {
           resolve({
             command: null,
@@ -100,7 +94,6 @@ export function getMuxaCommand(args: string[], cwd?: string): Promise<MuxaComman
 }
 
 // Run muxa and capture output with configurable timeout
-// ALWAYS runs in test mode - never executes mprocs
 export function runMuxa(
   args: string[],
   options?: {
@@ -170,7 +163,6 @@ export function runMuxa(
 }
 
 // Quick run with test mode enabled
-// ALWAYS runs in test mode - never executes mprocs
 export async function runMuxaQuick(args: string[], cwd?: string): Promise<MuxaResult> {
   const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true" };
 
@@ -223,7 +215,6 @@ export async function runMuxaQuick(args: string[], cwd?: string): Promise<MuxaRe
 }
 
 // Run muxa in a specific fixture directory
-// ALWAYS runs in test mode - never executes mprocs
 export function runMuxaInFixture(fixture: string, args: string[]): Promise<MuxaResult> {
   const env = { ...process.env, ...TEST_ENV, MUXA_TEST_MODE: "true" };
   const cwd = path.join(__dirname, "..", "fixtures", fixture);
@@ -276,11 +267,11 @@ export function runMuxaInFixture(fixture: string, args: string[]): Promise<MuxaR
   });
 }
 
-/** One process as test mode prints it on a `Process:` line */
+/** One process, from the dekit.yaml that test mode prints */
 export interface MuxaProcess {
   /** The name as typed, or the default name muxa gives it */
   name: string;
-  /** The command, without the change to its folder */
+  /** The command, without the shell muxa runs it in */
   command: string;
   /** The absolute folder the command runs in */
   folder: string;
@@ -293,12 +284,31 @@ export interface MuxaProcessesResult {
   error: string | null;
 }
 
-/** The processes on the `Process:` lines of test mode's output, in the order muxa starts them */
+/** The dekit.yaml in test mode's output and the folder muxa would write it in, or null when it printed none */
+export function dekitConfigOf(stdout: string): {
+  root: string;
+  config: DekitConfig;
+} | null {
+  // `\r?` for the `\r` that a pseudo-terminal adds to each line
+  const match = /^Would write (.*)[/\\]dekit\.yaml:\r?\n([\s\S]*?)^Would execute:/m.exec(stdout);
+  if (!match) return null;
+  return { root: match[1]!, config: Bun.YAML.parse(match[2]!.replaceAll("\r", "")) as never };
+}
+
+/** The tasks of the dekit.yaml in test mode's output, in the order muxa starts them, or null when it printed none */
+export function dekitTasksOf(stdout: string): DekitTask[] | null {
+  const dekit = dekitConfigOf(stdout);
+  return dekit && Object.values(dekit.config.tasks);
+}
+
+/** The processes of the dekit.yaml in test mode's output, in the order muxa starts them */
 export function processesOf(stdout: string): MuxaProcess[] {
-  // `.` stops before the `\r` that a pseudo-terminal adds to each line
-  return [...stdout.matchAll(/^Process: (.*)$/gm)].map(
-    ([, json]) => JSON.parse(json!) as MuxaProcess,
-  );
+  return (dekitTasksOf(stdout) ?? []).map(({ label, cmd, cwd, log }) => ({
+    name: label,
+    command: Array.isArray(cmd) && cmd[0] === "sh" && cmd[1] === "-c" ? cmd[2]! : String(cmd),
+    folder: cwd,
+    log: log?.file ?? null,
+  }));
 }
 
 // Tests of names, commands, and folders read them here, so a change to how muxa starts dekit changes only this helper
