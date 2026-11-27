@@ -55,7 +55,9 @@ export function runInTerminal(
         }
         if (Date.now() > deadline) {
           proc.kill("SIGKILL");
-          throw new Error(`Timed out waiting for ${pattern}. Output:\n${output().slice(-2000)}`);
+          throw new Error(
+            `Timed out waiting for ${pattern}. Output:\n${output().slice(-2000)}\nRaw:\n${JSON.stringify(raw.slice(-2000))}`,
+          );
         }
         await Bun.sleep(25);
       }
