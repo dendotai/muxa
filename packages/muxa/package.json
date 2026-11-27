@@ -54,7 +54,13 @@
     "dist"
   ],
   "dependencies": {
-    "@dekit/cli": "^0.10.3",
     "koffi": "^3.3.8"
+  },
+  "optionalDependencies": {
+    "@den-ai/dekit-canary-darwin-arm64": "0.0.0-canary.20261125.g7d56bc2",
+    "@den-ai/dekit-canary-darwin-x64": "0.0.0-canary.20261125.g7d56bc2",
+    "@den-ai/dekit-canary-linux-arm64": "0.0.0-canary.20261125.g7d56bc2",
+    "@den-ai/dekit-canary-linux-x64": "0.0.0-canary.20261125.g7d56bc2",
+    "@den-ai/dekit-canary-win32-x64": "0.0.0-canary.20261125.g7d56bc2"
   }
 }

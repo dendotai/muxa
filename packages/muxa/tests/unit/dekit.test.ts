@@ -17,30 +17,28 @@ describe("dekitBinaryPath", () => {
     expect(fs.statSync(binary).mode & 0o111).not.toBe(0);
   });
 
-  it("resolves the platform package next to @dekit/cli", () => {
+  it("resolves the canary package of the platform", () => {
     const resolve = fakeResolve({
-      "@dekit/cli": "/store/@dekit/cli",
-      "@dekit/dekit-linux-arm64": "/store/@dekit/dekit-linux-arm64",
+      "@den-ai/dekit-canary-linux-arm64": "/store/@den-ai/dekit-canary-linux-arm64",
     });
     expect(dekitBinaryPath("linux", "arm64", () => resolve)).toBe(
-      "/store/@dekit/dekit-linux-arm64/bin/dekit",
+      "/store/@den-ai/dekit-canary-linux-arm64/bin/dekit",
     );
   });
 
   it("names the Windows binary dekit.exe", () => {
     const resolve = fakeResolve({
-      "@dekit/cli": "/store/@dekit/cli",
-      "@dekit/dekit-win32-x64": "/store/@dekit/dekit-win32-x64",
+      "@den-ai/dekit-canary-win32-x64": "/store/@den-ai/dekit-canary-win32-x64",
     });
     expect(dekitBinaryPath("win32", "x64", () => resolve)).toBe(
-      path.join("/store/@dekit/dekit-win32-x64", "bin", "dekit.exe"),
+      path.join("/store/@den-ai/dekit-canary-win32-x64", "bin", "dekit.exe"),
     );
   });
 
   it("names the missing package when dekit ships no binary for the machine", () => {
-    const resolve = fakeResolve({ "@dekit/cli": "/store/@dekit/cli" });
+    const resolve = fakeResolve({});
     expect(() => dekitBinaryPath("freebsd", "x64", () => resolve)).toThrow(
-      "dekit has no binary for freebsd x64 (missing @dekit/dekit-freebsd-x64)",
+      "dekit has no binary for freebsd x64 (missing @den-ai/dekit-canary-freebsd-x64)",
     );
   });
 });

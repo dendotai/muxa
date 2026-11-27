@@ -54,7 +54,6 @@
         "muxa": "dist/index.js",
       },
       "dependencies": {
-        "@dekit/cli": "^0.10.3",
         "koffi": "^3.3.8",
       },
       "devDependencies": {
@@ -65,6 +64,13 @@
         "eslint": "^9.31.0",
         "markdownlint-cli": "^0.45.0",
         "typescript": "^5.8.3",
+      },
+      "optionalDependencies": {
+        "@den-ai/dekit-canary-darwin-arm64": "0.0.0-canary.20261125.g7d56bc2",
+        "@den-ai/dekit-canary-darwin-x64": "0.0.0-canary.20261125.g7d56bc2",
+        "@den-ai/dekit-canary-linux-arm64": "0.0.0-canary.20261125.g7d56bc2",
+        "@den-ai/dekit-canary-linux-x64": "0.0.0-canary.20261125.g7d56bc2",
+        "@den-ai/dekit-canary-win32-x64": "0.0.0-canary.20261125.g7d56bc2",
       },
     },
   },
@@ -251,17 +257,15 @@
 
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
-    "@dekit/cli": ["@dekit/cli@0.10.3", "", { "optionalDependencies": { "@dekit/dekit-darwin-arm64": "0.10.3", "@dekit/dekit-darwin-x64": "0.10.3", "@dekit/dekit-linux-arm64": "0.10.3", "@dekit/dekit-linux-x64": "0.10.3", "@dekit/dekit-win32-x64": "0.10.3" }, "bin": { "dekit": "bin/dekit.js" } }, "sha512-0iF5B/FkfmPhHKDuOrK6FuUEatGMEFSLlTFTIFbAWZpCP1Md9PPuz9Op7rod0u7Y2jK0Gutxvdx9mz/DG5f/7g=="],
+    "@den-ai/dekit-canary-darwin-arm64": ["@den-ai/dekit-canary-darwin-arm64@0.0.0-canary.20261125.g7d56bc2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-+v2R635RHV21NHGtPi3KhTMt4DNLZzPRid3/f3PKy7keEccygBFH4swY7IoBiEIFxb2puCjwhGcCgabWKwlGLw=="],
 
-    "@dekit/dekit-darwin-arm64": ["@dekit/dekit-darwin-arm64@0.10.3", "", { "os": "darwin", "cpu": "arm64" }, "sha512-s/U6EigQGKpYmktZkOBn7kS5n8NqSpGma99XA0GiXiHiWbRWPRCc1U5SsarmKt/3f+N/wWOMOizXX/LXTqB/HA=="],
+    "@den-ai/dekit-canary-darwin-x64": ["@den-ai/dekit-canary-darwin-x64@0.0.0-canary.20261125.g7d56bc2", "", { "os": "darwin", "cpu": "x64" }, "sha512-UpgwR/WlsU4q0UDM3CC719wIj4/RJNo0k2r86Yk+s3UdWe3+6AFznqOaY/Ab27G6nO4WeYFQn7UPmWW6cBQiqQ=="],
 
-    "@dekit/dekit-darwin-x64": ["@dekit/dekit-darwin-x64@0.10.3", "", { "os": "darwin", "cpu": "x64" }, "sha512-r4PsSKTLjXjjtkPJN+tZgBZOr29/e0R3yzJ8PZ70E7O6HNM4EDzMU3eWhDC6rfWnvzyPmSzHwhMr29zA5WqkcQ=="],
+    "@den-ai/dekit-canary-linux-arm64": ["@den-ai/dekit-canary-linux-arm64@0.0.0-canary.20261125.g7d56bc2", "", { "os": "linux", "cpu": "arm64" }, "sha512-K+IGLDAMTlnq04YkBW2m2FruucAouJJ3cKdD2IGSEoIyUNch/2WvE/MfUgFZaX01tS9O6880wgy0M6UOflzOFg=="],
 
-    "@dekit/dekit-linux-arm64": ["@dekit/dekit-linux-arm64@0.10.3", "", { "os": "linux", "cpu": "arm64" }, "sha512-mxggQB24mZ7xOiJlGz1fQ0Av9VKUhwRd3z2/iVRQcICBccxt9KVAqImEf3uxm/QN+bmLTVJqk13BUKoVEyWbVg=="],
+    "@den-ai/dekit-canary-linux-x64": ["@den-ai/dekit-canary-linux-x64@0.0.0-canary.20261125.g7d56bc2", "", { "os": "linux", "cpu": "x64" }, "sha512-Msgqvu3L5xWZ/d5Gs87CYaVAUNixlTAGfGEaWntpON+6vq9pnvVigMnhuaHolQgNpCEKJMV6xmEg65+zWvrDJA=="],
 
-    "@dekit/dekit-linux-x64": ["@dekit/dekit-linux-x64@0.10.3", "", { "os": "linux", "cpu": "x64" }, "sha512-CIfA2LbsLWHBqsc9tnUpyzQVpdHVHsG7v1hBCtvtIuQFkXxazowpYS33MbhJw/Gg4NazKTxoyko4xueu4w2O9A=="],
-
-    "@dekit/dekit-win32-x64": ["@dekit/dekit-win32-x64@0.10.3", "", { "os": "win32", "cpu": "x64" }, "sha512-J0HzC8mMN34dYVV+GU/PKal811Y7WU+XIQlOtuDNrQuAoRla/to8eE7ss4MAiGOBjJ9s/OZy1DLWB3kutabvvw=="],
+    "@den-ai/dekit-canary-win32-x64": ["@den-ai/dekit-canary-win32-x64@0.0.0-canary.20261125.g7d56bc2", "", { "os": "win32", "cpu": "x64" }, "sha512-Hjl2qeKm7KBln4aaOe0kJ43bispQMXBZuPB6U7+cYW2uvd30YHRC44crOwlicQLv6Mso2b8mladDSoQpdqkzTw=="],
 
     "@den-ai/muxa": ["@den-ai/muxa@workspace:packages/muxa"],
 

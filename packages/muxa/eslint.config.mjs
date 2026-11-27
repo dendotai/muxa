@@ -26,6 +26,7 @@ export default [
         NodeJS: "readonly",
         Bun: "readonly",
         TextDecoder: "readonly",
+        fetch: "readonly",
       },
     },
     plugins: {
