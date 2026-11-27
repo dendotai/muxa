@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { runMuxa } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxa } from "@tests/helpers/muxa-runner";
 
 describe("CLI > Reserved words", () => {
   it("are all in the help", async () => {
@@ -22,7 +22,7 @@ describe("CLI > Reserved words", () => {
     it(`run as a program after -c: ${verb}`, async () => {
       const result = await runMuxa(["-c", verb]);
       expect(result.code).toBe(0);
-      expect(result.stdout).toMatch(new RegExp(`Would execute: dekit mprocs .*'${verb}'`));
+      expect(processesOf(result.stdout)).toMatchObject([{ command: verb }]);
     });
 
     it(`take no option: ${verb}`, async () => {

@@ -1,12 +1,13 @@
 import { describe, it, expect } from "bun:test";
-import { runMuxaInFixture } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxaInFixture } from "@tests/helpers/muxa-runner";
 
 describe("Fixture Tests > single-dir", () => {
   it("should handle single directory workspaces", async () => {
     const result = await runMuxaInFixture("single-dir", ["-w", "api", "npm run dev"]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("'cd");
-    expect(result.stdout).toContain("/api ");
+    expect(processesOf(result.stdout)).toMatchObject([
+      { command: "npm run dev", folder: expect.stringMatching(/\/single-dir\/api$/) },
+    ]);
   });
 
   it("should handle all three packages", async () => {
@@ -22,8 +23,7 @@ describe("Fixture Tests > single-dir", () => {
       "npm start",
     ]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("--names");
-    expect(result.stdout).toContain("api,web,mobile");
+    expect(processesOf(result.stdout).map(({ name }) => name)).toEqual(["api", "web", "mobile"]);
   });
 });
 
@@ -31,8 +31,9 @@ describe("Fixture Tests > script commands (-s flag)", () => {
   it("should run scripts from workspace packages", async () => {
     const result = await runMuxaInFixture("basic-npm", ["-s", "shared", "build"]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("'--names' 'shared:build'");
-    expect(result.stdout).toContain("npm run build");
+    expect(processesOf(result.stdout)).toMatchObject([
+      { name: "shared:build", command: "npm run build" },
+    ]);
   });
 
   it("should run multiple scripts", async () => {
@@ -47,7 +48,10 @@ describe("Fixture Tests > script commands (-s flag)", () => {
       "backend-test",
     ]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("'--names' 'frontend-build,backend-test'");
+    expect(processesOf(result.stdout).map(({ name }) => name)).toEqual([
+      "frontend-build",
+      "backend-test",
+    ]);
   });
 
   it("should error on missing script", async () => {
@@ -61,7 +65,7 @@ describe("Fixture Tests > script commands (-s flag)", () => {
   it("should use default name format for scripts", async () => {
     const result = await runMuxaInFixture("basic-npm", ["-s", "shared", "build"]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("'--names' 'shared:build'");
+    expect(processesOf(result.stdout)).toMatchObject([{ name: "shared:build" }]);
   });
 });
 
@@ -89,6 +93,6 @@ describe("Fixture Tests > error cases", () => {
   it("should work with -c flag without workspace configuration", async () => {
     const result = await runMuxaInFixture(".", ["-c", "echo hello"]);
     expect(result.code).toBe(0);
-    expect(result.stdout).toMatch(/Would execute: dekit mprocs .*'echo hello'/);
+    expect(processesOf(result.stdout)).toMatchObject([{ command: "echo hello" }]);
   });
 });

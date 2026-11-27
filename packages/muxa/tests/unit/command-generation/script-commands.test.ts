@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
-import { getMuxaCommand } from "@tests/helpers/muxa-runner";
+import { getMuxaCommand, getMuxaProcesses } from "@tests/helpers/muxa-runner";
 import { createTempWorkspace, cleanupFixture } from "@tests/helpers/fixture-helpers";
 
 describe("Command Generation > Script Commands (-s flag)", () => {
@@ -37,9 +37,14 @@ describe("Command Generation > Script Commands (-s flag)", () => {
       ),
     );
 
-    const result = await getMuxaCommand(["-s", "backend", "dev"], tempDir);
-    expect(result.command).toContain("'--names' 'backend:dev'");
-    expect(result.command).toContain("/packages/backend && npm run dev''");
+    const result = await getMuxaProcesses(["-s", "backend", "dev"], tempDir);
+    expect(result.processes).toMatchObject([
+      {
+        name: "backend:dev",
+        command: "npm run dev",
+        folder: path.join(fs.realpathSync(tempDir), "packages", "backend"),
+      },
+    ]);
   });
 
   it("should use custom name for scripts", async () => {
@@ -61,8 +66,8 @@ describe("Command Generation > Script Commands (-s flag)", () => {
       ),
     );
 
-    const result = await getMuxaCommand(["-s", "backend", "dev", "api"], tempDir);
-    expect(result.command).toContain("'--names' 'api'");
+    const result = await getMuxaProcesses(["-s", "backend", "dev", "api"], tempDir);
+    expect(result.processes).toMatchObject([{ name: "api" }]);
   });
 
   it("should run script from root with .", async () => {
@@ -81,12 +86,12 @@ describe("Command Generation > Script Commands (-s flag)", () => {
       ),
     );
 
-    const result = await getMuxaCommand(["-s", ".", "build"], tempDir);
+    const result = await getMuxaProcesses(["-s", ".", "build"], tempDir);
     expect(result.error).toBeNull();
-    expect(result.command).not.toBeNull();
     // Should use .:build as the default name (ADR 0005)
-    expect(result.command).toContain("'--names' '.:build'");
-    expect(result.command).toContain("npm run build");
+    expect(result.processes).toMatchObject([
+      { name: ".:build", command: "npm run build", folder: fs.realpathSync(tempDir) },
+    ]);
   });
 
   it("should use custom name for root script", async () => {
@@ -104,10 +109,9 @@ describe("Command Generation > Script Commands (-s flag)", () => {
       ),
     );
 
-    const result = await getMuxaCommand(["-s", ".", "dev", "myapp"], tempDir);
+    const result = await getMuxaProcesses(["-s", ".", "dev", "myapp"], tempDir);
     expect(result.error).toBeNull();
-    expect(result.command).toContain("'--names' 'myapp'");
-    expect(result.command).toContain("npm run dev");
+    expect(result.processes).toMatchObject([{ name: "myapp", command: "npm run dev" }]);
   });
 
   it("should error on missing script", async () => {

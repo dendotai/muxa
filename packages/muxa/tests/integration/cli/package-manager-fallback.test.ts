@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "bun:test";
 import * as path from "path";
-import { runMuxa } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxa } from "@tests/helpers/muxa-runner";
 import { muxaRuntime } from "@tests/helpers/constants";
 import { createMonorepoFixture, cleanupFixture } from "@tests/helpers/fixture-helpers";
 
@@ -26,6 +26,6 @@ describe("Package manager fallback", () => {
     });
 
     expect(result.stderr).toContain("pnpm is not in PATH, so muxa runs scripts with npm");
-    expect(result.stdout).toContain("npm run dev");
+    expect(processesOf(result.stdout).map(({ command }) => command)).toContain("npm run dev");
   });
 });

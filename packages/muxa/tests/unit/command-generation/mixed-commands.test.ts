@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { getMuxaCommand } from "@tests/helpers/muxa-runner";
+import { getMuxaProcesses } from "@tests/helpers/muxa-runner";
 
 describe("Command Generation > Mixed Commands", () => {
   it("should mix workspace, script, and regular commands", async () => {
@@ -32,7 +32,7 @@ describe("Command Generation > Mixed Commands", () => {
       JSON.stringify({ name: "@test/frontend" }, null, 2),
     );
 
-    const result = await getMuxaCommand(
+    const result = await getMuxaProcesses(
       [
         "-s",
         "backend",
@@ -49,10 +49,27 @@ describe("Command Generation > Mixed Commands", () => {
       tempDir,
     );
 
-    expect(result.command).toContain("'--names' 'api,web,db'");
-    expect(result.command).toContain("/packages/backend && npm run dev''");
-    expect(result.command).toContain("/packages/frontend && npm start''");
-    expect(result.command).toContain("'docker-compose up'");
+    const root = fs.realpathSync(tempDir);
+    expect(result.processes).toEqual([
+      {
+        name: "api",
+        command: "npm run dev",
+        folder: path.join(root, "packages", "backend"),
+        log: path.join(root, ".muxa", "logs", "api.log"),
+      },
+      {
+        name: "web",
+        command: "npm start",
+        folder: path.join(root, "packages", "frontend"),
+        log: path.join(root, ".muxa", "logs", "web.log"),
+      },
+      {
+        name: "db",
+        command: "docker-compose up",
+        folder: root,
+        log: path.join(root, ".muxa", "logs", "db.log"),
+      },
+    ]);
 
     fs.rmSync(tempDir, { recursive: true, force: true });
   });

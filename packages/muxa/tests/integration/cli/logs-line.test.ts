@@ -6,7 +6,7 @@ import {
   createRootPackageWorkspace,
   createTempWorkspace,
 } from "@tests/helpers/fixture-helpers";
-import { runMuxa } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxa } from "@tests/helpers/muxa-runner";
 import { quit, runInTerminal } from "@tests/helpers/terminal-runner";
 
 const QUESTION = /Add a line about `muxa logs` to CLAUDE\.md\? \(y\/N\): /;
@@ -38,7 +38,7 @@ function start(cwd: string, env: Record<string, string> = { MUXA_TEST_MODE: "tru
 async function startWithoutQuestion(cwd: string) {
   const run = start(cwd);
   expect(await run.exited()).toBe(0);
-  expect(run.output()).toContain("Would execute: dekit mprocs");
+  expect(processesOf(run.output())).not.toEqual([]);
   expect(run.output()).not.toContain("Add a line about");
 }
 
@@ -51,7 +51,7 @@ describe("The question about a muxa logs line in CLAUDE.md", () => {
     await run.waitFor(QUESTION);
     run.type("y");
     expect(await run.exited()).toBe(0);
-    expect(run.output()).toContain("Would execute: dekit mprocs");
+    expect(processesOf(run.output())).not.toEqual([]);
     expect(read(cwd, "CLAUDE.md")).toBe(`${LINE}\n`);
   });
 
@@ -94,7 +94,7 @@ describe("The question about a muxa logs line in CLAUDE.md", () => {
     expect(await run.exited()).toBe(0);
     fs.chmodSync(path.join(cwd, "CLAUDE.md"), 0o644);
     expect(run.output()).toContain("Warning: muxa cannot add the muxa logs line to CLAUDE.md");
-    expect(run.output()).toContain("Would execute: dekit mprocs");
+    expect(processesOf(run.output())).not.toEqual([]);
     expect(read(cwd, "CLAUDE.md")).toBe("# Rules\n");
   });
 

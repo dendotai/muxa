@@ -11,13 +11,18 @@ How muxa's tests are built, and the fixture monorepos they need.
 
 ## Test mode
 
-With `MUXA_TEST_MODE=true`, muxa prints the command it would run, starts no dekit, and writes no log file:
+With `MUXA_TEST_MODE=true`, muxa prints the command it would run and one line per process, starts no dekit, and writes no log file:
 
 ```text
 Would execute: dekit mprocs '--proc-list-title' 'basic-npm-monorepo' '--log-dir' '.muxa/logs' '--log-file' '/…/.muxa/logs/{name}.log' '--log-mode' 'append' '--names' 'frontend' 'sh -c '…''
+Process: {"name":"frontend","command":"npm run dev","folder":"/…/packages/frontend","log":"/…/.muxa/logs/frontend.log"}
 FORCE_COLOR=1
 ```
 
+- A `Process:` line holds the name as typed (or the default name), the command without the `cd` into its package, the absolute folder it runs in, and the absolute path of its log file.
+- `getMuxaProcesses` in `packages/muxa/tests/helpers/muxa-runner.ts` starts muxa in test mode and returns its processes; `processesOf` reads them from the output of another runner.
+  - A test of a name, a command, or a folder reads them here, so a change to how muxa starts dekit changes only the helper.
+  - A test of the `dekit mprocs` arguments themselves (the shell wrapping, `--names`, the log flags) reads the `Would execute:` line.
 - `getMuxaCommand` and `runMuxa` in `packages/muxa/tests/helpers/muxa-runner.ts` start muxa in test mode and return its output.
 - `runInTerminal` in `packages/muxa/tests/helpers/terminal-runner.ts` starts muxa in a pseudo-terminal with `MUXA_TEST_MODE` unset, so muxa starts the real dekit; use it for a test that needs a TTY or a keypress.
   - It sets `MUXA_TEST_SKIP_LOGS_LINE_QUESTION=1`, so muxa skips the question about a `muxa logs` line in `CLAUDE.md`; a test of that question passes the variable as `""`.

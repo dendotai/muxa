@@ -8,7 +8,7 @@ import {
 } from "@tests/helpers/fixture-helpers";
 import { LATIN_KEYBOARD_LAYOUT } from "@tests/helpers/constants";
 import { endedPid } from "@tests/helpers/ended-pid";
-import { runMuxa } from "@tests/helpers/muxa-runner";
+import { processesOf, runMuxa } from "@tests/helpers/muxa-runner";
 import { runInTerminal } from "@tests/helpers/terminal-runner";
 
 const STARTED_AT = Date.UTC(2026, 0, 31, 14, 2);
@@ -68,7 +68,7 @@ describe("A start beside an open run in the same folder", () => {
     expect(run.output()).toContain(QUESTION);
     run.type("y");
     expect(await run.exited()).toBe(0);
-    expect(run.output()).toContain("Would execute: dekit mprocs");
+    expect(processesOf(run.output())).not.toEqual([]);
   });
 
   for (const [label, key] of [
@@ -85,7 +85,7 @@ describe("A start beside an open run in the same folder", () => {
       await run.waitFor(/Continue\? \(y\/N\)/);
       run.type(key ?? "");
       expect(await run.exited()).toBe(1);
-      expect(run.output()).not.toContain("Would execute");
+      expect(processesOf(run.output())).toEqual([]);
     });
   }
 
@@ -100,7 +100,7 @@ describe("A start beside an open run in the same folder", () => {
     expect(result.stderr).toContain(
       "Error: web already runs in another muxa in this folder (started 14:02). To restart it there, run muxa restart web.",
     );
-    expect(result.stdout).not.toContain("Would execute");
+    expect(processesOf(result.stdout)).toEqual([]);
   });
 
   it("names each process that the other run has", async () => {

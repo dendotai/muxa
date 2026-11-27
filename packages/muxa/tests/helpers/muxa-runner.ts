@@ -275,3 +275,37 @@ export function runMuxaInFixture(fixture: string, args: string[]): Promise<MuxaR
     }, FIXTURE_TIMEOUT);
   });
 }
+
+/** One process as test mode prints it on a `Process:` line */
+export interface MuxaProcess {
+  /** The name as typed, or the default name muxa gives it */
+  name: string;
+  /** The command, without the change to its folder */
+  command: string;
+  /** The absolute folder the command runs in */
+  folder: string;
+  /** The absolute path of its log file, or null when muxa writes no log files */
+  log: string | null;
+}
+
+export interface MuxaProcessesResult {
+  processes: MuxaProcess[] | null;
+  error: string | null;
+}
+
+/** The processes on the `Process:` lines of test mode's output, in the order muxa starts them */
+export function processesOf(stdout: string): MuxaProcess[] {
+  // `.` stops before the `\r` that a pseudo-terminal adds to each line
+  return [...stdout.matchAll(/^Process: (.*)$/gm)].map(
+    ([, json]) => JSON.parse(json!) as MuxaProcess,
+  );
+}
+
+// Tests of names, commands, and folders read them here, so a change to how muxa starts dekit changes only this helper
+export async function getMuxaProcesses(args: string[], cwd?: string): Promise<MuxaProcessesResult> {
+  const result = await runMuxa(args, { cwd, timeout: QUICK_TIMEOUT });
+  if (result.code !== 0) {
+    return { processes: null, error: result.stderr || `Process exited with code ${result.code}` };
+  }
+  return { processes: processesOf(result.stdout), error: null };
+}
