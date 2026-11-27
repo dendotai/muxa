@@ -1,6 +1,6 @@
 # 0008. A question at a second start that shares a process
 
-**Status:** Accepted
+**Status:** Superseded (by ADR 0010)
 
 ## Context
 

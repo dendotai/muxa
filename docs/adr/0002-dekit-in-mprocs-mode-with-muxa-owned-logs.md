@@ -1,6 +1,6 @@
 # 0002. Processes run on dekit in mprocs mode, and muxa owns their log files
 
-**Status:** Accepted
+**Status:** Superseded (by ADR 0010)
 
 Agents need every process's full output and a way to restart a process (#5). mprocs was renamed to dekit after 0.9.6, so muxa runs `dekit mprocs` with its current flags, at least at first, and talks to the session through `--server` and `--ctl`. Users type only `muxa` commands: muxa wraps each dekit action it needs, and dekit stays a part users do not see, as mprocs was. dekit's own process commands (`dekit restart`) do not see a `dekit mprocs` session.
 

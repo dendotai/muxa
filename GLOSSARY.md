@@ -1,6 +1,6 @@
 # muxa
 
-muxa runs several commands side by side in one terminal, with monorepo awareness, on top of dekit in mprocs mode.
+muxa runs several commands side by side in one terminal, with monorepo awareness, on top of dekit.
 
 ## Language
 
@@ -26,7 +26,7 @@ The copy of `<process>.log` to `<process>.log.1`, after which muxa empties `<pro
 The line `=== muxa started <date time> ===` that opens a run in a log file.
 
 **Open run**:
-A run of muxa that has not quit.
+A runner that runs. Its processes keep running after the screen closes with `d`.
 
 **Verb**:
 A first word that acts on one process: `logs`, `restart`, `stop`, `start`.
@@ -37,3 +37,9 @@ A first word that muxa does not run as a command.
 **Tab name**:
 The name of a process in the process list.
 _Avoid_: process name
+
+**Runner**:
+dekit's program that runs every process of one folder. A folder has one runner.
+
+**muxad**:
+The hidden task in the runner that rotates the log files and takes later background jobs.
