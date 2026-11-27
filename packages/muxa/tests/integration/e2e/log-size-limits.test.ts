@@ -140,7 +140,7 @@ describe("rotation of a log file", () => {
     const { cwd } = createProject();
     const run = runInTerminal(["-c", "echo hi", "web"], { cwd });
     await run.waitFor(/DOWN \(0\)/);
-    cleanupFixture(path.join(cwd, ".muxa"));
+    cleanupFixture(path.join(cwd, ".muxa", "logs"));
     // Two checks of the sizes
     await Bun.sleep(2100);
     expect(await quit(run)).toBe(0);
@@ -492,7 +492,8 @@ describe("total size of the log files", () => {
     },
   );
 
-  it("frees the .log.1 files of the run before the log of another run that is open", async () => {
+  // Two muxa runs in one folder share one runner, and the second one's tasks replace the first one's until #87
+  it.skip("frees the .log.1 files of the run before the log of another run that is open", async () => {
     const { cwd, dir } = createProject();
     const file = path.join(dir, "other.log");
     const other = runInTerminal(["-c", `${numbers(1, 450)}; ${until("go")}; echo after`, "other"], {

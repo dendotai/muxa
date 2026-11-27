@@ -127,7 +127,7 @@ describe("Debug Mode", () => {
       });
 
       expect(result.stderr).toContain("[muxa debug]");
-      expect(result.stderr).toContain("Executing: dekit mprocs");
+      expect(result.stderr).toMatch(/Executing: dekit '-C' '[^']*' 'up'/);
     });
   });
 

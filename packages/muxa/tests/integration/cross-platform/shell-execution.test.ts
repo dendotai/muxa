@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { processesOf, runMuxa } from "@tests/helpers/muxa-runner";
+import { dekitTasksOf, processesOf, runMuxa } from "@tests/helpers/muxa-runner";
 import { createMonorepoFixture, cleanupFixture } from "@tests/helpers/fixture-helpers";
 
 describe("Shell Execution", () => {
@@ -33,9 +33,7 @@ describe("Shell Execution", () => {
       });
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("Would execute: dekit mprocs");
-      // Commands with shell variables should be wrapped in sh -c
-      expect(result.stdout).toMatch(/sh -c.*echo \$SHELL/);
+      expect(dekitTasksOf(result.stdout)).toMatchObject([{ cmd: ["sh", "-c", "echo $SHELL"] }]);
     });
 
     it("should handle shell operators consistently", async () => {
@@ -48,9 +46,9 @@ describe("Shell Execution", () => {
         });
 
         expect(result.code).toBe(0);
-        expect(result.stdout).toContain("Would execute: dekit mprocs");
-        // Commands with shell operators should be wrapped
-        expect(result.stdout).toContain("sh -c");
+        expect(dekitTasksOf(result.stdout)).toMatchObject([
+          { cmd: ["sh", "-c", `echo test ${op} echo done`] },
+        ]);
       }
     });
 

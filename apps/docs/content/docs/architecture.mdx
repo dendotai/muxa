@@ -11,7 +11,7 @@ Understanding how muxa works under the hood.
 
 ## Overview
 
-muxa is built as a wrapper around [dekit](https://github.com/pvolok/dekit), the next version of mprocs, in its mprocs mode, providing:
+muxa is built as a wrapper around [dekit](https://github.com/pvolok/dekit), the next version of mprocs, in its own mode, providing:
 
 1. **Simple CLI interface** - Intuitive command-line syntax
 2. **Workspace awareness** - Native monorepo support
@@ -34,19 +34,35 @@ Picks the package manager that runs scripts ([Package Manager Detection](/config
 
 ### Command Builder
 
-Turns the arguments into one dekit command:
+Turns the arguments into the tasks of a `dekit.yaml`, which muxa writes in `.muxa/<title>/`, where `<title>` is the process list title:
 
 ```bash
 # User input, with yarn.lock present
 muxa -s backend dev api -w mobile 'npx expo start'
-
-# Generated command
-dekit mprocs --proc-list-title myapp \
-  --log-dir .muxa/logs --log-file '/path/to/.muxa/logs/{name}.log' --log-mode append \
-  --names api,mobile \
-  "sh -c 'cd /path/to/packages/backend && yarn run dev'" \
-  "sh -c 'cd /path/to/apps/mobile && npx expo start'"
 ```
+
+```yaml
+# .muxa/myapp/dekit.yaml
+"tasks":
+  "api":
+    "label": "api"
+    "cmd": "yarn run dev"
+    "cwd": "/path/to/packages/backend"
+    "autostart": true
+    "log":
+      "file": "/path/to/.muxa/logs/api.log"
+      "mode": "append"
+  "mobile":
+    "label": "mobile"
+    "cmd": "npx expo start"
+    "cwd": "/path/to/apps/mobile"
+    "autostart": true
+    "log":
+      "file": "/path/to/.muxa/logs/mobile.log"
+      "mode": "append"
+```
+
+A folder with no `package.json` keeps this folder in `~/.local/state/muxa/runners/`.
 
 ## Technical Design
 
@@ -63,10 +79,10 @@ dekit provides:
 
 1. **Parse** - Read the command-line arguments
 2. **Resolve** - Find the workspace packages and the package manager
-3. **Build** - Generate the dekit command, with commands [wrapped in `sh -c`](/cli-reference#shell-wrapping) where needed
-4. **Check** - Validate Settings and tab names
+3. **Build** - Generate the `dekit.yaml`, with commands [wrapped in `sh -c`](/cli-reference#shell-wrapping) where needed
+4. **Check** - Validate Settings, and ask about duplicate names
 5. **Log** - Add the start line to each [log file](/usage#log-files)
-6. **Execute** - Start dekit, and exit with the code it returns
+6. **Execute** - Run `dekit up`, `dekit reload --yes` and `dekit attach`; after the screen closes, stop the runner
 
 ## Performance Considerations
 
@@ -83,7 +99,7 @@ muxa starts the dekit binary (Rust) directly, then checks the [sizes of the log 
 ### File System Access
 
 - Reads `package.json` files, `pnpm-workspace.yaml`, the names of lockfiles, and `~/.config/muxa/settings.json`
-- Writes the [log files](/usage#log-files), with a `processes.json`, a `run-<id>.json` per open run, and a `.gitignore` beside them, the temporary copy that [`muxa logs`](/cli-reference#logs-process) prints, and the temporary config that [`mouseScrollSpeed`](/configuration#settings) needs
+- Writes the [log files](/usage#log-files), with a `processes.json`, a `run-<id>.json` per open run, and a `.gitignore` beside them, the temporary copy that [`muxa logs`](/cli-reference#logs-process) prints, and the `dekit.yaml` of the processes in `.muxa/<title>/`
 
 ## Comparison with Alternatives
 

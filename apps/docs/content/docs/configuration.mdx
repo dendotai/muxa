@@ -46,7 +46,7 @@ A size is a number with `KB`, `MB`, or `GB`, where 1 MB is 1024 KB.
 
 An unknown key or a bad value stops muxa before any process starts, with an error that names the key; for an unknown key, it also lists the known ones.
 
-muxa passes `mouseScrollSpeed` to dekit in a temporary config file, deleted when muxa exits; after a `SIGKILL`, it stays in the system temp directory. dekit then ignores a `mprocs.yaml` in the same folder, which it reads otherwise. Your global mprocs config (`~/.config/mprocs/mprocs.yaml`) still applies for anything Settings do not set, such as the width of the process list.
+muxa writes `mouseScrollSpeed` as `mouse_scroll_speed` for every process in the `dekit.yaml` it writes. Your dekit config (`~/.config/dekit/config.yaml`) still applies for anything Settings do not set, such as key bindings.
 
 ### Folders With No `package.json`
 

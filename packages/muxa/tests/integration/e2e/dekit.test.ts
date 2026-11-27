@@ -25,7 +25,7 @@ const createRootFolder = (...extras: Parameters<typeof createRootPackageWorkspac
 // Each run starts dekit and waits for its screen, which takes longer than a test-mode run
 setDefaultTimeout(15000);
 
-describe("muxa on dekit in mprocs mode", () => {
+describe("muxa on dekit", () => {
   it("shows each named command, its output, and the process list title", async () => {
     const run = runInTerminal(
       ["-c", "echo hello-from-alpha", "alpha", "-c", "echo hello-from-beta", "beta"],
@@ -47,7 +47,7 @@ describe("muxa on dekit in mprocs mode", () => {
     expect(await quit(run)).toBe(0);
   });
 
-  it("starts with Settings passed in a temporary config", async () => {
+  it("starts with Settings in dekit.yaml", async () => {
     const cwd = createRootFolder({
       muxa: { mouseScrollSpeed: 1, processListTitle: "Dev stack" },
     });
@@ -88,7 +88,7 @@ describe("log files of a dekit session", () => {
           { name: "echo hi,; echo", file: "echo_hi___echo.log" },
         ],
       ],
-      [["echo 1; echo"], [{ name: "echo 1; echo", file: "sh_-c__echo_1__echo_.log" }]],
+      [["echo 1; echo"], [{ name: "echo 1; echo", file: "echo_1__echo.log" }]],
     ] as const) {
       const run = runInTerminal([...args], { cwd });
       await run.waitFor(new RegExp(`(DOWN \\(0\\)[^]*){${processes.length}}`));
@@ -226,10 +226,8 @@ describe("log files of a dekit session", () => {
           `start output-of-${name}\r\n`,
         );
         expect(await printLog(cwd, name)).toBe(`start output-of-${name}\n`);
-        // The name in the process list
-        const shown = name === file.slice(0, -4) ? name : name + file.slice(-8, -4);
-        expect(run.output()).toContain(shown);
-        expect(await printLog(cwd, shown)).toBe(`start output-of-${name}\n`);
+        // The process list shows the name as typed, whatever its log file
+        expect(run.output()).toContain(name);
         if (name.toLowerCase() !== "web") files.add(file);
       }
     }
@@ -292,16 +290,6 @@ describe("log files of a dekit session", () => {
     }
     expect(await printLog(cwd, "web")).toBe("start from-web\n");
     expect(await printLog(cwd, "wbe")).toContain("Available processes: api, web\n");
-  });
-
-  it("stay in .muxa/logs when an mprocs.yaml names another log file", async () => {
-    const cwd = createRootFolder();
-    fs.writeFileSync(path.join(cwd, "mprocs.yaml"), "proc_log:\n  file: elsewhere.log\n");
-    const run = runInTerminal(["-c", "echo hi", "api"], { cwd });
-    await run.waitFor(/api\s+DOWN \(0\)/);
-    expect(await quit(run)).toBe(0);
-    expect(readLog(cwd, "api.log").replace(startLine, "start ")).toBe("start hi\r\n");
-    expect(fs.existsSync(path.join(cwd, "elsewhere.log"))).toBe(false);
   });
 
   it("keep an earlier run's last line when it has no line end", async () => {
@@ -384,7 +372,7 @@ describe("log files of a dekit session", () => {
       await run.waitFor(/api\s+DOWN \(0\)/);
       expect(await quit(run)).toBe(0);
       expectLog(path.join(home, "state", "muxa", "logs", folderName(cwd), "api.log"));
-      expect(fs.existsSync(path.join(home, ".local"))).toBe(false);
+      expect(fs.existsSync(path.join(home, ".local", "state", "muxa"))).toBe(false);
     });
 
     it("are in a folder with a short enough name for a deep path", async () => {
@@ -407,7 +395,8 @@ describe("log files of a dekit session", () => {
   describe("that muxa cannot write", () => {
     const createUnwritable = () => {
       const cwd = createRootFolder();
-      fs.writeFileSync(path.join(cwd, ".muxa"), "a file where the folder goes");
+      fs.mkdirSync(path.join(cwd, ".muxa"));
+      fs.writeFileSync(path.join(cwd, ".muxa", "logs"), "a file where the folder goes");
       return cwd;
     };
     const start = () => runInTerminal(["-c", "echo hi", "api"], { cwd: createUnwritable() });
@@ -456,8 +445,7 @@ describe("log files of a dekit session", () => {
       const stderr = await Bun.readableStreamToText(proc.stderr);
       clearTimeout(timer);
       expect(stderr).toContain("Warning: muxa cannot write log files in .muxa/logs: ");
-      expect(stderr).toMatch(/Executing: dekit mprocs .*'echo hi'/);
-      expect(stderr).not.toContain("--log-dir");
+      expect(stderr).toMatch(/Executing: dekit '-C' '[^']*' 'up'/);
       expect(await Bun.readableStreamToText(proc.stdout)).not.toContain(
         "Continue without log files?",
       );

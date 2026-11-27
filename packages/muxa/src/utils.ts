@@ -152,15 +152,6 @@ export async function checkDuplicateNames(names: string[]): Promise<boolean> {
 }
 
 /**
- * Check if tab name contains comma
- */
-export function validateTabName(name: string): void {
-  if (name.includes(",")) {
-    throw new Error(`Tab name '${name}' contains comma. Commas are reserved as separators.`);
-  }
-}
-
-/**
  * Debug log if MUXA_DEBUG is set
  */
 export function debugLog(message: string): void {

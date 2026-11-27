@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
+import * as fs from "fs";
 import * as path from "path";
 import { version as VERSION } from "../package.json";
-import { buildCommands, buildMprocsArgs, buildProcessNames } from "./command-builder";
+import { buildCommands, buildProcessNames } from "./command-builder";
 import { dekitBinaryPath } from "./dekit";
-import { logDirsInTotal, logFilesOf, resolveLogDir, startLogFiles } from "./log-files";
+import { logDirsInTotal, resolveLogDir, startLogFiles } from "./log-files";
 import { LogLimiter } from "./log-limits";
 import { printLog } from "./logs";
 import { offerLogsLine } from "./logs-line";
@@ -12,24 +13,26 @@ import { detectPackageManager } from "./package-manager";
 import { parseArguments, RESERVED_WORDS } from "./parser";
 import { checkOpenRuns } from "./second-start";
 import {
-  readSettings,
-  removeTempMprocsConfig,
-  resolveLogLimits,
-  resolveProcessListTitle,
-  toMprocsConfig,
-  writeTempMprocsConfig,
-} from "./settings";
+  buildDekitConfig,
+  otherRoots,
+  runnerRoot,
+  runnerRuns,
+  toYaml,
+  writeDekitConfig,
+} from "./runner";
+import { readSettings, resolveLogLimits, resolveProcessListTitle } from "./settings";
 import {
   checkDuplicateNames,
   checkNestedExecution,
   confirmPrompt,
   debugLog,
   formatError,
-  validateTabName,
 } from "./utils";
 import { discoverWorkspaces, formatWorkspaceList } from "./workspace";
 
 const LOG_LIMITS_INTERVAL_MS = 1000;
+
+const stopRunner = (root: string) => ["-C", root, "runner", "stop"];
 
 // Main execution
 async function main() {
@@ -102,15 +105,7 @@ async function main() {
 
     const cwd = process.cwd();
     const settings = readSettings(cwd);
-    const mprocsConfig = toMprocsConfig(settings);
     const processListTitle = resolveProcessListTitle(cwd, settings);
-
-    // Validate tab names
-    for (const cmd of commands) {
-      if (cmd.name) {
-        validateTabName(cmd.name);
-      }
-    }
 
     // Check for duplicate names
     const names = commands.map((c) => c.name).filter((n) => n);
@@ -121,7 +116,7 @@ async function main() {
       }
     }
 
-    const processNames = buildProcessNames(commands, parsed);
+    const processNames = buildProcessNames(commands);
     let logDir: string | undefined = resolveLogDir(cwd);
     if (!(await checkOpenRuns(path.resolve(cwd, logDir), processNames))) {
       process.exit(1);
@@ -133,13 +128,6 @@ async function main() {
       console.error(
         `Warning: muxa cannot add the muxa logs line to CLAUDE.md: ${formatError(error)}`,
       );
-    }
-
-    let mprocsConfigFile: string | undefined;
-    if (mprocsConfig) {
-      const file = writeTempMprocsConfig(mprocsConfig);
-      process.on("exit", () => removeTempMprocsConfig(file));
-      mprocsConfigFile = file;
     }
 
     const testMode = process.env.MUXA_TEST_MODE === "true";
@@ -159,52 +147,43 @@ async function main() {
       }
     }
 
-    const mprocsArgs = buildMprocsArgs(commands, parsed, {
-      mprocsConfigFile,
-      processListTitle,
-      logDir,
-    });
+    const processEnv: Record<string, string> = { MUXA_RUNNING: "1" };
+    if (!process.env.FORCE_COLOR) processEnv.FORCE_COLOR = "1";
+    const env: NodeJS.ProcessEnv = { ...process.env, ...processEnv };
 
-    debugLog(`Executing: dekit mprocs ${mprocsArgs.map((arg) => `'${arg}'`).join(" ")}`);
+    const dekitConfig = buildDekitConfig(commands, processNames, {
+      cwd,
+      logDir: logDir && path.resolve(cwd, logDir),
+      env: processEnv,
+      mouseScrollSpeed: settings.mouseScrollSpeed,
+    });
+    const root = runnerRoot(cwd, processListTitle);
+    const oldRoots = otherRoots(root);
+    const dekitCommands = {
+      up: ["-C", root, "up"],
+      reload: ["-C", root, "reload", "--yes"],
+      attach: ["-C", root, "attach"],
+      stop: stopRunner(root),
+    };
+    const quoted = (args: string[]) => `dekit ${args.map((arg) => `'${arg}'`).join(" ")}`;
+    debugLog(`Executing: ${quoted(dekitCommands.up)}`);
 
     if (testMode) {
-      // Set up environment for test mode too
-      const testEnv: NodeJS.ProcessEnv = {
-        ...process.env,
-        MUXA_RUNNING: "1",
-      };
-
-      // Only set FORCE_COLOR if not already set
-      if (!process.env.FORCE_COLOR) {
-        testEnv.FORCE_COLOR = "1";
+      console.log(`Would write ${path.join(root, "dekit.yaml")}:`);
+      process.stdout.write(toYaml(dekitConfig));
+      for (const oldRoot of oldRoots) {
+        console.log(`Would execute: ${quoted(stopRunner(oldRoot))}`);
       }
-
-      console.log(`Would execute: dekit mprocs ${mprocsArgs.map((arg) => `'${arg}'`).join(" ")}`);
-      // Tests read each process from these lines, so they do not depend on how muxa starts dekit
-      const logFileNames = logFilesOf(processNames);
-      commands.forEach(({ command, folder }, i) => {
-        const printed = {
-          name: processNames[i]?.typed ?? "",
-          command,
-          folder: folder ?? cwd,
-          log: logDir ? path.resolve(cwd, logDir, logFileNames[i] ?? "") : null,
-        };
-        console.log(`Process: ${JSON.stringify(printed)}`);
-      });
-      if (mprocsConfig) {
-        console.log(`mprocs config: ${JSON.stringify(mprocsConfig)}`);
+      for (const args of Object.values(dekitCommands)) {
+        console.log(`Would execute: ${quoted(args)}`);
       }
 
       // Output environment variables that would be set
-      // Always output FORCE_COLOR in test mode (either from env or what we would set)
-      const forceColorValue = process.env.FORCE_COLOR || testEnv.FORCE_COLOR;
-      if (forceColorValue) {
-        console.log(`FORCE_COLOR=${forceColorValue}`);
-      }
-      for (const [key, value] of Object.entries(testEnv)) {
+      for (const [key, value] of Object.entries(env)) {
         if (
           key.startsWith("MUXA_") ||
           key.startsWith("TEST_") ||
+          key === "FORCE_COLOR" ||
           key === "CUSTOM_ENV" ||
           key === "SPECIAL_VAR" ||
           key === "NODE_ENV" ||
@@ -221,16 +200,20 @@ async function main() {
       process.exit(0);
     }
 
-    // Set up environment
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      MUXA_RUNNING: "1",
+    const dekit = dekitBinaryPath();
+    // The screen hides what dekit prints, so muxa shows it only when a command fails
+    const runDekit = (args: string[]) => {
+      const result = spawnSync(dekit, args, { env, encoding: "utf8" });
+      if (result.error) throw new Error(`muxa cannot start dekit: ${result.error.message}`);
+      if (result.status !== 0) {
+        throw new Error(`${quoted(args)} failed: ${(result.stderr || result.stdout).trim()}`);
+      }
     };
 
-    // Only set FORCE_COLOR if not already set
-    if (!process.env.FORCE_COLOR) {
-      env.FORCE_COLOR = "1";
+    for (const oldRoot of oldRoots) {
+      if (runnerRuns(dekit, oldRoot)) runDekit(stopRunner(oldRoot));
     }
+    writeDekitConfig(cwd, root, dekitConfig);
 
     let logLimitsError: unknown;
     if (logDir) {
@@ -254,17 +237,24 @@ async function main() {
       setInterval(keepLogLimits, LOG_LIMITS_INTERVAL_MS);
     }
 
-    const proc = spawn(dekitBinaryPath(), ["mprocs", ...mprocsArgs], {
-      stdio: "inherit",
-      env,
-    });
+    runDekit(dekitCommands.up);
+    runDekit(dekitCommands.reload);
 
-    proc.on("error", (err) => {
+    const attach = spawn(dekit, dekitCommands.attach, { stdio: "inherit", env });
+
+    attach.on("error", (err) => {
       console.error("Failed to start dekit:", err.message);
       process.exit(1);
     });
 
-    proc.on("exit", (code) => {
+    attach.on("exit", (code) => {
+      try {
+        // dekit's own quit choices stop the runner, except Detach; a deleted root fails every dekit command
+        fs.mkdirSync(root, { recursive: true });
+        if (runnerRuns(dekit, root)) runDekit(dekitCommands.stop);
+      } catch (error) {
+        console.error(`Warning: ${formatError(error)}`);
+      }
       // dekit's screen would hide the warning during the run
       if (logLimitsError) {
         console.error(
@@ -274,10 +264,10 @@ async function main() {
       process.exit(code || 0);
     });
 
-    // A closed terminal sends SIGHUP; without a handler muxa dies before its exit cleanup runs
+    // A closed terminal sends SIGHUP; without a handler muxa dies before it stops the runner
     for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
       process.on(signal, () => {
-        proc.kill("SIGTERM");
+        attach.kill("SIGTERM");
       });
     }
   } catch (error) {

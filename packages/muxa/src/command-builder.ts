@@ -61,14 +61,12 @@ function transformCommand(
   let command: string;
   let name: string;
   let folder: string | undefined;
-  let needsShell = false;
 
   switch (cmd.type) {
     case "command": {
       // Simple command execution
       command = cmd.command;
       name = cmd.name || "";
-      needsShell = needsShellWrapping(command);
       break;
     }
 
@@ -92,8 +90,6 @@ function transformCommand(
       const packageName = cmd.target === "." ? "." : info.dirName;
       name = cmd.name || `${packageName}:${cmd.script}`;
 
-      // Scripts always need shell wrapping for cd
-      needsShell = true;
       break;
     }
 
@@ -110,82 +106,33 @@ function transformCommand(
       name = cmd.name || info.dirName;
       folder = packagePath;
 
-      // Workspace commands always need shell wrapping for cd
-      needsShell = true;
       break;
     }
   }
 
-  return { command, name, folder, needsShell };
+  return { command, name, folder, needsShell: needsShellWrapping(command) };
 }
 
 /**
- * The names of each process, before dekit numbers duplicates
+ * The names of each process: as typed, and cut to a length a log file name can hold
  */
-export function buildProcessNames(
-  commands: TransformedCommand[],
-  parsed: ParseResult,
-): ProcessNames[] {
-  const typed = commands.map((cmd) => cmd.name || cmd.command);
-  const mprocsCommands = commands.map(toMprocsCommand);
-  const named = parsed.mode === "advanced" && commands.some((cmd) => cmd.name !== "");
-  const fits = mprocsCommands.every((command) => command.length <= MAX_TAB_NAME_LENGTH);
-  if (!named && fits) {
-    const unlisted = separateLogFiles(typed.map((name, i) => [name, mprocsCommands[i] ?? ""]));
-    if (unlisted.every(({ tabName }, i) => tabName === mprocsCommands[i])) return unlisted;
-  }
-
-  return separateLogFiles(typed.map((name) => [name, toListedName(name)]));
+export function buildProcessNames(commands: TransformedCommand[]): ProcessNames[] {
+  return separateLogFiles(
+    commands.map((cmd) => {
+      const typed = cmd.name || cmd.command;
+      return [typed, typed.slice(0, MAX_TAB_NAME_LENGTH)];
+    }),
+  );
 }
 
 /**
- * The tab names, without a suffix, that a process with this name or this command can have
+ * The tab names, without a suffix, that a process with this name or this command can have, in this
+ * version of muxa and in the versions that passed dekit its commands with `--names`
  */
 export function possibleTabNames(typed: string): string[] {
-  const command = { command: typed, name: "", needsShell: needsShellWrapping(typed) };
-  return [...new Set([typed, toMprocsCommand(command), toListedName(typed)])];
-}
-
-/**
- * Build the arguments of `dekit mprocs`
- */
-export function buildMprocsArgs(
-  commands: TransformedCommand[],
-  parsed: ParseResult,
-  {
-    mprocsConfigFile,
-    processListTitle,
-    logDir,
-  }: { mprocsConfigFile?: string; processListTitle?: string; logDir?: string } = {},
-): string[] {
-  const args: string[] = [];
-  if (mprocsConfigFile) args.push("--config", mprocsConfigFile);
-  if (processListTitle) args.push("--proc-list-title", processListTitle);
-  if (logDir) {
-    // --log-file overrides a `proc_log.file` in the user's mprocs.yaml; dekit resolves a relative one from the current folder, not inside --log-dir
-    const logFile = path.resolve(logDir, "{name}.log");
-    args.push("--log-dir", logDir, "--log-file", logFile, "--log-mode", "append");
-  }
-
-  const mprocsCommands = commands.map(toMprocsCommand);
-
-  // dekit assigns --names by position; with no --names, it names each process by its command
-  const tabNames = buildProcessNames(commands, parsed).map(({ tabName }) => tabName);
-  if (tabNames.some((tabName, i) => tabName !== mprocsCommands[i])) {
-    args.push("--names", tabNames.join(","));
-  }
-
-  return [...args, ...mprocsCommands];
-}
-
-/** The name of a process in --names, where a comma separates the names */
-function toListedName(typed: string): string {
-  return typed.replaceAll(",", " ").slice(0, MAX_TAB_NAME_LENGTH);
-}
-
-function toMprocsCommand({ command, folder, needsShell }: TransformedCommand): string {
-  const inFolder = folder ? `cd ${folder} && ${escapeShellCommand(command)}` : command;
-  return needsShell ? `sh -c '${escapeShellCommand(inFolder)}'` : inFolder;
+  const command = needsShellWrapping(typed) ? `sh -c '${escapeShellCommand(typed)}'` : typed;
+  const listed = typed.replaceAll(",", " ").slice(0, MAX_TAB_NAME_LENGTH);
+  return [...new Set([typed.slice(0, MAX_TAB_NAME_LENGTH), typed, command, listed])];
 }
 
 /**
@@ -226,6 +173,25 @@ export function needsShellWrapping(command: string): boolean {
 
   // Check for here documents
   if (/<<-?\s*\w+/.test(command)) return true;
+
+  // dekit refuses these in a string command: a variable set before the command, a comment, a line break, and a shell keyword
+  if (/^\s*[A-Za-z_]\w*=/.test(command)) return true;
+  if (/(?:^|\s)#/.test(command)) return true;
+  if (/[\n\r]/.test(command)) return true;
+  if (
+    /^\s*(?:!|if|then|else|elif|fi|case|esac|for|select|while|until|do|done|function|time|\{|\}|\[\[|\]\])(?:\s|$)/.test(
+      command,
+    )
+  )
+    return true;
+
+  // A shell builtin is no program dekit can start
+  if (
+    /^\s*(?:\.|alias|break|cd|command|continue|eval|exec|exit|export|readonly|return|set|shift|source|trap|ulimit|umask|unalias|unset|wait)(?:\s|$)/.test(
+      command,
+    )
+  )
+    return true;
 
   return false;
 }

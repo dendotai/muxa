@@ -114,9 +114,7 @@ describe("Environment Variables", () => {
   describe("Environment variable interaction with shell wrapping", () => {
     it("should properly wrap commands with environment variables", async () => {
       const result = await getMuxaCommand(["-c", "echo $USER && echo $HOME"]);
-      expect(result.command).toContain("sh -c");
-      expect(result.command).toContain("$USER");
-      expect(result.command).toContain("$HOME");
+      expect(result.command).toEqual(["sh", "-c", "echo $USER && echo $HOME"]);
     });
 
     it("should handle escaped environment variables", async () => {
