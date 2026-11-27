@@ -33,3 +33,4 @@ A `!` after the type (`feat!:`) releases nothing with the default preset; write 
 - Auth is trusted publishing (OIDC): npmjs.com trusts `.github/workflows/release.yml` in this repo, so no token exists anywhere, and npm adds provenance on its own. Renaming that file breaks the publish until the trust on npmjs.com names the new file.
 - The `prepack` script in `packages/muxa/package.json` builds after semantic-release writes the version, so `muxa --version` prints the release.
 - The comments in `release.yml` give the reason for each of its steps.
+- The `@den-ai/dekit-canary-*` packages are not part of a release: `.github/workflows/update-dekit-canary.yml` publishes them, also through trusted publishing, before the PR that pins them (ADR 0009).

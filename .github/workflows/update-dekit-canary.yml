@@ -1,0 +1,118 @@
+name: Update dekit canary
+
+# ADR 0009. npmjs.com trusts this file by its name to publish the @den-ai/dekit-canary-* packages, so a rename breaks the publish.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+# A cancel between the publish and the push leaves versions on npm that no PR pins, so runs queue.
+concurrency:
+  group: update-dekit-canary
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing: npmjs.com trusts this workflow file, so no token exists
+      issues: write # the issues for a stable release and for a failed run
+
+    steps:
+      # GitHub starts no workflow on a push or a PR made with GITHUB_TOKEN, so CI would never test the new canary
+      - id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ vars.RENOVATE_CLIENT_ID }}
+          private-key: ${{ secrets.RENOVATE_PRIVATE_KEY }}
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: dev
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      # Only npm 11.5.1 or later publishes through OIDC; Node 24 ships it.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.22.3
+          registry-url: https://registry.npmjs.org
+
+      # The pin that ships is dev's, so the stable check and the PR's compare link read it before the switch below
+      - id: dev
+        run: bun packages/muxa/scripts/update-dekit-canary.ts status
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - run: bun packages/muxa/scripts/update-dekit-canary.ts stable-check
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # An open PR may already pin the newest canary, and may hold a workaround commit to build on
+      - id: branch
+        run: |
+          pr=$(gh pr list --head update-dekit-canary --state open --json number --jq '.[0].number // empty')
+          if [ -n "$pr" ]; then
+            git fetch origin update-dekit-canary
+            git switch update-dekit-canary
+          else
+            git switch -c update-dekit-canary
+          fi
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - id: status
+        run: bun packages/muxa/scripts/update-dekit-canary.ts status
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # A canary disappears on dekit's next push, and the PR's CI installs from npm, so the publish comes before the PR.
+      - if: steps.status.outputs.changed == 'true'
+        run: |
+          bun packages/muxa/scripts/update-dekit-canary.ts pack --commit "$COMMIT" --out "$RUNNER_TEMP/dekit-canary"
+          bun packages/muxa/scripts/update-dekit-canary.ts publish --dir "$RUNNER_TEMP/dekit-canary"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ steps.status.outputs.commit }}
+
+      - if: steps.status.outputs.changed == 'true'
+        run: |
+          title="fix(deps): update dekit canary to ${COMMIT:0:7}"
+          bun packages/muxa/scripts/update-dekit-canary.ts pin --version "$VERSION"
+          bun install
+          user_id=$(gh api "/users/$APP_SLUG%5Bbot%5D" --jq .id)
+          git -c user.name="$APP_SLUG[bot]" -c user.email="$user_id+$APP_SLUG[bot]@users.noreply.github.com" \
+            commit --message "$title" -- packages/muxa/package.json bun.lock
+          printf '%s\n' \
+            "Moves the dekit canary in the \`@den-ai/dekit-canary-*\` packages to https://github.com/pvolok/dekit/commit/$COMMIT." \
+            "" \
+            "dekit's changes since the canary on \`dev\`: https://github.com/pvolok/dekit/compare/$DEV_PIN...$COMMIT" \
+            "" \
+            "When CI fails here: a newer canary that fixes it replaces the pin in this PR at the next weekly run; otherwise a workaround goes in as a commit on this branch, and the weekly run adds its commits on top." \
+            > "$RUNNER_TEMP/pr-body.md"
+          # The open PR's branch can hold a workaround commit, so it gets a plain push; a branch with no open PR is left from a closed one
+          if [ -n "$PR" ]; then
+            git push origin update-dekit-canary
+            gh pr edit "$PR" --title "$title" --body-file "$RUNNER_TEMP/pr-body.md"
+          else
+            git push --force origin update-dekit-canary
+            gh pr create --base dev --head update-dekit-canary --title "$title" --body-file "$RUNNER_TEMP/pr-body.md"
+          fi
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          COMMIT: ${{ steps.status.outputs.commit }}
+          VERSION: ${{ steps.status.outputs.version }}
+          DEV_PIN: ${{ steps.dev.outputs.pinned_commit }}
+          PR: ${{ steps.branch.outputs.pr }}
+
+      # GitHub only sends an email for a failed scheduled run
+      - if: failure()
+        run: bun packages/muxa/scripts/update-dekit-canary.ts report-failure --run-url "$RUN_URL"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

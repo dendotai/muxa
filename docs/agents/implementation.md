@@ -4,7 +4,9 @@ How muxa's code is built: its dependencies, its shared utilities, and how it pas
 
 ## Dependencies
 
-muxa's runtime dependencies are `@dekit/cli` and `koffi`, which reads the macOS keyboard layout for the confirmation prompt (ADR 0006). The build keeps `koffi` out of the bundle (`--external koffi`). muxa parses its arguments with no CLI framework (`packages/muxa/src/parser.ts`).
+muxa's runtime dependencies are the dekit canary packages and `koffi`, which reads the macOS keyboard layout for the confirmation prompt (ADR 0006). The build keeps `koffi` out of the bundle (`--external koffi`). muxa parses its arguments with no CLI framework (`packages/muxa/src/parser.ts`).
+
+The dekit canary packages, `@den-ai/dekit-canary-<os>-<cpu>`, are `optionalDependencies` at one exact version, and `dekitBinaryPath` in `packages/muxa/src/dekit.ts` finds the binary in the one npm installed (ADR 0009). `.github/workflows/update-dekit-canary.yml` publishes a newer canary and opens the PR that moves the pin; `packages/muxa/scripts/update-dekit-canary.ts` holds its steps, one command each.
 
 ## Shared utilities
 
