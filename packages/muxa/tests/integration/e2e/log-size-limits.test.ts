@@ -12,6 +12,7 @@ import { endedPid } from "@tests/helpers/ended-pid";
 import { followLogs } from "@tests/helpers/follow-runner";
 import { runMuxa } from "@tests/helpers/muxa-runner";
 import { quit, runInTerminal } from "@tests/helpers/terminal-runner";
+import { waitUntil } from "@tests/helpers/wait-until";
 
 // Each run starts dekit, and muxa checks the sizes once per second
 setDefaultTimeout(30000);
@@ -63,14 +64,6 @@ function writeLog(file: string, size: number, age = 0) {
 function writeRecord(record: string, logFile: string, rotationSize = 100 * KB, pid = process.pid) {
   const content = { pid, startedAt: Date.now(), files: [logFile], rotationSize };
   fs.writeFileSync(record, JSON.stringify(content));
-}
-
-async function waitUntil(condition: () => boolean, what: string, timeout = 10000) {
-  const deadline = Date.now() + timeout;
-  while (!condition()) {
-    if (Date.now() > deadline) throw new Error(`Timed out waiting until ${what}`);
-    await Bun.sleep(20);
-  }
 }
 
 /** In a log file, where a pseudo-terminal ends a line with \r\n, and on macOS now and then with \r\r\n */
@@ -234,6 +227,39 @@ describe("rotation of a log file", () => {
     expect(warnings?.[0]).toContain(
       "Warning: muxa cannot keep the log files in .muxa/logs under their size limits: ",
     );
+  });
+
+  it("that fails during the run brings the warning when muxa quits", async () => {
+    const { cwd, dir } = createProject({ maxSizePerProcess: "200KB" });
+    const file = path.join(dir, "web.log");
+    const run = runInTerminal(["-c", `${until("go")}; ${numbers(1, 1100)}; sleep 30`, "web"], {
+      cwd,
+    });
+    await run.waitFor(/web/);
+    fs.mkdirSync(`${file}.1`);
+    fs.writeFileSync(path.join(cwd, "go"), "");
+    await waitUntil(() => (size(file) ?? 0) >= 1100 * LINE, "web writes");
+    // Two checks of the sizes
+    await Bun.sleep(2100);
+    expect(await quit(run)).toBe(0);
+    expect(size(file)).toBeGreaterThanOrEqual(1100 * LINE);
+    expect(run.output().match(/Warning: muxa cannot .*/g)).toEqual([
+      expect.stringContaining(
+        "Warning: muxa cannot keep the log files in .muxa/logs under their size limits: ",
+      ),
+    ]);
+  });
+
+  it("goes on for the processes of an earlier start after a second start in the folder", async () => {
+    const { cwd, dir } = createProject({ maxSizePerProcess: "200KB" });
+    const first = runInTerminal(["-c", "sleep 30", "web"], { cwd });
+    await first.waitFor(/web/);
+    const second = runInTerminal(["-c", "sleep 30", "api"], { cwd });
+    await second.waitFor(/api/);
+    writeLog(path.join(dir, "web.log"), 150 * KB);
+    await waitUntil(() => size(path.join(dir, "web.log.1")) !== undefined, "web rotates", 5000);
+    expect(await quit(second)).toBe(0);
+    expect(await first.exited(10000)).toBe(0);
   });
 
   it("loses few lines of a fast writer", async () => {

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, setDefaultTimeout } from "bun:test";
 import * as fs from "fs";
+import { spawnSync } from "child_process";
 import * as path from "path";
 import { fixturesPath, muxaPath, muxaRuntime } from "@tests/helpers/constants";
 import {
@@ -7,8 +8,10 @@ import {
   createRootPackageWorkspace,
   createTempWorkspace,
 } from "@tests/helpers/fixture-helpers";
+import { dekitBinaryPath } from "@/dekit";
 import { runMuxa } from "@tests/helpers/muxa-runner";
 import { quit, runInTerminal } from "@tests/helpers/terminal-runner";
+import { waitUntil } from "@tests/helpers/wait-until";
 
 const basicNpm = path.join(fixturesPath, "basic-npm");
 
@@ -62,6 +65,34 @@ describe("muxa on dekit", () => {
     await run.waitFor(/failing\s+DOWN \(3\)/);
 
     expect(await quit(run)).toBe(0);
+  });
+
+  it("runs muxad hidden from the screen and from a plain dekit ls, and stops it with the runner", async () => {
+    const cwd = createRootFolder();
+    const logs = path.join(cwd, ".muxa", "logs");
+    const run = runInTerminal(["-c", "sleep 30", "web"], { cwd });
+    await run.waitFor(/web/);
+    // The run-*.json file of muxad's open run holds its process id
+    const records = () => fs.readdirSync(logs).filter((name) => name.startsWith("run-"));
+    await waitUntil(() => records().length > 0, "muxad writes its record", 5000);
+    const [record] = records();
+    if (record === undefined) throw new Error("no record");
+    const { pid } = JSON.parse(fs.readFileSync(path.join(logs, record), "utf8"));
+    const root = fs
+      .readdirSync(path.join(cwd, ".muxa"))
+      .map((name) => path.join(cwd, ".muxa", name))
+      .find((dir) => fs.existsSync(path.join(dir, "dekit.yaml")));
+    if (root === undefined) throw new Error("no runner root");
+    const ls = (...target: string[]) =>
+      spawnSync(dekitBinaryPath(), ["-C", root, "ls", ...target], { encoding: "utf8" }).stdout;
+
+    expect(ls("@*/**")).toMatch(/^@muxa\/muxad\s+ready$/m);
+    expect(ls()).not.toContain("muxad");
+    expect(run.output()).not.toContain("muxad");
+
+    expect(await quit(run)).toBe(0);
+    expect(() => process.kill(pid, 0)).toThrow();
+    expect(records()).toEqual([]);
   });
 });
 

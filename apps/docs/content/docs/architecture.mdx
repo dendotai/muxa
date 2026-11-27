@@ -86,7 +86,7 @@ dekit provides:
 
 ## Performance Considerations
 
-muxa starts the dekit binary (Rust) directly, then checks the [sizes of the log files](/configuration#log-size-limits) once per second until it exits.
+muxa starts the dekit binary (Rust) directly. A hidden task in the same runner checks the [sizes of the log files](/configuration#log-size-limits) once per second, for as long as the runner runs.
 
 ## Security Considerations
 

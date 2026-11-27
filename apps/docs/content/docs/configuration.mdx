@@ -66,7 +66,7 @@ There, `maxSizePerProcess` is `"50MB"` by default, and `maxSizeTotal` is `"200MB
 
 Each process has two [log files](/usage#log-files): `web.log`, which gets the new output, and `web.log.1`, which holds the output before it. `muxa logs web` reads both.
 
-Once per second, muxa checks the sizes. When `web.log` reaches half of `maxSizePerProcess`, or half of `maxSizeTotal` if that is smaller, muxa replaces `web.log.1` with a copy of it and then empties `web.log`. The two files together stay near `maxSizePerProcess`.
+Once per second while the processes run, muxa checks the sizes. When `web.log` reaches half of `maxSizePerProcess`, or half of `maxSizeTotal` if that is smaller, muxa replaces `web.log.1` with a copy of it and then empties `web.log`. The two files together stay near `maxSizePerProcess`.
 
 When the log files together reach `maxSizeTotal`, muxa frees space in this order, until they are under it:
 

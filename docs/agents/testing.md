@@ -28,6 +28,18 @@ Would write /…/.muxa/basic-npm-monorepo/dekit.yaml:
     "log":
       "file": "/…/.muxa/logs/frontend.log"
       "mode": "append"
+"on_init":
+  "command": "batch"
+  "commands":
+    - "command": "remove"
+      "target": "@muxa/muxad"
+    - "command": "add"
+      "target": "@muxa/muxad"
+      "spec":
+        "cmd": ["/…/bun", "/…/packages/muxa/dist/index.js"]
+        "cwd": "/…/.muxa/basic-npm-monorepo"
+        "env":
+          "MUXA_MUXAD": "1"
 Would execute: dekit '-C' '/…/.muxa/basic-npm-monorepo' 'up'
 Would execute: dekit '-C' '/…/.muxa/basic-npm-monorepo' 'reload' '--yes'
 Would execute: dekit '-C' '/…/.muxa/basic-npm-monorepo' 'attach'

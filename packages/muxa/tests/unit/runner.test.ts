@@ -103,3 +103,18 @@ describe("toYaml", () => {
     expect(Bun.YAML.parse(toYaml(config))).toEqual(config);
   });
 });
+
+describe("muxad in dekit.yaml", () => {
+  const env = { MUXA_RUNNING: "1" };
+  const commands = [{ command: "echo 1", name: "web", needsShell: false }];
+  const muxad = { cmd: ["/bin/node", "/muxa/dist/index.js"], cwd: "/repo/.muxa/repo" };
+
+  it("is left out when muxa writes no log files", () => {
+    expect(buildDekitConfig(commands, names("web"), { cwd: "/repo", env }).on_init).toBeUndefined();
+  });
+
+  it("reads back from the YAML as the same config", () => {
+    const config = buildDekitConfig(commands, names("web"), { cwd: "/repo", env, muxad });
+    expect(Bun.YAML.parse(toYaml(config))).toEqual(config);
+  });
+});

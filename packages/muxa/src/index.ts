@@ -5,10 +5,18 @@ import * as path from "path";
 import { version as VERSION } from "../package.json";
 import { buildCommands, buildProcessNames } from "./command-builder";
 import { dekitBinaryPath } from "./dekit";
-import { logDirsInTotal, resolveLogDir, startLogFiles } from "./log-files";
-import { LogLimiter } from "./log-limits";
+import { resolveLogDir, startLogFiles } from "./log-files";
 import { printLog } from "./logs";
 import { offerLogsLine } from "./logs-line";
+import {
+  enforceLogLimits,
+  MUXAD_ENV,
+  readLogLimitsError,
+  removeLogLimitsError,
+  runMuxad,
+  writeMuxadConfig,
+  type MuxadConfig,
+} from "./muxad";
 import { detectPackageManager } from "./package-manager";
 import { parseArguments, RESERVED_WORDS } from "./parser";
 import { checkOpenRuns } from "./second-start";
@@ -30,13 +38,17 @@ import {
 } from "./utils";
 import { discoverWorkspaces, formatWorkspaceList } from "./workspace";
 
-const LOG_LIMITS_INTERVAL_MS = 1000;
-
 const stopRunner = (root: string) => ["-C", root, "runner", "stop"];
 
 // Main execution
 async function main() {
   try {
+    if (process.env[MUXAD_ENV] === "1") {
+      // dekit starts muxad in the runner root
+      runMuxad(process.cwd());
+      return;
+    }
+
     // Parse arguments
     const args = process.argv.slice(2);
     if (args.length === 0) {
@@ -151,13 +163,20 @@ async function main() {
     if (!process.env.FORCE_COLOR) processEnv.FORCE_COLOR = "1";
     const env: NodeJS.ProcessEnv = { ...process.env, ...processEnv };
 
+    const root = runnerRoot(cwd, processListTitle);
+    const muxadConfig: MuxadConfig | undefined = logDir
+      ? { cwd, logDir, logFiles, limits: resolveLogLimits(cwd, settings) }
+      : undefined;
     const dekitConfig = buildDekitConfig(commands, processNames, {
       cwd,
       logDir: logDir && path.resolve(cwd, logDir),
       env: processEnv,
       mouseScrollSpeed: settings.mouseScrollSpeed,
+      muxad: muxadConfig && {
+        cmd: [process.execPath, path.resolve(process.argv[1] ?? "")],
+        cwd: root,
+      },
     });
-    const root = runnerRoot(cwd, processListTitle);
     const oldRoots = otherRoots(root);
     const dekitCommands = {
       up: ["-C", root, "up"],
@@ -215,26 +234,16 @@ async function main() {
     }
     writeDekitConfig(cwd, root, dekitConfig);
 
-    let logLimitsError: unknown;
-    if (logDir) {
-      const runLogDir = logDir;
-      const limiter = new LogLimiter(
-        path.resolve(cwd, runLogDir),
-        logFiles,
-        resolveLogLimits(cwd, settings),
-      );
-      process.on("exit", () => limiter.close());
-      const keepLogLimits = () => {
-        try {
-          limiter.enforce(logDirsInTotal(cwd, runLogDir));
-          logLimitsError = undefined;
-        } catch (error) {
-          logLimitsError = error;
-        }
-      };
-      // Before dekit writes, when a rotation loses no line
-      keepLogLimits();
-      setInterval(keepLogLimits, LOG_LIMITS_INTERVAL_MS);
+    let logLimitsError: string | undefined;
+    if (muxadConfig) {
+      writeMuxadConfig(root, muxadConfig, runnerRuns(dekit, root));
+      removeLogLimitsError(root);
+      try {
+        // Before dekit writes, when a rotation loses no line; muxad checks from then on
+        enforceLogLimits(muxadConfig);
+      } catch (error) {
+        logLimitsError = formatError(error);
+      }
     }
 
     runDekit(dekitCommands.up);
@@ -253,12 +262,14 @@ async function main() {
         fs.mkdirSync(root, { recursive: true });
         if (runnerRuns(dekit, root)) runDekit(dekitCommands.stop);
       } catch (error) {
-        console.error(`Warning: ${formatError(error)}`);
+        // A quit choice can finish stopping the runner between the check and the stop
+        if (runnerRuns(dekit, root)) console.error(`Warning: ${formatError(error)}`);
       }
-      // dekit's screen would hide the warning during the run
-      if (logLimitsError) {
+      // After the stop, so muxad writes no later check; dekit's screen would hide the warning during the run
+      const error = readLogLimitsError(root) ?? logLimitsError;
+      if (error) {
         console.error(
-          `Warning: muxa cannot keep the log files in ${logDir} under their size limits: ${formatError(logLimitsError)}`,
+          `Warning: muxa cannot keep the log files in ${logDir} under their size limits: ${error}`,
         );
       }
       process.exit(code || 0);
