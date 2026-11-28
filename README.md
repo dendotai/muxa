@@ -206,7 +206,7 @@ In a folder with no `package.json`, muxa reads the same keys from `~/.config/mux
 ## Exit Codes
 
 - `0` - You quit muxa, even when a process failed, or a signal stopped it. Also `restart`, `stop` and `start` that reached the process
-- `1` - muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a bad tab name, a rejected duplicate name, muxa inside muxa, no terminal, or no dekit binary for the platform. Also `logs` with no log file for the process, and `restart`, `stop` and `start` that did not reach it
+- `1` - muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a rejected duplicate name, muxa inside muxa, no terminal, or no dekit binary for the platform. Also `logs` with no log file for the process, and `restart`, `stop` and `start` that did not reach it
 
 ## Important Usage Notes
 
@@ -271,7 +271,7 @@ muxa uses npm when the detected package manager is not in your `PATH`.
 
 ### Shell Wrapping
 
-muxa runs a command through `sh -c` when it contains:
+dekit runs a command without a shell. muxa runs a command through `sh -c` when it contains:
 
 - Shell operators and redirections (`&`, `|`, `;`, `>`, `<`)
 - Glob patterns (`*`, `?`, `[`, `]`) or text in braces (`{a,b}`)
@@ -279,8 +279,11 @@ muxa runs a command through `sh -c` when it contains:
 - Subshells and command substitution (`(...)`, `$(...)`, `` `...` ``)
 - A `~` at the start of a word or after `:`
 - A backslash or a quote
+- A variable set before the command (`NODE_ENV=production npm run build`)
+- A `#` at the start of a word, or a line break
+- A shell keyword or builtin as its first word (`if`, `cd`, `exit`, `export`)
 
-Commands from `-s` and `-w` always run through `sh -c`, because muxa puts a `cd` to the package in front of them.
+Commands from `-s` and `-w` follow the same rules; they run in the package folder.
 
 ## Examples
 
