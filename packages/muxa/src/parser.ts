@@ -13,7 +13,7 @@ export interface VerbCall {
 }
 
 /** A first argument that muxa does not run as a command */
-export const RESERVED_WORDS = ["workspaces", "ws", "check", "migrate", ...VERBS] as const;
+export const RESERVED_WORDS = ["workspaces", "ws", "check", "migrate", ...VERBS, "clean"] as const;
 
 export interface ParsedCommand {
   /** The command to execute */
@@ -41,6 +41,8 @@ export interface ParseResult {
   workspaces?: boolean;
   /** A verb and the process it acts on */
   verbCall?: VerbCall;
+  /** Delete the log files of every folder where muxa ran */
+  clean?: boolean;
   /** Migration command */
   migrate?: boolean;
   /** Dry run for migration */
@@ -261,6 +263,12 @@ function parseReserved(
         dryRun: args.includes("--dry-run") || undefined,
         yes: args.includes("--yes") || args.includes("-y") || undefined,
       };
+    case "clean": {
+      const extra = args.find((arg) => arg !== "-y" && arg !== "--yes");
+      if (extra?.startsWith("-")) throw new ParseError(`Unknown option '${extra}'`);
+      if (extra !== undefined) throw new ParseError(`Unexpected argument: ${extra}`);
+      return { clean: true, yes: args.length > 0 || undefined };
+    }
     case "logs":
     case "restart":
     case "stop":

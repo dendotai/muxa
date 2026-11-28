@@ -192,6 +192,11 @@ export function hasPackageJson(dir: string): boolean {
   return fs.existsSync(path.join(dir, "package.json"));
 }
 
+/** The folder of what muxa keeps for the user between runs */
+export function muxaStateDir(): string {
+  return path.join(xdgHome(process.env.XDG_STATE_HOME, ".local/state"), "muxa");
+}
+
 /** The folder of an XDG variable; the XDG spec has programs ignore a relative one */
 export function xdgHome(value: string | undefined, defaultInHome: string): string {
   return value && path.isAbsolute(value) ? value : path.join(os.homedir(), defaultInHome);

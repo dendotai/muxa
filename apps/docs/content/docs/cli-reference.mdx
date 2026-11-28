@@ -18,6 +18,8 @@ muxa -s <package> <script> [name] [-s ...]
 muxa -w <package> <command> [name] [-w ...]
 muxa workspaces
 muxa logs <process> [-f]
+muxa restart|stop|start <process>
+muxa clean [-y]
 ```
 
 `muxa` with no arguments prints the help.
@@ -170,9 +172,24 @@ muxa start 'web (2)'
 - On success, muxa prints what it did, such as `Restarted web`.
 - The command stops with an error when no muxa in the folder runs the process, when two muxa in the folder run it, or when two processes of one muxa have the name. The error says what to do.
 
+### `clean [-y]`
+
+Delete the [log files](/usage#log-files) of every folder where muxa ran, from any folder. muxa lists the folders with their sizes, then asks before it deletes:
+
+```text
+ 12.4 MB  /Users/me/app/.muxa/logs
+180.0 KB  /Users/me/.local/state/muxa/logs/Users_me_scripts
+Delete 12.6 MB of log files? (y/N):
+```
+
+- `-y`, `--yes`: delete with no question. Without it, a `clean` whose input is not a terminal deletes nothing.
+- It deletes the `.log`, `.log.1`, and `.log.1.tmp` files and leaves the other files in the folder.
+- The log files of processes that still run, after Detach too, are emptied and not deleted, so the processes write on into them.
+- muxa adds a folder to the list at each start, in `~/.local/state/muxa/log-folders` (`$XDG_STATE_HOME/muxa/log-folders` when set). A folder whose processes were last started by a muxa older than `clean` is not in the list.
+
 ## Reserved Words
 
-muxa does not run these first words as commands: `workspaces`, `ws`, `check`, `migrate`, `logs`, `restart`, `stop`, `start`.
+muxa does not run these first words as commands: `workspaces`, `ws`, `check`, `migrate`, `logs`, `restart`, `stop`, `start`, `clean`.
 
 To run a program with one of these names, use `-c`:
 
@@ -322,8 +339,8 @@ On `SIGINT`, `SIGTERM` or `SIGHUP` (a closed terminal), muxa stops every process
 
 ## Exit Codes
 
-- `0`: You quit muxa, even when a process failed, or a signal stopped it. Also `--help`, `--version`, `logs`, and `workspaces`, even when it finds none, and `restart`, `stop` and `start` that reached the process.
-- `1`: muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a rejected duplicate name, muxa inside muxa, no terminal (`Stdin is not a tty`), or no dekit binary for the platform. Also `logs` with no log file for the process, `restart`, `stop` and `start` that did not reach it, `migrate` and `check`.
+- `0`: You quit muxa, even when a process failed, or a signal stopped it. Also `--help`, `--version`, `logs`, and `workspaces`, even when it finds none, and `restart`, `stop` and `start` that reached the process, and `clean` that deleted the files or found none.
+- `1`: muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a rejected duplicate name, muxa inside muxa, no terminal (`Stdin is not a tty`), or no dekit binary for the platform. Also `logs` with no log file for the process, `restart`, `stop` and `start` that did not reach it, `clean` answered with No or with no terminal and no `-y`, `migrate` and `check`.
 - `130`: `Ctrl+C` stopped `logs -f`.
 
 ## Errors

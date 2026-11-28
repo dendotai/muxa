@@ -3,6 +3,7 @@ import { spawn, spawnSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { version as VERSION } from "../package.json";
+import { recordLogFolder, runClean } from "./clean";
 import { buildCommands, buildProcessNames } from "./command-builder";
 import { dekitBinaryPath } from "./dekit";
 import { resolveLogDir, startLogFiles } from "./log-files";
@@ -83,6 +84,11 @@ async function main() {
 
     if (parsed.verbCall?.verb === "logs") {
       await printLog(process.cwd(), parsed.verbCall.process, parsed.verbCall.follow);
+      return;
+    }
+
+    if (parsed.clean) {
+      await runClean(parsed.yes ?? false);
       return;
     }
 
@@ -174,6 +180,12 @@ async function main() {
     if (!testMode) {
       try {
         logFiles = startLogFiles(cwd, logDir, startedNames);
+        try {
+          recordLogFolder(path.resolve(cwd, logDir));
+        } catch (error) {
+          // Only `muxa clean` misses the folder
+          debugLog(`muxa cannot add ${logDir} to the log folder list: ${formatError(error)}`);
+        }
       } catch (error) {
         console.error(`Warning: muxa cannot write log files in ${logDir}: ${formatError(error)}`);
         logDir = undefined;
@@ -335,6 +347,7 @@ Usage:
   muxa migrate [--dry-run] [--yes]      Migrate from concurrently
   muxa logs <process> [-f]              Print a process's output since the last start
   muxa restart|stop|start <process>     Restart, stop, or start a process of the running muxa
+  muxa clean [-y]                       Delete the log files of every folder where muxa ran
 
 Examples:
   # Simple commands (like concurrently)
@@ -354,6 +367,7 @@ Options:
   -s, --script      Run package.json script in workspace
   -w, --workspace   Run command in workspace directory
   -f, --follow      With logs: print new output until Ctrl-C
+  -y, --yes         With clean: delete with no question
   -h, --help        Show help
   -V, --version     Show version
 

@@ -19,6 +19,9 @@ _Avoid_: app
 **Log file**:
 A file that holds the output of one process: `<process>.log`, or `<process>.log.1` for the output before the last rotation.
 
+**Log folder**:
+The folder that holds the log files of the processes started in one folder: `.muxa/logs`, or a folder in `~/.local/state/muxa/logs/` when the folder has no `package.json`. `muxa clean` deletes the log files of every log folder in the log folder list.
+
 **Rotation**:
 The copy of `<process>.log` to `<process>.log.1`, after which muxa empties `<process>.log`.
 

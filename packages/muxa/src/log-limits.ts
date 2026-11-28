@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { copyFrom, fileKey } from "./log-files";
+import { copyFrom, fileKey, LOG_FILE_NAME } from "./log-files";
 import type { LogLimits } from "./settings";
 
 interface SizedFile {
@@ -102,7 +102,7 @@ function rotate(file: string): void {
 function listLogFiles(dir: string): SizedFile[] {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const [, log, older] = /^(.*\.log)(\.1(?:\.tmp)?)?$/s.exec(entry.name) ?? [];
+    const [, log, older] = LOG_FILE_NAME.exec(entry.name) ?? [];
     if (!entry.isFile() || log === undefined) return [];
     const file = path.join(dir, entry.name);
     const stat = fs.statSync(file, { throwIfNoEntry: false });
