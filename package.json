@@ -16,7 +16,7 @@
     "check:fix": "bun run lint:fix && bun run format:fix",
     "test": "bun test:coverage && bun run test:root",
     "test:coverage": "cd packages/muxa && bun test:coverage",
-    "test:root": "bun test ./checks/",
+    "test:root": "bun test ./checks/ ./maintenance/",
     "dev:docs": "muxa -s docs dev",
     "muxa:local": "bun run packages/muxa/src/index.ts",
     "build": "bun run --filter='*' build",
@@ -29,10 +29,10 @@
     "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.3",
     "@den-ai/muxa": "workspace:*",
-    "@total-typescript/tsconfig": "^1.0.4",
-    "prettier": "^3.6.2",
-    "strip-ansi": "^7.1.0",
-    "typescript": "^5.8.3"
+    "@total-typescript/tsconfig": "1.0.4",
+    "prettier": "3.6.2",
+    "strip-ansi": "7.1.0",
+    "typescript": "5.9.2"
   },
   "release": {
     "branches": [
@@ -65,5 +65,6 @@
         }
       ]
     ]
-  }
+  },
+  "packageManager": "bun@1.4.5"
 }

@@ -1,0 +1,4 @@
+[
+  { "file": ".github/workflows/ci.yml", "depName": "semantic-release" },
+  { "file": ".github/workflows/release.yml", "depName": "semantic-release" }
+]

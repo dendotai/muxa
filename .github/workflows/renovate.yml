@@ -1,0 +1,65 @@
+name: renovate
+
+on:
+  schedule:
+    - cron: "17 3 * * 1" # Mondays, 03:17 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: renovate
+  cancel-in-progress: false
+
+jobs:
+  renovate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Renovate writes with the app token below, not with GITHUB_TOKEN: a PR opened with GITHUB_TOKEN starts no workflow, so its checks would never run.
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Create the app token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RENOVATE_CLIENT_ID }}
+          private-key: ${{ secrets.RENOVATE_PRIVATE_KEY }}
+
+      - uses: renovatebot/github-action@f0f41e5f2e706165f6814b1d0f0d0e319de7d1d9 # v46.3.8
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          renovate-version: 44.165.3
+        env:
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # Commits through the GitHub API, which signs them as the app, so a branch rule that requires signed commits accepts them.
+          RENOVATE_PLATFORM_COMMIT: enabled
+          # Renovate runs a `postUpgradeTasks` command from renovate.json only when a pattern here matches it; the patterns are not anchored on their own.
+          RENOVATE_ALLOWED_COMMANDS: '["^bun maintenance/updates/compatibility-date\\.mjs$"]'
+          # The action mounts the runner's /tmp into Renovate's container, so the next step reads the report there.
+          RENOVATE_REPORT_TYPE: file
+          RENOVATE_REPORT_PATH: /tmp/renovate-report.json
+
+      - name: Check that Renovate found every version pin
+        id: check
+        # An explicit `shell: bash` runs with pipefail, so a failing check fails the step through `tee`.
+        shell: bash
+        run: bun maintenance/updates/check-renovate.mjs /tmp/renovate-report.json 2>&1 | tee /tmp/check-renovate.txt
+
+      - name: Report a missed version pin
+        if: failure() && steps.check.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: Renovate missed an expected version pin
+        run: |
+          issue=$(gh issue list --state open --label needs-human --search "\"$TITLE\" in:title" --json number --jq '.[0].number')
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body-file /tmp/check-renovate.txt
+          else
+            gh issue create --title "$TITLE" --label needs-human --body-file /tmp/check-renovate.txt
+          fi
