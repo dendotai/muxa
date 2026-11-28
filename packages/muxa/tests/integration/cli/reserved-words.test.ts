@@ -4,7 +4,9 @@ import { processesOf, runMuxa } from "@tests/helpers/muxa-runner";
 describe("CLI > Reserved words", () => {
   it("are all in the help", async () => {
     const result = await runMuxa(["--help"]);
-    expect(result.stdout).toContain("workspaces, ws, check, migrate, logs, restart, stop, start\n");
+    expect(result.stdout).toContain(
+      "workspaces, ws, check, migrate, logs, restart, stop, start, clean\n",
+    );
     expect(result.stdout).toContain("muxa logs <process>");
   });
 

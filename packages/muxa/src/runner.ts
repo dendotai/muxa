@@ -4,7 +4,7 @@ import * as path from "path";
 import type { TransformedCommand } from "./command-builder";
 import { homeFolderName, logFilesOf, type ProcessNames } from "./log-files";
 import { MUXAD_ENV } from "./muxad";
-import { ensureMuxaFolder, hasPackageJson, xdgHome } from "./utils";
+import { ensureMuxaFolder, hasPackageJson, muxaStateDir } from "./utils";
 
 /** A task of dekit.yaml, with the keys muxa writes */
 export interface DekitTask {
@@ -51,8 +51,7 @@ export function runnerRoot(cwd: string, title: string): string {
 /** The folder that holds a root for each title of `cwd`'s processes */
 function runnersFolder(cwd: string): string {
   if (hasPackageJson(cwd)) return path.resolve(cwd, ".muxa");
-  const state = xdgHome(process.env.XDG_STATE_HOME, ".local/state");
-  return path.join(state, "muxa", "runners", homeFolderName(cwd));
+  return path.join(muxaStateDir(), "runners", homeFolderName(cwd));
 }
 
 /** The title with each character a folder name cannot hold, on any OS, turned into `_` */
@@ -176,7 +175,8 @@ export function otherRoots(root: string): string[] {
   return rootsIn(path.dirname(root)).filter((dir) => dir !== root);
 }
 
-function rootsIn(parent: string): string[] {
+/** The runner roots in `parent`: its folders with a dekit.yaml */
+export function rootsIn(parent: string): string[] {
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(parent, { withFileTypes: true });

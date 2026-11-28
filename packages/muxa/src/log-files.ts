@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
-import { ensureMuxaFolder, hasPackageJson, xdgHome } from "./utils";
+import { ensureMuxaFolder, hasPackageJson, muxaStateDir } from "./utils";
 
 const PROJECT_LOG_DIR = ".muxa/logs";
 
@@ -16,6 +16,9 @@ const MAX_FILE_NAME_LENGTH = 200;
 
 /** `startLogFiles` ends it with `\n` alone; the same text in a process's output ends with `\r\n` */
 const START_LINE = /(?<=\n)=== muxa started \d{4}-\d\d-\d\d \d\d:\d\d:\d\d[+-]\d\d:\d\d ===(?=\n)/g;
+
+/** A log file, its older part, or the copy for the older part that a killed rotation left */
+export const LOG_FILE_NAME = /^(.*\.log)(\.1(?:\.tmp)?)?$/s;
 
 /** dekit names a log file after the tab name, one ASCII character for each of its characters */
 export const MAX_TAB_NAME_LENGTH = MAX_FILE_NAME_LENGTH;
@@ -37,7 +40,7 @@ export function homeFolderName(cwd: string): string {
 }
 
 function homeLogDir(): string {
-  return path.join(xdgHome(process.env.XDG_STATE_HOME, ".local/state"), "muxa", "logs");
+  return path.join(muxaStateDir(), "logs");
 }
 
 /** The folders that share one `maxSizeTotal` with `logDir`, itself included */
