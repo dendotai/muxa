@@ -113,7 +113,7 @@ describe("check-renovate", () => {
   });
 });
 
-// The regex rules in renovate.json, applied to the template's own files, find exactly the places in renovate-pins.json, so a change that moves a line or adds a rule fails here before a Renovate run.
+// The regex rules in renovate.json, applied to the repo's own files, find exactly the places in renovate-pins.json, so a change that moves a line or adds a rule fails here before a Renovate run.
 test("renovate-pins.json lists every place the regex rules in renovate.json match", () => {
   const root = join(import.meta.dir, "../..");
   const { customManagers } = JSON.parse(readFileSync(join(root, "renovate.json"), "utf8"));

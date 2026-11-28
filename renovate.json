@@ -47,7 +47,7 @@
     {
       "customType": "regex",
       "description": "semantic-release runs through bunx or npx, outside package.json, so every line that names its version is bumped here.",
-      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/", "/^RELEASING\\.md$/"],
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
       "matchStrings": ["\\bsemantic-release@(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
       "depNameTemplate": "semantic-release",
       "datasourceTemplate": "npm"

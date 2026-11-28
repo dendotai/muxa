@@ -5,7 +5,7 @@ How muxa's tests are built, and the fixture monorepos they need.
 ## Running the tests
 
 - `bun run build` in `packages/muxa` comes first: the integration tests start the built `packages/muxa/dist/index.js`, not the source.
-- `bun run test` in `packages/muxa` runs every test with `MUXA_TEST_MODE=true`; `bun run test` at the repo root also runs the tests in `checks/`.
+- `bun run test` in `packages/muxa` runs every test with `MUXA_TEST_MODE=true`; `bun run test` at the repo root also runs the tests in `checks/` and `maintenance/`.
 - The integration tests start muxa with `node` when `CI` is set and with `bun` otherwise (`muxaRuntime` in `packages/muxa/tests/helpers/constants.ts`).
 - Imports use `@/` for `packages/muxa/src/` and `@tests/` for `packages/muxa/tests/`.
 
