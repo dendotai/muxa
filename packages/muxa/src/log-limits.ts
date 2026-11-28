@@ -1,18 +1,7 @@
-import { randomUUID } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
 import { copyFrom, fileKey } from "./log-files";
 import type { LogLimits } from "./settings";
-
-/** A file in the log folder, with the muxa process id, start time, log files, and rotation size of one open run */
-const RUN_RECORD = /^run-.*\.json$/;
-
-interface RunRecord {
-  pid: number;
-  startedAt: number;
-  files: string[];
-  rotationSize: number;
-}
 
 interface SizedFile {
   file: string;
@@ -24,18 +13,8 @@ interface SizedFile {
   changedAt: number;
 }
 
-export interface OpenRun {
-  /** The file name of the record; the one of the run that started first comes first */
-  record: string;
-  startedAt: number;
-  logFileKeys: string[];
-  rotationSize: number;
-}
-
-/** The check of the log sizes that a run does again and again, and the record that it is open */
+/** The check of the log sizes that muxad does again and again */
 export class LogLimiter {
-  private readonly record: string;
-  private readonly startedAt = Date.now();
   private readonly rotationSize: number;
 
   constructor(
@@ -45,11 +24,10 @@ export class LogLimiter {
   ) {
     // With a higher limit than the total, a file would be emptied before it is ever rotated
     this.rotationSize = Math.min(limits.maxSizePerProcess, limits.maxSizeTotal) / 2;
-    this.record = `run-${this.startedAt}-${randomUUID()}.json`;
   }
 
   /**
-   * Rotate each log file of this run that reached half of its limit, then free the space above
+   * Rotate each log file of the runner that reached half of its limit, then free the space above
    * `maxSizeTotal` in `dirs`. An error on one file or folder leaves the others in their limits, and
    * the first error is thrown at the end.
    */
@@ -63,17 +41,13 @@ export class LogLimiter {
       }
     };
 
-    // Without the folder, there are no log files to limit, and no place for the record
+    // Without the folder, there are no log files to limit
     if (!fs.existsSync(this.logDir)) return;
-    attempt(() => this.writeRecord());
-
-    const openRuns: OpenRun[] = [];
-    for (const dir of dirs) attempt(() => openRuns.push(...listOpenRuns(dir)));
 
     for (const file of this.logFiles) {
       attempt(() => {
         const stat = fs.lstatSync(file, { throwIfNoEntry: false });
-        if (stat?.isFile() && this.rotates(file, stat.size, openRuns)) rotate(file);
+        if (stat?.isFile() && stat.size >= this.rotationSize) rotate(file);
       });
     }
 
@@ -82,11 +56,7 @@ export class LogLimiter {
     let total = files.reduce((sum, { size }) => sum + size, 0);
     const { maxSizeTotal } = this.limits;
     if (total >= maxSizeTotal) {
-      const openKeys = [
-        ...this.logFiles.map(fileKey),
-        ...openRuns.flatMap((run) => run.logFileKeys),
-      ];
-      for (const { file, isOlder, size } of inFreeingOrder(files, openKeys)) {
+      for (const { file, isOlder, size } of inFreeingOrder(files, this.logFiles.map(fileKey))) {
         if (total < maxSizeTotal) break;
         // Also when it fails: a file that muxa cannot free must not cost the output of the others
         total -= size;
@@ -99,78 +69,6 @@ export class LogLimiter {
     }
 
     if (errors.length > 0) throw errors[0];
-  }
-
-  /** At each check, because a delete of the log folder deletes the record too */
-  private writeRecord(): void {
-    const file = path.join(this.logDir, this.record);
-    if (fs.existsSync(file)) return;
-    const record: RunRecord = {
-      pid: process.pid,
-      startedAt: this.startedAt,
-      files: this.logFiles.map((logFile) => path.basename(logFile)),
-      rotationSize: this.rotationSize,
-    };
-    const content = JSON.stringify(record);
-    // Renamed, because another run that reads half a record takes this run for an ended one
-    fs.writeFileSync(`${file}.tmp`, content);
-    fs.renameSync(`${file}.tmp`, file);
-  }
-
-  /** Of two open runs with one log file, the first one rotates it: two rotations at one moment lose its content */
-  private rotates(file: string, size: number, openRuns: OpenRun[]): boolean {
-    const owners = openRuns.filter((run) => run.logFileKeys.includes(fileKey(file)));
-    return (
-      size >= Math.min(this.rotationSize, ...owners.map((run) => run.rotationSize)) &&
-      owners.every(({ record }) => record >= this.record)
-    );
-  }
-
-  /** The run no longer writes its log files */
-  close(): void {
-    try {
-      fs.rmSync(path.join(this.logDir, this.record), { force: true });
-    } catch {
-      // The next run deletes a record whose muxa has ended
-    }
-  }
-}
-
-/** The runs with a record in `dir` whose muxa still runs; it deletes the records of the others */
-export function listOpenRuns(dir: string): OpenRun[] {
-  if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir).flatMap((name) => {
-    if (!RUN_RECORD.test(name)) return [];
-    const file = path.join(dir, name);
-    let record: RunRecord;
-    try {
-      record = JSON.parse(fs.readFileSync(file, "utf-8"));
-    } catch {
-      // The other run has just deleted it, or another program wrote it
-      return [];
-    }
-    // A record with this muxa's id is its own, or one that an ended muxa with the same id left
-    if (record.pid === process.pid) return [];
-    // Not the age of the record: after a sleep of the computer, every record is old
-    if (!isRunning(record.pid)) {
-      fs.rmSync(file, { force: true });
-      return [];
-    }
-    const logFileKeys = record.files.map((logFile) => fileKey(path.join(dir, logFile)));
-    return [
-      { record: name, startedAt: record.startedAt, logFileKeys, rotationSize: record.rotationSize },
-    ];
-  });
-}
-
-function isRunning(pid: unknown): boolean {
-  if (typeof pid !== "number") return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    // The process runs under another user
-    return (error as NodeJS.ErrnoException).code === "EPERM";
   }
 }
 
@@ -215,7 +113,7 @@ function listLogFiles(dir: string): SizedFile[] {
   });
 }
 
-/** The files of processes that no open run writes come first, and the `.log` files of the open runs last */
+/** The files of processes that the runner does not write come first, and its `.log` files last */
 function inFreeingOrder(files: SizedFile[], openKeys: string[]): SizedFile[] {
   const open = new Set(openKeys);
   const isOpen = ({ processKey }: SizedFile) => open.has(processKey);

@@ -23,8 +23,8 @@ export interface MuxadConfig {
 }
 
 /**
- * With `runnerRuns`, the log files of the earlier starts stay in the checks: `dekit reload` keeps
- * running a task that the new dekit.yaml leaves out.
+ * With `runnerRuns`, the log files of the earlier starts stay in the checks: a start passes only the
+ * log files of the processes it starts.
  */
 export function writeMuxadConfig(root: string, config: MuxadConfig, runnerRuns: boolean): void {
   const file = path.join(root, CONFIG_FILE);
@@ -38,12 +38,7 @@ export function writeMuxadConfig(root: string, config: MuxadConfig, runnerRuns: 
 }
 
 export function enforceLogLimits(config: MuxadConfig): void {
-  const limiter = createLimiter(config);
-  try {
-    enforce(limiter, config);
-  } finally {
-    limiter.close();
-  }
+  enforce(createLimiter(config), config);
 }
 
 export function readLogLimitsError(root: string): string | undefined {
@@ -71,7 +66,6 @@ export function runMuxad(root: string): void {
     }
     try {
       if (content !== current?.content) {
-        current?.limiter.close();
         const config = JSON.parse(content) as MuxadConfig;
         current = { content, config, limiter: createLimiter(config) };
       }
@@ -86,11 +80,6 @@ export function runMuxad(root: string): void {
     }
   };
 
-  process.on("exit", () => current?.limiter.close());
-  // Without a handler, Node ends on a signal without the exit event, and the run-*.json file of the open run stays
-  for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
-    process.on(signal, () => process.exit(0));
-  }
   check();
   setInterval(check, CHECK_INTERVAL_MS);
 }

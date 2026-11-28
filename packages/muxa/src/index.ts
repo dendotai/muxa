@@ -19,12 +19,15 @@ import {
 } from "./muxad";
 import { detectPackageManager } from "./package-manager";
 import { parseArguments, RESERVED_WORDS } from "./parser";
-import { checkOpenRuns } from "./second-start";
+import { joinRunner, type Join } from "./second-start";
 import {
   buildDekitConfig,
+  mergeTasks,
   otherRoots,
   runnerRoot,
   runnerRuns,
+  runnerTasks,
+  taskPaths,
   toYaml,
   writeDekitConfig,
 } from "./runner";
@@ -129,10 +132,27 @@ async function main() {
     }
 
     const processNames = buildProcessNames(commands);
-    let logDir: string | undefined = resolveLogDir(cwd);
-    if (!(await checkOpenRuns(path.resolve(cwd, logDir), processNames))) {
-      process.exit(1);
+    const processEnv: Record<string, string> = { MUXA_RUNNING: "1" };
+    if (!process.env.FORCE_COLOR) processEnv.FORCE_COLOR = "1";
+    const env: NodeJS.ProcessEnv = { ...process.env, ...processEnv };
+
+    const dekit = dekitBinaryPath();
+    const root = runnerRoot(cwd, processListTitle);
+    const runningTasks = runnerTasks(dekit, root);
+    let join: Join | undefined;
+    if (runningTasks) {
+      join = await joinRunner(
+        runningTasks,
+        buildDekitConfig(commands, processNames, { cwd, env: processEnv }).tasks,
+      );
+      if (!join) process.exit(1);
     }
+    // A process that runs on gets no start line in its log file
+    const paths = taskPaths(processNames);
+    const started = join && new Set([...join.start, ...join.restart]);
+    const startedNames = processNames.filter((_, i) => !started || started.has(paths[i] ?? ""));
+
+    let logDir: string | undefined = resolveLogDir(cwd);
 
     try {
       await offerLogsLine(cwd);
@@ -148,7 +168,7 @@ async function main() {
     // Test mode starts nothing, so its run gets no start line
     if (!testMode) {
       try {
-        logFiles = startLogFiles(cwd, logDir, processNames);
+        logFiles = startLogFiles(cwd, logDir, startedNames);
       } catch (error) {
         console.error(`Warning: muxa cannot write log files in ${logDir}: ${formatError(error)}`);
         logDir = undefined;
@@ -159,11 +179,6 @@ async function main() {
       }
     }
 
-    const processEnv: Record<string, string> = { MUXA_RUNNING: "1" };
-    if (!process.env.FORCE_COLOR) processEnv.FORCE_COLOR = "1";
-    const env: NodeJS.ProcessEnv = { ...process.env, ...processEnv };
-
-    const root = runnerRoot(cwd, processListTitle);
     const muxadConfig: MuxadConfig | undefined = logDir
       ? { cwd, logDir, logFiles, limits: resolveLogLimits(cwd, settings) }
       : undefined;
@@ -177,15 +192,20 @@ async function main() {
         cwd: root,
       },
     });
+    if (runningTasks) dekitConfig.tasks = mergeTasks(runningTasks, dekitConfig.tasks);
     const oldRoots = otherRoots(root);
-    const dekitCommands = {
-      up: ["-C", root, "up"],
-      reload: ["-C", root, "reload", "--yes"],
-      attach: ["-C", root, "attach"],
-      stop: stopRunner(root),
-    };
+    const reload = ["-C", root, "reload", "--yes"];
+    // `up` would start again a process of an earlier start that ended, and a reload adds a new one idle
+    const startCommands = join
+      ? [
+          reload,
+          ...join.start.map((task) => ["-C", root, "start", task]),
+          ...join.restart.map((task) => ["-C", root, "restart", task]),
+        ]
+      : [["-C", root, "up"], reload];
+    const attachCommand = ["-C", root, "attach"];
     const quoted = (args: string[]) => `dekit ${args.map((arg) => `'${arg}'`).join(" ")}`;
-    debugLog(`Executing: ${quoted(dekitCommands.up)}`);
+    for (const args of startCommands) debugLog(`Executing: ${quoted(args)}`);
 
     if (testMode) {
       console.log(`Would write ${path.join(root, "dekit.yaml")}:`);
@@ -193,7 +213,7 @@ async function main() {
       for (const oldRoot of oldRoots) {
         console.log(`Would execute: ${quoted(stopRunner(oldRoot))}`);
       }
-      for (const args of Object.values(dekitCommands)) {
+      for (const args of [...startCommands, attachCommand, stopRunner(root)]) {
         console.log(`Would execute: ${quoted(args)}`);
       }
 
@@ -219,7 +239,6 @@ async function main() {
       process.exit(0);
     }
 
-    const dekit = dekitBinaryPath();
     // The screen hides what dekit prints, so muxa shows it only when a command fails
     const runDekit = (args: string[]) => {
       const result = spawnSync(dekit, args, { env, encoding: "utf8" });
@@ -236,7 +255,7 @@ async function main() {
 
     let logLimitsError: string | undefined;
     if (muxadConfig) {
-      writeMuxadConfig(root, muxadConfig, runnerRuns(dekit, root));
+      writeMuxadConfig(root, muxadConfig, runningTasks !== undefined);
       removeLogLimitsError(root);
       try {
         // Before dekit writes, when a rotation loses no line; muxad checks from then on
@@ -246,10 +265,9 @@ async function main() {
       }
     }
 
-    runDekit(dekitCommands.up);
-    runDekit(dekitCommands.reload);
+    for (const args of startCommands) runDekit(args);
 
-    const attach = spawn(dekit, dekitCommands.attach, { stdio: "inherit", env });
+    const attach = spawn(dekit, attachCommand, { stdio: "inherit", env });
 
     attach.on("error", (err) => {
       console.error("Failed to start dekit:", err.message);
@@ -260,7 +278,7 @@ async function main() {
       try {
         // dekit's own quit choices stop the runner, except Detach; a deleted root fails every dekit command
         fs.mkdirSync(root, { recursive: true });
-        if (runnerRuns(dekit, root)) runDekit(dekitCommands.stop);
+        if (runnerRuns(dekit, root)) runDekit(stopRunner(root));
       } catch (error) {
         // A quit choice can finish stopping the runner between the check and the stop
         if (runnerRuns(dekit, root)) console.error(`Warning: ${formatError(error)}`);

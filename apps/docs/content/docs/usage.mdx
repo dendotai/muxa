@@ -196,13 +196,15 @@ When muxa cannot write the files, it asks whether to continue without them. With
 
 ### A Second muxa in One Folder
 
-A second muxa in the same folder starts with no question when its processes have other names. When a process of the same name already runs in another muxa there, muxa asks first:
+Every muxa in one folder shows one set of processes. A second muxa there opens the screen on the processes that already run, and starts the names they lack: `muxa web api` beside a running `web` starts `api`, and the screen shows both. When a name already runs a different command, muxa asks first:
 
 ```text
-Warning: web already runs in another muxa in this folder (started 14:02). Continue? (y/N):
+web already runs "bun dev" in this folder. Replace it with "bun start"? (y/N):
 ```
 
-`y` starts it, and both runs write their `web` lines to the one file. `n` or <kbd>Enter</kbd> exits. With no terminal on its input, muxa exits with an error that names `muxa restart web`.
+`y` restarts `web` with the new command. `n` or <kbd>Enter</kbd> exits, and the processes run on. With no terminal on its input, muxa answers No and exits 1.
+
+A quit that stops the processes, from any screen in the folder, stops all of them.
 
 ### Logs for Agents
 

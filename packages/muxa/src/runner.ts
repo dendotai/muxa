@@ -79,6 +79,7 @@ export function buildDekitConfig(
   },
 ): DekitConfig {
   const files = logFilesOf(names);
+  const paths = taskPaths(names);
   const tasks = Object.fromEntries(
     commands.map((command, i): [string, DekitTask] => {
       const file = files[i] ?? "";
@@ -90,7 +91,7 @@ export function buildDekitConfig(
         autostart: true,
       };
       if (logDir) task.log = { file: path.join(logDir, file), mode: "append" };
-      return [file.replace(/\.log$/, ""), task];
+      return [paths[i] ?? "", task];
     }),
   );
   return {
@@ -173,6 +174,54 @@ export function otherRoots(root: string): string[] {
     .filter((entry) => entry.isDirectory())
     .map((entry) => path.join(parent, entry.name))
     .filter((dir) => dir !== root && fs.existsSync(path.join(dir, "dekit.yaml")));
+}
+
+/** The dekit.yaml task path of each process */
+export function taskPaths(names: ProcessNames[]): string[] {
+  return logFilesOf(names).map((file) => file.replace(/\.log$/, ""));
+}
+
+/** A task of a runner that runs, as `dekit ls --json` gives it */
+export interface RunnerTask {
+  path: string;
+  state: string;
+  spec: Partial<DekitTask>;
+}
+
+/** The tasks of the runner in `root`, in the order of its screen, or undefined when it does not run */
+export function runnerTasks(dekit: string, root: string): RunnerTask[] | undefined {
+  // Without the file, no muxa started a runner here, and dekit need not be asked
+  if (!fs.existsSync(path.join(root, "dekit.yaml"))) return undefined;
+  const result = spawnSync(dekit, ["-C", root, "ls", "--json"], { encoding: "utf8" });
+  if (result.status !== 0) return undefined;
+  try {
+    return (JSON.parse(result.stdout) as { tasks: RunnerTask[] }).tasks;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The tasks of the runner with `tasks` in place of the ones of the same path, then the new ones.
+ * A task of an earlier start stays, so `dekit reload --yes` keeps it after it stopped too.
+ */
+export function mergeTasks(
+  running: RunnerTask[],
+  tasks: Record<string, DekitTask>,
+): Record<string, DekitTask> {
+  const merged = Object.fromEntries(
+    running.map(({ path: taskPath, spec }): [string, DekitTask] => [
+      taskPath,
+      tasks[taskPath] ?? {
+        label: spec.label ?? taskPath,
+        cmd: spec.cmd ?? [],
+        cwd: spec.cwd ?? "",
+        autostart: true,
+        ...(spec.log && { log: { file: spec.log.file, mode: "append" } }),
+      },
+    ]),
+  );
+  return { ...merged, ...tasks };
 }
 
 export function runnerRuns(dekit: string, root: string): boolean {

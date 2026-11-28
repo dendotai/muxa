@@ -8,7 +8,6 @@ import {
   createTempWorkspace,
 } from "@tests/helpers/fixture-helpers";
 import { LATIN_KEYBOARD_LAYOUT, muxaPath, muxaRuntime } from "@tests/helpers/constants";
-import { endedPid } from "@tests/helpers/ended-pid";
 import { followLogs } from "@tests/helpers/follow-runner";
 import { runMuxa } from "@tests/helpers/muxa-runner";
 import { quit, runInTerminal } from "@tests/helpers/terminal-runner";
@@ -60,12 +59,6 @@ function writeLog(file: string, size: number, age = 0) {
   fs.utimesSync(file, changed, changed);
 }
 
-/** The record of a run that writes this log file, open while its muxa, by default this test, runs */
-function writeRecord(record: string, logFile: string, rotationSize = 100 * KB, pid = process.pid) {
-  const content = { pid, startedAt: Date.now(), files: [logFile], rotationSize };
-  fs.writeFileSync(record, JSON.stringify(content));
-}
-
 /** In a log file, where a pseudo-terminal ends a line with \r\n, and on macOS now and then with \r\r\n */
 const LINE = 101;
 
@@ -79,17 +72,8 @@ const until = (name: string) => `until [ -e ${name} ]; do sleep 0.1; done`;
 const size = (file: string) => fs.statSync(file, { throwIfNoEntry: false })?.size;
 const read = (file: string) => fs.readFileSync(file, "latin1");
 
-/**
- * Start a process with each name, wait until muxa checked the sizes, and quit. With `besideOpenRun`,
- * it answers yes to the question about a process that another open run has.
- */
-async function runProcesses(
-  names: string[],
-  {
-    besideOpenRun = false,
-    ...options
-  }: Parameters<typeof runInTerminal>[1] & { besideOpenRun?: boolean },
-) {
+/** Start a process with each name, wait until muxa checked the sizes, and quit */
+async function runProcesses(names: string[], options: Parameters<typeof runInTerminal>[1]) {
   const run = runInTerminal(
     names.flatMap((name) => ["-c", "true", name]),
     {
@@ -97,38 +81,12 @@ async function runProcesses(
       env: { MUXA_TEST_KEYBOARD_LAYOUT: LATIN_KEYBOARD_LAYOUT, ...options.env },
     },
   );
-  if (besideOpenRun) {
-    await run.waitFor(/Continue\? \(y\/N\)/);
-    run.type("y");
-  }
   await run.waitFor(new RegExp(`(DOWN \\(0\\)[^]*){${names.length}}`));
   expect(await quit(run)).toBe(0);
   return run;
 }
 
 describe("rotation of a log file", () => {
-  it("comes from the first of the open runs that write the log file", async () => {
-    for (const [first, rotates] of [
-      ["run-0000000000001-other.json", false],
-      ["run-9999999999999-other.json", true],
-    ] as const) {
-      const { cwd, dir } = createProject({ maxSizePerProcess: "200KB" });
-      writeRecord(path.join(dir, first), "web.log");
-      writeLog(path.join(dir, "web.log"), 100 * KB);
-      await runProcesses(["web"], { cwd, besideOpenRun: true });
-      expect(size(path.join(dir, "web.log.1")) !== undefined).toBe(rotates);
-      expect(fs.readdirSync(dir).filter((name) => name.startsWith("run-"))).toEqual([first]);
-    }
-  });
-
-  it("comes at the smaller of the limits of the open runs that write the log file", async () => {
-    const { cwd, dir } = createProject();
-    writeRecord(path.join(dir, "run-9999999999999-other.json"), "web.log");
-    writeLog(path.join(dir, "web.log"), 100 * KB);
-    await runProcesses(["web"], { cwd, besideOpenRun: true });
-    expect(size(path.join(dir, "web.log.1"))).toBeGreaterThan(100 * KB);
-  });
-
   it("brings no warning when the log folder is deleted during the run", async () => {
     const { cwd } = createProject();
     const run = runInTerminal(["-c", "echo hi", "web"], { cwd });
@@ -538,14 +496,8 @@ describe("total size of the log files", () => {
     expect(read(file)).toBe(`${written}after\r\n`);
   });
 
-  it("empties the log of another run when its muxa no longer runs", async () => {
+  it("empties first the log of a process that the runner does not run", async () => {
     const { cwd, dir } = createProject({ maxSizeTotal: "100KB" });
-    writeRecord(
-      path.join(dir, "run-0000000000001-killed.json"),
-      "other.log",
-      100 * KB,
-      await endedPid(),
-    );
     writeLog(path.join(dir, "other.log"), 60 * KB);
     writeLog(path.join(dir, "web.log.1"), 20 * KB);
     // The total comes over the limit only after the first check
@@ -553,22 +505,6 @@ describe("total size of the log files", () => {
     await waitUntil(() => size(path.join(dir, "other.log")) === 0, "muxa frees the log");
     expect(await quit(run)).toBe(0);
     expect(size(path.join(dir, "web.log.1"))).toBe(20 * KB);
-    expect(fs.readdirSync(dir).filter((name) => name.startsWith("run-"))).toEqual([]);
-  });
-
-  it("takes another run for open while its muxa runs, however old its record, as after a sleep of the computer", async () => {
-    const { cwd, dir } = createProject({ maxSizeTotal: "100KB" });
-    const record = path.join(dir, "run-0000000000001-asleep.json");
-    writeRecord(record, "other.log");
-    const old = Date.now() / 1000 - 3600;
-    fs.utimesSync(record, old, old);
-    writeLog(path.join(dir, "other.log"), 60 * KB);
-    writeLog(path.join(dir, "web.log"), 10 * KB);
-    writeLog(path.join(dir, "web.log.1"), 45 * KB);
-    const run = runInTerminal(["-c", "true", "web"], { cwd });
-    await waitUntil(() => size(path.join(dir, "web.log.1")) === undefined, "muxa frees a log");
-    expect(size(path.join(dir, "other.log"))).toBe(60 * KB);
-    expect(await quit(run)).toBe(0);
   });
 
   it("frees a copy that a killed muxa left", async () => {
