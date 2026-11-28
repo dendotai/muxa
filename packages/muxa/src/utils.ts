@@ -183,6 +183,10 @@ export function formatError(error: unknown): string {
   return String(error);
 }
 
+export function listText(items: string[]): string {
+  return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+}
+
 /** Whether a project owns the folder; otherwise its logs and its Settings are in the user's folders */
 export function hasPackageJson(dir: string): boolean {
   return fs.existsSync(path.join(dir, "package.json"));

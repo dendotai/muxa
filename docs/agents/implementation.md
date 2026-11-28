@@ -21,7 +21,7 @@ The dekit canary packages, `@den-ai/dekit-canary-<os>-<cpu>`, are `optionalDepen
 
 ## Runner root and tasks
 
-At each start, `packages/muxa/src/index.ts` writes `dekit.yaml` in the runner root and runs `dekit -C <root> up`, `reload --yes`, and `attach`; after the screen closes, it runs `runner stop` when the runner still runs (ADR 0010).
+At each start, `packages/muxa/src/index.ts` writes `dekit.yaml` in the runner root and runs `dekit -C <root> up`, `reload --yes`, and `attach`; after the screen closes, it asks the runner for its tasks (ADR 0010). A runner that a quit choice stops takes no new client, so `dekit ls` fails once it is gone; one that answers was left by Detach, and muxa names its processes. After a signal, muxa runs `runner stop` when the runner still runs.
 
 - **Root**: `runnerRoot` in `packages/muxa/src/runner.ts` returns `.muxa/<title>/`, where `<title>` is the process list title with each character a folder name cannot hold turned into `_` (`@acme/web` becomes `@acme_web`). A folder with no `package.json` has its root at `~/.local/state/muxa/runners/<folder path>/<title>/`; `homeFolderName` in `packages/muxa/src/log-files.ts` writes the folder path the same way for the runners and for the home log folder.
 - **Old title**: before the start, muxa stops a runner that runs in another root beside this one (`otherRoots`), since a change of the title moves the root.

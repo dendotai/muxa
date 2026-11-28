@@ -291,10 +291,12 @@ The keys act on the process list until you focus the output. While the output ha
 | `z`                                        | Show only the output; `Ctrl+A` goes back                      |
 | `v`                                        | Copy mode: move, `v` again to start the selection, `c` copies |
 | `p`                                        | All commands                                                  |
-| `q`, then `x`                              | Quit: stop every process and exit                             |
+| `q`, then `x` or `s`                       | Quit: stop every process and exit                             |
 | `Q`                                        | Quit at once, without the menu                                |
+| `q`, then `d`                              | Detach: exit and leave every process running                  |
+| `q`, then `r`                              | Switch project: open the screen of a runner in another folder |
 
-The quit menu also offers `Save and quit` and `Detach`. Both stop every process, because muxa ends with the screen.
+After Detach, muxa prints the names of the processes that keep running, such as `web and api keep running. Run muxa here to open them again.` `muxa` in the same folder then opens the screen on them, and `muxa logs` reads their output while no screen is open.
 
 ### Exit of a Process
 

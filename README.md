@@ -154,9 +154,11 @@ Without a name in the command, the tab name is the command (`-c` and basic mode)
 | `z`                                 | Show only the output; `Ctrl+A` goes back                        |
 | `v`                                 | Copy mode                                                       |
 | `p`                                 | All commands                                                    |
-| `q`, then `x`                       | Quit: stop every process and exit                               |
+| `q`, then `x` or `s`; or `Q`        | Quit: stop every process and exit                               |
+| `q`, then `d`                       | Detach: exit and leave every process running                    |
+| `q`, then `r`                       | Switch project: open the screen of a runner in another folder   |
 
-Every other process keeps running when one exits, and muxa stays open until you quit.
+Every other process keeps running when one exits, and muxa stays open until you quit. After Detach, `muxa` in the same folder opens the screen on the running processes again.
 
 ## Logs for Agents
 
