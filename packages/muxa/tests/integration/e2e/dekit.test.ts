@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, setDefaultTimeout } from "bun:test";
 import * as fs from "fs";
 import { spawnSync } from "child_process";
 import * as path from "path";
-import { fixturesPath, muxaPath, muxaRuntime } from "@tests/helpers/constants";
+import {
+  fixturesPath,
+  LATIN_KEYBOARD_LAYOUT,
+  muxaPath,
+  muxaRuntime,
+} from "@tests/helpers/constants";
 import {
   cleanupFixture,
   createRootPackageWorkspace,
@@ -27,6 +32,15 @@ const createRootFolder = (...extras: Parameters<typeof createRootPackageWorkspac
 
 // Each run starts dekit and waits for its screen, which takes longer than a test-mode run
 setDefaultTimeout(15000);
+
+/** The process that runs in the runner root and is not dekit: muxad, whose task has the root as its folder */
+function muxadPid(root: string): number | undefined {
+  const lsof = spawnSync("lsof", ["-a", "-d", "cwd", "-F", "pc", root], {
+    encoding: "utf8",
+  }).stdout;
+  const pid = /^p(\d+)\nc(?!dekit$).*$/m.exec(lsof)?.[1];
+  return pid === undefined ? undefined : Number(pid);
+}
 
 describe("muxa on dekit", () => {
   it("shows each named command, its output, and the process list title", async () => {
@@ -68,21 +82,12 @@ describe("muxa on dekit", () => {
   });
 
   it("runs muxad hidden from the screen and from a plain dekit ls, and stops it with the runner", async () => {
-    const cwd = createRootFolder();
-    const logs = path.join(cwd, ".muxa", "logs");
+    const cwd = createRootFolder({ muxa: { processListTitle: "dev" } });
+    const root = path.join(fs.realpathSync(cwd), ".muxa", "dev");
     const run = runInTerminal(["-c", "sleep 30", "web"], { cwd });
     await run.waitFor(/web/);
-    // The run-*.json file of muxad's open run holds its process id
-    const records = () => fs.readdirSync(logs).filter((name) => name.startsWith("run-"));
-    await waitUntil(() => records().length > 0, "muxad writes its record", 5000);
-    const [record] = records();
-    if (record === undefined) throw new Error("no record");
-    const { pid } = JSON.parse(fs.readFileSync(path.join(logs, record), "utf8"));
-    const root = fs
-      .readdirSync(path.join(cwd, ".muxa"))
-      .map((name) => path.join(cwd, ".muxa", name))
-      .find((dir) => fs.existsSync(path.join(dir, "dekit.yaml")));
-    if (root === undefined) throw new Error("no runner root");
+    await waitUntil(() => muxadPid(root) !== undefined, "dekit starts muxad", 5000);
+    const pid = muxadPid(root) as number;
     const ls = (...target: string[]) =>
       spawnSync(dekitBinaryPath(), ["-C", root, "ls", ...target], { encoding: "utf8" }).stdout;
 
@@ -92,7 +97,51 @@ describe("muxa on dekit", () => {
 
     expect(await quit(run)).toBe(0);
     expect(() => process.kill(pid, 0)).toThrow();
-    expect(records()).toEqual([]);
+  });
+});
+
+describe("a second start in the same folder", () => {
+  const startLines = (cwd: string) =>
+    (
+      fs
+        .readFileSync(path.join(cwd, ".muxa", "logs", "web.log"), "utf8")
+        .match(/=== muxa started/g) ?? []
+    ).length;
+
+  it("joins the runner of the first while its screen is open, and replaces a process after a yes", async () => {
+    const cwd = createRootFolder({ muxa: { processListTitle: "dev" } });
+    const root = path.join(fs.realpathSync(cwd), ".muxa", "dev");
+    const tasks = () =>
+      (
+        JSON.parse(
+          spawnSync(dekitBinaryPath(), ["-C", root, "ls", "--json"], { encoding: "utf8" }).stdout,
+        ) as { tasks: { path: string; state: string; spec: { cmd: string[] } }[] }
+      ).tasks.map(({ path: task, state, spec }) => `${task} ${state} ${spec.cmd.join(" ")}`);
+
+    const first = runInTerminal(["-c", "sleep 30", "web"], { cwd });
+    await first.waitFor(/web/);
+
+    const second = runInTerminal(["-c", "sleep 30", "web", "-c", "sleep 31", "api"], { cwd });
+    await second.waitFor(/api/);
+    await waitUntil(() => tasks().join() === "web ready sleep 30,api ready sleep 31", "api runs");
+    // web ran on, so no start line came into its log file
+    expect(startLines(cwd)).toBe(1);
+
+    const third = runInTerminal(["-c", "sleep 32", "web"], {
+      cwd,
+      env: { MUXA_TEST_KEYBOARD_LAYOUT: LATIN_KEYBOARD_LAYOUT },
+    });
+    await third.waitFor(/Replace it with "sleep 32"\? \(y\/N\)/);
+    third.type("y");
+    await waitUntil(
+      () => tasks().join() === "web ready sleep 32,api ready sleep 31",
+      "web runs the new command",
+    );
+    expect(startLines(cwd)).toBe(2);
+    expect(await quit(third)).toBe(0);
+    // The quit stopped the runner, which closes every screen on it
+    expect(await first.exited()).toBe(0);
+    expect(await second.exited()).toBe(0);
   });
 });
 

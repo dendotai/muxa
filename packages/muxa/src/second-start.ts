@@ -1,51 +1,62 @@
-import * as path from "path";
-import { fileKey, logFilesOf, type ProcessNames } from "./log-files";
-import { listOpenRuns, type OpenRun } from "./log-limits";
+import type { DekitTask, RunnerTask } from "./runner";
 import { confirmPrompt } from "./utils";
 
+/** The states of `dekit ls` for a task that does not run */
+const ENDED_STATES = ["idle", "exited", "done", "backoff"];
+
+/** What a start does in a runner that runs: the task paths it starts and the ones it restarts */
+export interface Join {
+  start: string[];
+  restart: string[];
+}
+
 /**
- * Ask before a start whose processes write a log file of another open run in `dir` (ADR 0008).
- * With no terminal on the input, it throws. Returns whether to start.
+ * Join the runner of the folder (ADR 0010): a task with the same command runs on, or starts again
+ * when it ended; a new one starts, and one with another command restarts after a yes. Returns
+ * undefined on a No, which is the answer with no terminal on the input.
  */
-export async function checkOpenRuns(dir: string, names: ProcessNames[]): Promise<boolean> {
-  let openRuns: OpenRun[];
-  try {
-    openRuns = listOpenRuns(dir);
-  } catch {
-    // The start of the log files then asks whether to continue without them
-    return true;
+export async function joinRunner(
+  running: RunnerTask[],
+  tasks: Record<string, DekitTask>,
+): Promise<Join | undefined> {
+  const join: Join = { start: [], restart: [] };
+  for (const [taskPath, task] of Object.entries(tasks)) {
+    const runnerTask = running.find(({ path }) => path === taskPath);
+    if (!runnerTask) {
+      join.start.push(taskPath);
+      continue;
+    }
+    const current = runnerTask.spec;
+    if (sameCommand(current, task)) {
+      if (ENDED_STATES.includes(runnerTask.state)) join.start.push(taskPath);
+      continue;
+    }
+    const question = `${task.label} already runs "${commandText(current.cmd)}" in this folder. Replace it with "${commandText(task.cmd)}"?`;
+    if (!process.stdin.isTTY) {
+      console.error(`${question} (y/N): N`);
+      return undefined;
+    }
+    if (!(await confirmPrompt(question, false))) return undefined;
+    join.restart.push(taskPath);
   }
-  const files = logFilesOf(names);
-  const shared = names.flatMap(({ typed }, i) => {
-    const key = fileKey(path.join(dir, files[i] ?? ""));
-    const runs = openRuns.filter((run) => run.logFileKeys.includes(key));
-    return runs.length > 0
-      ? [{ typed, startedAt: Math.min(...runs.map((run) => run.startedAt)) }]
-      : [];
-  });
-  if (shared.length === 0) return true;
-
-  const startedAt = Math.min(...shared.map((name) => name.startedAt));
-  const typed = shared.map((name) => name.typed);
-  const verb = typed.length === 1 ? "runs" : "run";
-  const fact = `${joinNames(typed)} already ${verb} in another muxa in this folder (started ${hoursAndMinutes(startedAt)}).`;
-
-  if (!process.stdin.isTTY) {
-    const restart =
-      typed.length === 1
-        ? `To restart it there, run muxa restart ${typed[0]}.`
-        : "To restart one there, run muxa restart <process>.";
-    throw new Error(`${fact} ${restart}`);
-  }
-  return confirmPrompt(`Warning: ${fact} Continue?`, false);
+  return join;
 }
 
-function joinNames(names: string[]): string {
-  return names.length === 1
-    ? (names[0] ?? "")
-    : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+function sameCommand(current: Partial<DekitTask>, task: DekitTask): boolean {
+  return (
+    JSON.stringify(words(current.cmd)) === JSON.stringify(words(task.cmd)) &&
+    current.cwd === task.cwd
+  );
 }
 
-function hoursAndMinutes(time: number): string {
-  return new Date(time).toTimeString().slice(0, 5);
+/** dekit splits a string `cmd` into words, and `dekit ls` gives the words */
+function words(cmd: DekitTask["cmd"] | undefined): string[] {
+  return typeof cmd === "string" ? cmd.split(/\s+/).filter(Boolean) : (cmd ?? []);
+}
+
+/** The command as the user typed it: without the `sh -c` that muxa wraps it in */
+function commandText(cmd: DekitTask["cmd"] | undefined): string {
+  if (typeof cmd === "string") return cmd;
+  if (cmd?.length === 3 && cmd[0] === "sh" && cmd[1] === "-c") return cmd[2] ?? "";
+  return (cmd ?? []).join(" ");
 }
