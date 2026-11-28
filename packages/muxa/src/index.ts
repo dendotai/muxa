@@ -38,6 +38,7 @@ import {
   confirmPrompt,
   debugLog,
   formatError,
+  listText,
 } from "./utils";
 import { discoverWorkspaces, formatWorkspaceList } from "./workspace";
 
@@ -274,11 +275,23 @@ async function main() {
       process.exit(1);
     });
 
+    let stopOnExit = false;
     attach.on("exit", (code) => {
       try {
-        // dekit's own quit choices stop the runner, except Detach; a deleted root fails every dekit command
+        // A deleted root fails every dekit command
         fs.mkdirSync(root, { recursive: true });
-        if (runnerRuns(dekit, root)) runDekit(stopRunner(root));
+        // A runner that a quit choice stops takes no new client, so `dekit ls` waits for it to go and
+        // fails; after Detach it answers
+        const leftRunning = (stopOnExit ? undefined : runnerTasks(dekit, root))?.filter(
+          (task) => !["idle", "done", "exited"].includes(task.state),
+        );
+        if (leftRunning?.length) {
+          const names = leftRunning.map((task) => task.spec.label ?? task.path);
+          const verb = names.length === 1 ? "keeps" : "keep";
+          console.log(`${listText(names)} ${verb} running. Run muxa here to open them again.`);
+        } else if (runnerRuns(dekit, root)) {
+          runDekit(stopRunner(root));
+        }
       } catch (error) {
         // A quit choice can finish stopping the runner between the check and the stop
         if (runnerRuns(dekit, root)) console.error(`Warning: ${formatError(error)}`);
@@ -296,6 +309,7 @@ async function main() {
     // A closed terminal sends SIGHUP; without a handler muxa dies before it stops the runner
     for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
       process.on(signal, () => {
+        stopOnExit = true;
         attach.kill("SIGTERM");
       });
     }

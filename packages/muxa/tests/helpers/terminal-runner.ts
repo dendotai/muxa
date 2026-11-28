@@ -10,6 +10,8 @@ export interface TerminalRun {
   type(keys: string): void;
   waitFor(pattern: RegExp, timeout?: number): Promise<void>;
   exited(timeout?: number): Promise<number>;
+  /** Send muxa a signal, as a closed terminal sends SIGHUP */
+  kill(signal: NodeJS.Signals): void;
 }
 
 /**
@@ -61,6 +63,9 @@ export function runInTerminal(
         }
         await Bun.sleep(25);
       }
+    },
+    kill(signal) {
+      proc.kill(signal);
     },
     async exited(timeout = 5000) {
       const timer = setTimeout(() => proc.kill("SIGKILL"), timeout);

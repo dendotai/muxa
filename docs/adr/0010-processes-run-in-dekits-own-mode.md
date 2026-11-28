@@ -21,7 +21,7 @@ At each start, muxa writes `.muxa/<title>/dekit.yaml`, then runs `dekit -C .muxa
 - **Processes.** One task per process, its path the log file's name without `.log`, its `label` the tab name as typed. A command muxa wraps runs as `sh -c`, any other as dekit's string form.
 - **Logs.** Each task writes `.muxa/logs/<process>.log` in append mode. Start lines and rotation stay muxa's.
 - **muxad.** A hidden task, `@muxa/muxad`, runs muxa's own program and does rotation and the total size limit. It stops with the runner, so rotation lasts as long as the processes.
-- **Quit.** Each choice of dekit's quit menu does what it says: `q q`, `x`, and `Q` stop every process, and `d` leaves them running. The next `muxa` in the folder opens the screen on them.
+- **Quit.** Each choice of dekit's quit menu does what it says: `x`, `s`, and `Q` stop every process, and `d` leaves them running. The next `muxa` in the folder opens the screen on them.
 - **One runner per folder.** A start with the processes that already run opens the screen. New names join the runner. A name that runs a different command asks before it replaces it, default No. An open run is a runner that runs.
 - **Verbs.** `muxa restart`, `stop`, and `start` call dekit's commands of the same name. `--server`, `--ctl`, and the TCP port go.
 

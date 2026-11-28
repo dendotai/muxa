@@ -14,6 +14,8 @@ import {
   createTempWorkspace,
 } from "@tests/helpers/fixture-helpers";
 import { dekitBinaryPath } from "@/dekit";
+import { runnerRuns } from "@/runner";
+import { followLogs } from "@tests/helpers/follow-runner";
 import { runMuxa } from "@tests/helpers/muxa-runner";
 import { quit, runInTerminal } from "@tests/helpers/terminal-runner";
 import { waitUntil } from "@tests/helpers/wait-until";
@@ -143,6 +145,77 @@ describe("a second start in the same folder", () => {
     expect(await first.exited()).toBe(0);
     expect(await second.exited()).toBe(0);
   });
+
+  it("opens the screen on the processes that d left running", async () => {
+    const cwd = createRootFolder({ muxa: { processListTitle: "dev" } });
+    const root = path.join(fs.realpathSync(cwd), ".muxa", "dev");
+    const first = runInTerminal(
+      [
+        "-c",
+        "echo from-web; sleep 2; echo later-web; sleep 30",
+        "web",
+        "-c",
+        "sleep 31",
+        "api",
+        "-c",
+        "exit 0",
+        "ended",
+      ],
+      { cwd },
+    );
+    await first.waitFor(/from-web/);
+    await first.waitFor(/ended\s+DOWN \(0\)/);
+    first.type("q");
+    await first.waitFor(/Detach/);
+    first.type("d");
+    expect(await first.exited()).toBe(0);
+    // ended exited before Detach, so muxa does not name it
+    expect(first.output()).toContain("web and api keep running. Run muxa here to open them again.");
+    expect(runnerRuns(dekitBinaryPath(), root)).toBe(true);
+    expect((await runMuxa(["logs", "web"], { cwd })).stdout).toContain("from-web");
+    const follow = followLogs(["web", "-f"], cwd);
+    await follow.waitFor("later-web");
+    await follow.interrupt();
+
+    const second = runInTerminal(
+      ["-c", "echo from-web; sleep 2; echo later-web; sleep 30", "web"],
+      { cwd },
+    );
+    await second.waitFor(/api/);
+    await second.waitFor(/from-web/);
+    // web ran on, so no start line came into its log file
+    expect(startLines(cwd)).toBe(1);
+    expect(await quit(second)).toBe(0);
+    expect(runnerRuns(dekitBinaryPath(), root)).toBe(false);
+  });
+
+  it("stops every process when its terminal closes", async () => {
+    const cwd = createRootFolder({ muxa: { processListTitle: "dev" } });
+    const root = path.join(fs.realpathSync(cwd), ".muxa", "dev");
+    const run = runInTerminal(["-c", "sleep 30", "web"], { cwd });
+    await run.waitFor(/web/);
+    run.kill("SIGHUP");
+    await run.exited();
+    expect(run.output()).not.toContain("keep running");
+    expect(runnerRuns(dekitBinaryPath(), root)).toBe(false);
+  });
+
+  it.each([{ keys: ["q", "s"] }, { keys: ["Q"] }])(
+    "stops every process after Save and quit by $keys",
+    async ({ keys }) => {
+      const cwd = createRootFolder({ muxa: { processListTitle: "dev" } });
+      const root = path.join(fs.realpathSync(cwd), ".muxa", "dev");
+      const run = runInTerminal(["-c", "sleep 30", "web"], { cwd });
+      await run.waitFor(/web/);
+      for (const key of keys) {
+        run.type(key);
+        if (key === "q") await run.waitFor(/Save and quit/);
+      }
+      expect(await run.exited()).toBe(0);
+      expect(run.output()).not.toContain("keep running");
+      expect(runnerRuns(dekitBinaryPath(), root)).toBe(false);
+    },
+  );
 });
 
 describe("log files of a dekit session", () => {
