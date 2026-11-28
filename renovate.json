@@ -1,0 +1,56 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":pinAllExceptPeerDependencies",
+    "helpers:pinGitHubActionDigests",
+    "group:allNonMajor"
+  ],
+  "dependencyDashboard": false,
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "packageRules": [
+    {
+      "description": "A closed PR skips the version its title names. The default major title names only the major (`to v5`), so closing it would skip every later v5 release.",
+      "matchUpdateTypes": ["major"],
+      "commitMessageExtra": "to {{{newVersion}}}"
+    },
+    {
+      "description": "Major updates only, since group:allNonMajor holds every other update. Both packages pin a workerd version; one bumped without the other runs two runtimes.",
+      "groupName": "wrangler",
+      "matchPackageNames": ["wrangler", "@cloudflare/vite-plugin"],
+      "matchUpdateTypes": ["major"]
+    },
+    {
+      "description": "Every update type, because each wrangler release can pin a new workerd. The script runs once per matching package in the PR, and a second run changes nothing.",
+      "matchPackageNames": ["wrangler", "@cloudflare/vite-plugin"],
+      "postUpgradeTasks": {
+        "commands": ["bun maintenance/updates/compatibility-date.mjs"],
+        "installTools": {
+          "bun": {}
+        },
+        "executionMode": "update"
+      }
+    },
+    {
+      "description": "update-dekit-canary.yml updates the canary (ADR 0009). npm tags each new canary latest, so Renovate would open a second PR for the same version.",
+      "matchPackageNames": ["@den-ai/dekit-canary-*"],
+      "enabled": false
+    },
+    {
+      "description": "@den-ai/muxa is published to npm, so its dependencies keep ranges: an exact version would force every consumer to install that exact copy.",
+      "matchFileNames": ["packages/muxa/package.json"],
+      "rangeStrategy": "auto"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "semantic-release runs through bunx or npx, outside package.json, so every line that names its version is bumped here.",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": ["\\bsemantic-release@(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "semantic-release",
+      "datasourceTemplate": "npm"
+    }
+  ]
+}
