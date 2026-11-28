@@ -51,6 +51,7 @@ FORCE_COLOR=1
   - A test of a name, a command, or a folder reads them here, so a change to how muxa starts dekit changes only the helper.
   - A test of the tasks themselves (the shell wrapping, the log field, `mouse_scroll_speed`) reads `dekitConfigOf` or `dekitTasksOf`; `getMuxaCommand` returns the `cmd` of the first task.
 - `runMuxa` in `packages/muxa/tests/helpers/muxa-runner.ts` starts muxa in test mode and returns its output.
+- Test mode still asks a runner that runs in the folder for its tasks (`dekit ls`), and `restart`, `stop`, and `start` act on it, so a test can start a runner with `dekit up` and drive it through `runMuxa`.
 - `runInTerminal` in `packages/muxa/tests/helpers/terminal-runner.ts` starts muxa in a pseudo-terminal with `MUXA_TEST_MODE` unset, so muxa starts the real dekit; use it for a test that needs a TTY or a keypress.
   - A runner outlives a muxa that a test kills, so `cleanupFixture` stops each runner whose root is inside the folder it deletes.
   - It sets `MUXA_TEST_SKIP_LOGS_LINE_QUESTION=1`, so muxa skips the question about a `muxa logs` line in `CLAUDE.md`; a test of that question passes the variable as `""`.

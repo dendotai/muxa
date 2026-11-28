@@ -137,6 +137,7 @@ muxa -c 'npm run build && npm test' -c 'echo "Done" || exit 1'
 - `-V, --version` - Display version
 - `workspaces`, `ws` - List the packages muxa finds
 - `logs <process>` - Print a process's output since the last start
+- `restart <process>`, `stop <process>`, `start <process>` - Restart, stop, or start a process of the running muxa
 
 `--help` and `--version` work only as the first argument. `-s` takes no script arguments; use `-w backend 'npm run test -- --watch'` for those.
 
@@ -204,8 +205,8 @@ In a folder with no `package.json`, muxa reads the same keys from `~/.config/mux
 
 ## Exit Codes
 
-- `0` - You quit muxa, even when a process failed, or a signal stopped it
-- `1` - muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a bad tab name, a rejected duplicate name, muxa inside muxa, no terminal, or no dekit binary for the platform. Also `logs` with no log file for the process
+- `0` - You quit muxa, even when a process failed, or a signal stopped it. Also `restart`, `stop` and `start` that reached the process
+- `1` - muxa stopped before it started any process: a bad argument, an unknown package or script, a Settings error, a bad tab name, a rejected duplicate name, muxa inside muxa, no terminal, or no dekit binary for the platform. Also `logs` with no log file for the process, and `restart`, `stop` and `start` that did not reach it
 
 ## Important Usage Notes
 

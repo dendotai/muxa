@@ -45,9 +45,14 @@ export const MUXAD_TASK = "@muxa/muxad";
  * screen after this folder, so its name is the process list title.
  */
 export function runnerRoot(cwd: string, title: string): string {
-  if (hasPackageJson(cwd)) return path.resolve(cwd, ".muxa", folderName(title));
+  return path.join(runnersFolder(cwd), folderName(title));
+}
+
+/** The folder that holds a root for each title of `cwd`'s processes */
+function runnersFolder(cwd: string): string {
+  if (hasPackageJson(cwd)) return path.resolve(cwd, ".muxa");
   const state = xdgHome(process.env.XDG_STATE_HOME, ".local/state");
-  return path.join(state, "muxa", "runners", homeFolderName(cwd), folderName(title));
+  return path.join(state, "muxa", "runners", homeFolderName(cwd));
 }
 
 /** The title with each character a folder name cannot hold, on any OS, turned into `_` */
@@ -158,12 +163,20 @@ export function writeDekitConfig(cwd: string, root: string, config: DekitConfig)
   return file;
 }
 
+/** The roots of every runner that a muxa started in `cwd`, under any title */
+export function folderRunnerRoots(cwd: string): string[] {
+  return rootsIn(runnersFolder(cwd));
+}
+
 /**
  * The roots of `cwd`'s runners under another title: a change of the title moves the root, and the
  * runner under the old one would keep running the same processes.
  */
 export function otherRoots(root: string): string[] {
-  const parent = path.dirname(root);
+  return rootsIn(path.dirname(root)).filter((dir) => dir !== root);
+}
+
+function rootsIn(parent: string): string[] {
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(parent, { withFileTypes: true });
@@ -173,7 +186,7 @@ export function otherRoots(root: string): string[] {
   return entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => path.join(parent, entry.name))
-    .filter((dir) => dir !== root && fs.existsSync(path.join(dir, "dekit.yaml")));
+    .filter((dir) => fs.existsSync(path.join(dir, "dekit.yaml")));
 }
 
 /** The dekit.yaml task path of each process */
@@ -186,6 +199,11 @@ export interface RunnerTask {
   path: string;
   state: string;
   spec: Partial<DekitTask>;
+}
+
+/** The name of the task as typed, which its label holds */
+export function taskName(task: RunnerTask): string {
+  return task.spec.label ?? task.path;
 }
 
 /** The tasks of the runner in `root`, in the order of its screen, or undefined when it does not run */

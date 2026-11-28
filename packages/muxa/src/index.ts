@@ -19,6 +19,7 @@ import {
 } from "./muxad";
 import { detectPackageManager } from "./package-manager";
 import { parseArguments, RESERVED_WORDS } from "./parser";
+import { controlProcess } from "./process-control";
 import { joinRunner, type Join } from "./second-start";
 import {
   buildDekitConfig,
@@ -27,6 +28,7 @@ import {
   runnerRoot,
   runnerRuns,
   runnerTasks,
+  taskName,
   taskPaths,
   toYaml,
   writeDekitConfig,
@@ -85,7 +87,9 @@ async function main() {
     }
 
     if (parsed.verbCall) {
-      throw new Error(`muxa ${parsed.verbCall.verb} is not yet implemented`);
+      const { verb, process: name } = parsed.verbCall;
+      controlProcess(dekitBinaryPath(), process.cwd(), verb, name);
+      return;
     }
 
     if (parsed.migrate) {
@@ -286,7 +290,7 @@ async function main() {
           (task) => !["idle", "done", "exited"].includes(task.state),
         );
         if (leftRunning?.length) {
-          const names = leftRunning.map((task) => task.spec.label ?? task.path);
+          const names = leftRunning.map(taskName);
           const verb = names.length === 1 ? "keeps" : "keep";
           console.log(`${listText(names)} ${verb} running. Run muxa here to open them again.`);
         } else if (runnerRuns(dekit, root)) {
@@ -330,6 +334,7 @@ Usage:
   muxa workspaces                       List all workspace packages
   muxa migrate [--dry-run] [--yes]      Migrate from concurrently
   muxa logs <process> [-f]              Print a process's output since the last start
+  muxa restart|stop|start <process>     Restart, stop, or start a process of the running muxa
 
 Examples:
   # Simple commands (like concurrently)

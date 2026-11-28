@@ -37,13 +37,4 @@ describe("CLI > Reserved words", () => {
       expect(result.stderr).toBe("Error: Unexpected argument: api\n");
     });
   }
-
-  it.each(["restart", "stop", "start"])("start nothing yet: %s", async (verb) => {
-    const result = await runMuxa([verb, "web"]);
-    expect(result).toEqual({
-      code: 1,
-      stdout: "",
-      stderr: `Error: muxa ${verb} is not yet implemented\n`,
-    });
-  });
 });

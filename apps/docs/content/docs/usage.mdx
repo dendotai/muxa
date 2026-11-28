@@ -206,6 +206,18 @@ web already runs "bun dev" in this folder. Replace it with "bun start"? (y/N):
 
 A quit that stops the processes, from any screen in the folder, stops all of them.
 
+### Restart, Stop, and Start From Another Terminal
+
+From another terminal in the same folder, or from an agent that muxa runs, act on a process of the running muxa:
+
+```bash
+muxa restart web
+muxa stop web
+muxa start web
+```
+
+Each does what <kbd>r</kbd>, <kbd>x</kbd> or <kbd>s</kbd> does on the screen of muxa, also after Detach. An agent such as Claude Code runs these like any shell command, so its permission prompt asks before each one. See [`restart <process>`](/cli-reference#restart-process-stop-process-start-process) for the names it takes and its errors.
+
 ### Logs for Agents
 
 An agent such as Claude Code reads a process's output with `muxa logs <process>` or from `.muxa/logs/`. When neither `CLAUDE.md` nor `AGENTS.md` beside the `package.json` mentions `muxa logs`, muxa asks once at start:

@@ -125,7 +125,7 @@ function resolveLogFile(cwd: string, nameOrCommand: string): string {
 }
 
 /** The log file of the process with this name, this command, or this name in the process list */
-function findProcess(processes: LoggedProcess[], nameOrCommand: string): string | undefined {
+export function findProcess(processes: LoggedProcess[], nameOrCommand: string): string | undefined {
   const named = (name: string) =>
     [
       processes.filter((process) => process.name === name),
